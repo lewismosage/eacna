@@ -46,7 +46,7 @@ export function Footer() {
               <p>5 th Ngong Avenue, 5 th Avenue Suites, 6 th Floor, Suite 8, Nairobi</p>
               <p>Nairobi, Kenya</p>
               <p>Phone: +254 123 456 789</p>
-              <p>Email: info@eacna.org</p>
+              <p>Email: <a href="mailto:info@eacna.org">info@eacna.org</a></p>
             </address>
           </div>
           <div>
