@@ -5,13 +5,13 @@ const teamMembers = [
   {
     name: "Dr. Samson Gwer",
     role: "President",
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80",
+    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80",
     bio: "Leading pediatric neurologist with 15 years of experience in East Africa"
   },
   {
     name: "Elizabeth Ombech",
     role: "Director, Progams and Operations",
-    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80",
+    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80",
     bio: "Results-driven leader with extensive experience in program development, operational strategy, and team management. Committed to driving impact through efficient program execution and organizational excellence."
   },
   {
