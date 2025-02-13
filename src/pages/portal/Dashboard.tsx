@@ -6,25 +6,47 @@ import {
   Award,
   BookOpen,
   Settings,
+  Folder,
 } from "lucide-react";
 
 const menuItems = [
   { icon: FileText, label: "My Documents", href: "/portal/documents" },
-  { icon: Calendar, label: "My Events", href: "/portal/events" },
-  { icon: Users, label: "Network", href: "/portal/network" },
   { icon: Award, label: "Certifications", href: "/portal/certifications" },
   { icon: BookOpen, label: "Learning", href: "/portal/learning" },
-  { icon: Settings, label: "Settings", href: "/portal/settings" },
+  
+];
+
+const projects = [
+  {
+    title: "Epilepsy Research",
+    status: "In Progress",
+    deadline: "March 15, 2025",
+  },
+  {
+    title: "Neuroscience Study",
+    status: "Completed",
+    deadline: "January 10, 2025",
+  },
+  {
+    title: "Brain Mapping Project",
+    status: "In Progress",
+    deadline: "April 20, 2025",
+  },
+];
+
+const quickAccessLinks = [
+  { label: "Research Library", href: "/portal/research-library" },
+  { label: "Resource Sharing", href: "/portal/resource-sharing" },
 ];
 
 const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="md:flex md:items-center md:justify-between">
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Welcome back, Dr. Sarah
+              Welcome back!
             </h2>
           </div>
         </div>
@@ -56,28 +78,26 @@ const Dashboard = () => {
         </div>
 
         <div className="mt-8 grid gap-8 grid-cols-1 lg:grid-cols-2">
-          {/* Recent Activity */}
+          {/* My Projects */}
           <div className="bg-white rounded-lg shadow">
             <div className="p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Recent Activity
+                My Projects
               </h3>
               <div className="space-y-4">
-                {[
-                  {
-                    action: "Registered for Annual Conference",
-                    date: "2 days ago",
-                  },
-                  { action: "Completed Epilepsy Course", date: "1 week ago" },
-                  { action: "Updated Profile", date: "2 weeks ago" },
-                ].map((activity, index) => (
+                {projects.map((project, index) => (
                   <div
                     key={index}
                     className="flex justify-between items-center"
                   >
-                    <span className="text-gray-600">{activity.action}</span>
+                    <div>
+                      <span className="text-gray-600">{project.title}</span>
+                      <span className="block text-sm text-gray-500">
+                        {project.status}
+                      </span>
+                    </div>
                     <span className="text-sm text-gray-500">
-                      {activity.date}
+                      {project.deadline}
                     </span>
                   </div>
                 ))}
@@ -85,29 +105,38 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Upcoming Events */}
+          {/* Quick Access Links */}
           <div className="bg-white rounded-lg shadow">
             <div className="p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Upcoming Events
+                Quick Access
               </h3>
               <div className="space-y-4">
-                {[
-                  { title: "Annual Conference", date: "June 15-17, 2024" },
-                  { title: "Research Symposium", date: "July 8, 2024" },
-                  { title: "Workshop Series", date: "August 22-23, 2024" },
-                ].map((event, index) => (
-                  <div
+                {quickAccessLinks.map((link, index) => (
+                  <a
                     key={index}
-                    className="flex justify-between items-center"
+                    href={link.href}
+                    className="block text-blue-600 hover:text-blue-800 transition-colors"
                   >
-                    <span className="text-gray-600">{event.title}</span>
-                    <span className="text-sm text-gray-500">{event.date}</span>
-                  </div>
+                    {link.label}
+                  </a>
                 ))}
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-8 grid gap-8 grid-cols-1 lg:grid-cols-2">
+        </div>
+
+        {/* Research Container */}
+        <div className="mt-8">
+          <a
+            href="/portal/research"
+            className="block bg-blue-600 text-white text-center py-4 rounded-lg shadow hover:bg-blue-700 transition-colors"
+          >
+            Go to Research
+          </a>
         </div>
       </div>
     </div>
