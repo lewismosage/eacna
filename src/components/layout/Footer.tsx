@@ -8,7 +8,7 @@ export function Footer() {
       { name: 'Resources', href: '/resources' },
       { name: 'Events', href: '/events' },
       { name: 'Contact', href: '/contact' },
-      { name: 'Member Portal', href: '/portal' },
+      { name: 'Member Portal', href: '/portal/login' },
     ],
     social: [
       { name: 'Facebook', href: '#', icon: Facebook },

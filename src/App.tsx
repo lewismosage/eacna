@@ -14,6 +14,7 @@ import { Contact } from "./pages/Contact";
 import Dashboard from "./pages/portal/Dashboard";
 import { Login } from "./pages/portal/Login";
 import Research from "./pages/portal/Research";
+import { LearnMore } from "./pages/LearnMore";
 
 function HomePage() {
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path="/portal/dashboard" element={<Dashboard />} />
           <Route path="/portal/login" element={<Login />} />
           <Route path="/portal/research" element={<Research />} />
+          <Route path="/learn-more" element={<LearnMore />} />
         </Routes>
         <Footer />
       </div>
