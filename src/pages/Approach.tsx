@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stethoscope, GraduationCap, Users, BookOpen, LineChart, Globe } from 'lucide-react';
 
 export function Approach() {
+  useEffect(() => {
+    window.scrollTo(0, 0); // Ensures the page opens at the top
+  }, []);
+
   const pillars = [
     {
       icon: Stethoscope,

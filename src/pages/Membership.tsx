@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Shield, Award, Users, BookOpen, Heart, Star } from 'lucide-react';
 
 export function Membership() {
+  useEffect(() => {
+    window.scrollTo(0, 0); // Ensures the page opens at the top
+  }, []);
   const benefits = [
     {
       icon: Shield,

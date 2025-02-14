@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Heart, Gift, Users, Coins, Calendar, HandHeart } from 'lucide-react';
 
 export function Support() {
+  useEffect(() => {
+    window.scrollTo(0, 0); // Ensures the page opens at the top
+  }, []);
   const ways = [
     {
       icon: Gift,
