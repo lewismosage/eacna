@@ -17,6 +17,9 @@ import Research from "./pages/portal/Research";
 import { LearnMore } from "./pages/LearnMore";
 import { Membership } from "./pages/Membership";
 import { Register } from "./pages/Register";
+import { JoinMission } from './pages/JoinMission';
+import { Support } from './pages/Support';
+import { Approach } from './pages/Approach';
 
 function HomePage() {
   return (
@@ -47,6 +50,9 @@ function App() {
           <Route path="/learn-more" element={<LearnMore />} />
           <Route path="/membership" element={<Membership />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/join-mission" element={<JoinMission />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/approach" element={<Approach />} />
         </Routes>
         <Footer />
       </div>
