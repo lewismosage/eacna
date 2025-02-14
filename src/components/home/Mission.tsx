@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 
 export function Mission() {
@@ -46,9 +47,12 @@ export function Mission() {
               ))}
             </div>
 
-            <button className="inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            <Link
+              to="/approach"
+              className="inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            >
               Learn About Our Approach
-            </button>
+            </Link>
           </div>
         </div>
       </div>
