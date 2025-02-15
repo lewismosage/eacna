@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
-import { FileText, Video, BookOpen, Download, ExternalLink, Search } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  FileText,
+  Video,
+  BookOpen,
+  Download,
+  ExternalLink,
+  Search,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const resources = [
   {
     title: "Pediatric Epilepsy Guidelines",
     type: "pdf",
     category: "Clinical Guidelines",
-    description: "Comprehensive guidelines for diagnosing and treating pediatric epilepsy",
+    description:
+      "Comprehensive guidelines for diagnosing and treating pediatric epilepsy",
     downloadUrl: "#",
   },
   {
     title: "Neurological Examination Techniques",
     type: "video",
     category: "Training",
-    description: "Video series on proper neurological examination techniques for children",
+    description:
+      "Video series on proper neurological examination techniques for children",
     videoUrl: "#",
   },
   {
@@ -27,34 +37,58 @@ const resources = [
     title: "Case Studies in Child Neurology",
     type: "article",
     category: "Education",
-    description: "Collection of interesting case studies from East African hospitals",
+    description:
+      "Collection of interesting case studies from East African hospitals",
     url: "#",
+  },
+  {
+    title: "Research Hub: Articles & Resources",
+    
+    category: "Research",
+    description:
+      "Access a curated collection of research articles, and insightful resources contributed by our members. Explore the latest studies, techniques, and expert insights to enhance your research journey.",
+      url: "#",
   },
 ];
 
-const categories = ["All", "Clinical Guidelines", "Training", "Research", "Education"];
+const categories = [
+  "All",
+  "Clinical Guidelines",
+  "Training",
+  "Research",
+  "Education",
+];
 
 export function Resources() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
-  const filteredResources = resources.filter(resource => {
-    const matchesCategory = selectedCategory === "All" || resource.category === selectedCategory;
-    const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         resource.description.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredResources = resources.filter((resource) => {
+    const matchesCategory =
+      selectedCategory === "All" || resource.category === selectedCategory;
+    const matchesSearch =
+      resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      resource.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'pdf':
+      case "pdf":
         return FileText;
-      case 'video':
+      case "video":
         return Video;
-      case 'article':
+      case "article":
         return BookOpen;
       default:
         return FileText;
+    }
+  };
+
+  const handleResourceClick = (resource: any) => {
+    if (resource.title === "Research Hub: Articles & Resources") {
+      navigate("/research");
     }
   };
 
@@ -68,8 +102,8 @@ export function Resources() {
               Educational Resources
             </h1>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto mb-8">
-              Access our comprehensive collection of educational materials, research papers,
-              and clinical guidelines.
+              Access our comprehensive collection of educational materials,
+              research papers, and clinical guidelines.
             </p>
             <div className="max-w-xl mx-auto relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -95,8 +129,8 @@ export function Resources() {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   selectedCategory === category
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 {category}
@@ -114,7 +148,8 @@ export function Resources() {
             return (
               <div
                 key={resource.title}
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+                onClick={() => handleResourceClick(resource)}
               >
                 <div className="p-6">
                   <div className="flex items-center mb-4">
@@ -127,22 +162,24 @@ export function Resources() {
                       </span>
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">{resource.title}</h3>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {resource.title}
+                  </h3>
                   <p className="text-gray-600 mb-4">{resource.description}</p>
                   <div className="flex justify-end">
-                    {resource.type === 'pdf' && (
+                    {resource.type === "pdf" && (
                       <button className="inline-flex items-center text-blue-600 hover:text-blue-700">
                         <Download className="h-5 w-5 mr-2" />
                         Download PDF
                       </button>
                     )}
-                    {resource.type === 'video' && (
+                    {resource.type === "video" && (
                       <button className="inline-flex items-center text-blue-600 hover:text-blue-700">
                         <ExternalLink className="h-5 w-5 mr-2" />
                         Watch Video
                       </button>
                     )}
-                    {resource.type === 'article' && (
+                    {resource.type === "article" && (
                       <button className="inline-flex items-center text-blue-600 hover:text-blue-700">
                         <ExternalLink className="h-5 w-5 mr-2" />
                         Read Article

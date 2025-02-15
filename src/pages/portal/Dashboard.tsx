@@ -156,7 +156,7 @@ const Dashboard = () => {
         {/* Research Container */}
         <div className="mt-8">
           <a
-            href="/portal/research"
+            href="/research"
             className="block bg-blue-600 text-white text-center py-4 rounded-lg shadow hover:bg-blue-700 transition-colors"
           >
             Go to Research
