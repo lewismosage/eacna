@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Calendar,
   FileText,
@@ -8,12 +8,12 @@ import {
   Settings,
   Folder,
 } from "lucide-react";
+import { supabase } from "../../../supabaseClient"; // Ensure the correct import path
 
 const menuItems = [
   { icon: FileText, label: "My Documents", href: "/portal/documents" },
   { icon: Award, label: "Certifications", href: "/portal/certifications" },
   { icon: BookOpen, label: "Learning", href: "/portal/learning" },
-  
 ];
 
 const projects = [
@@ -39,14 +39,39 @@ const quickAccessLinks = [
   { label: "Resource Sharing", href: "/portal/resource-sharing" },
 ];
 
+interface User {
+  user_metadata: {
+    full_name: string;
+  };
+}
+
 const Dashboard = () => {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user data:", error);
+      } else {
+        setUser({
+          user_metadata: {
+            full_name: userData.user.user_metadata.full_name,
+          },
+        });
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="md:flex md:items-center md:justify-between">
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Welcome back!
+              Welcome back, {user ? user.user_metadata.full_name : "User"}!
             </h2>
           </div>
         </div>
@@ -126,8 +151,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-8 grid-cols-1 lg:grid-cols-2">
-        </div>
+        <div className="mt-8 grid gap-8 grid-cols-1 lg:grid-cols-2"></div>
 
         {/* Research Container */}
         <div className="mt-8">

@@ -43,10 +43,17 @@ export function Register() {
       return;
     }
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-    });
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
+      {
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+          },
+        },
+      }
+    );
 
     const { user, session } = signUpData || {};
 
