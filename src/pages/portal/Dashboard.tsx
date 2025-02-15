@@ -8,7 +8,8 @@ import {
   Settings,
   Folder,
 } from "lucide-react";
-import { supabase } from "../../../supabaseClient"; // Ensure the correct import path
+import { supabase } from "../../../supabaseClient";
+import { useNavigate } from "react-router-dom";
 
 const menuItems = [
   { icon: FileText, label: "My Documents", href: "/portal/documents" },
@@ -47,6 +48,7 @@ interface User {
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -104,7 +106,10 @@ const Dashboard = () => {
 
         <div className="mt-8 grid gap-8 grid-cols-1 lg:grid-cols-2">
           {/* My Projects */}
-          <div className="bg-white rounded-lg shadow">
+          <div
+            className="bg-white rounded-lg shadow cursor-pointer"
+            onClick={() => navigate("/portal/myprojects")}
+          >
             <div className="p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 My Projects

@@ -1,19 +1,31 @@
-import React, { useState } from "react";
-import { FileText, Plus, Search, Tag } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { FileText, Search, Tag } from "lucide-react";
+import { supabase } from "../../supabaseClient";
 
 const Research = () => {
-  const [articles, setArticles] = useState([
-    {
-      id: "1",
-      title: "Advances in Pediatric Epilepsy Treatment",
-      abstract: "Recent developments in treating childhood epilepsy...",
-      author: "Dr. Sarah Kimani",
-      status: "published",
-      tags: ["Epilepsy", "Treatment", "Pediatric"],
-      publishedAt: "2024-03-15",
-    },
-    // More articles...
-  ]);
+  interface Article {
+    id: string;
+    title: string;
+    content: string;
+    author: string;
+    publishedAt: string;
+    tags: string[];
+  }
+
+  const [articles, setArticles] = useState<Article[]>([]);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      const { data, error } = await supabase.from("projects").select("*");
+      if (error) {
+        console.error("Error fetching articles:", error);
+      } else {
+        setArticles(data);
+      }
+    };
+
+    fetchArticles();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
@@ -25,14 +37,8 @@ const Research = () => {
               Research Articles
             </h2>
             <p className="mt-2 text-sm text-gray-700">
-              Share and explore the latest research in child neurology
+              Explore the latest research in child neurology
             </p>
-          </div>
-          <div className="mt-4 flex md:mt-0 md:ml-4">
-            <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-5 w-5 mr-2" />
-              New Article
-            </button>
           </div>
         </div>
 
@@ -81,7 +87,7 @@ const Research = () => {
                     {article.title}
                   </h3>
                 </div>
-                <p className="mt-3 text-gray-600">{article.abstract}</p>
+                <p className="mt-3 text-gray-600">{article.content}</p>
                 <div className="mt-4">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center text-sm text-gray-500">
@@ -91,15 +97,16 @@ const Research = () => {
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {article.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                      >
-                        <Tag className="h-4 w-4 mr-1" />
-                        {tag}
-                      </span>
-                    ))}
+                    {article.tags &&
+                      article.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                        >
+                          <Tag className="h-4 w-4 mr-1" />
+                          {tag}
+                        </span>
+                      ))}
                   </div>
                 </div>
               </div>
