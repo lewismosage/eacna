@@ -24,6 +24,7 @@ const MyProjects = () => {
   const [status, setStatus] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   interface Project {
     id: number;
@@ -34,6 +35,15 @@ const MyProjects = () => {
     publishedAt: string;
     tags?: string[];
     file_url?: string;
+    type: string;
+  }
+
+  interface User {
+    id: string;
+    email?: string;
+    user_metadata: {
+      full_name: string;
+    };
   }
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -47,6 +57,21 @@ const MyProjects = () => {
   });
 
   useEffect(() => {
+    const fetchUser = async () => {
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user data:", error);
+      } else {
+        setUser({
+          id: userData.user.id,
+          email: userData.user.email,
+          user_metadata: {
+            full_name: userData.user.user_metadata.full_name || "Unknown",
+          },
+        });
+      }
+    };
+
     const fetchProjects = async () => {
       const { data, error } = await supabase.from("projects").select("*");
       if (error) {
@@ -56,6 +81,7 @@ const MyProjects = () => {
       }
     };
 
+    fetchUser();
     fetchProjects();
   }, []);
 
@@ -74,6 +100,10 @@ const MyProjects = () => {
         category,
         content,
         file_url: file ? file.name : null,
+        author: user?.user_metadata.full_name || "Unknown",
+        publishedAt: new Date().toISOString(),
+        type: "research", // Set the type field
+        tags: [], // Initialize tags as an empty array
       },
     ]);
 
@@ -141,13 +171,24 @@ const MyProjects = () => {
   };
 
   const handleDelete = async (projectId: number) => {
-    const { error } = await supabase
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this project? This action cannot be undone."
+    );
+
+    if (!confirmDelete) return;
+
+    const { error: projectError } = await supabase
       .from("projects")
       .delete()
       .eq("id", projectId);
 
-    if (error) {
-      console.error("Error deleting project:", error);
+    const { error: researchError } = await supabase
+      .from("research")
+      .delete()
+      .eq("id", projectId);
+
+    if (projectError || researchError) {
+      console.error("Error deleting project:", projectError || researchError);
     } else {
       setProjects(projects.filter((project) => project.id !== projectId));
     }
@@ -159,10 +200,11 @@ const MyProjects = () => {
         title: project.title,
         category: project.category,
         content: project.content,
-        author: project.author,
-        publishedAt: project.publishedAt,
-        tags: project.tags,
+        author: project.author || user?.user_metadata.full_name || "Unknown",
+        publishedAt: project.publishedAt || new Date().toISOString(),
+        tags: project.tags || [], // Ensure the tags field is populated
         file_url: project.file_url,
+        type: project.type || "research", // Ensure the type field is populated
       },
     ]);
 

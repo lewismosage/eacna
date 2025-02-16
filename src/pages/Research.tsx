@@ -36,7 +36,7 @@ const Research = () => {
         const formattedData = data.map((article) => ({
           ...article,
           publishedAt: article.publishedAt
-            ? new Date(article.publishedAt).toLocaleDateString() // Format Date
+            ? new Date(article.publishedAt).toLocaleDateString()
             : "N/A", // Handle null case
           tags:
             typeof article.tags === "string"
