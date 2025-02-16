@@ -20,7 +20,8 @@ import { Register } from "./pages/Register";
 import { JoinMission } from "./pages/JoinMission";
 import { Support } from "./pages/Support";
 import { Approach } from "./pages/Approach";
-import MyProjects from "./pages/portal/MyProjects"; 
+import MyProjects from "./pages/portal/MyProjects";
+import ArticleDetail from "./pages/ArticleDetail";
 
 function HomePage() {
   return (
@@ -55,6 +56,7 @@ function App() {
           <Route path="/support" element={<Support />} />
           <Route path="/approach" element={<Approach />} />
           <Route path="/portal/myprojects" element={<MyProjects />} />{" "}
+          <Route path="/article/:id" element={<ArticleDetail />} />
         </Routes>
         <Footer />
       </div>

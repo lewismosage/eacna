@@ -18,7 +18,7 @@ const MyProjects = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("In Progress");
+  const [category, setCategory] = useState("Clinical Research");
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
@@ -42,7 +42,7 @@ const MyProjects = () => {
     extensions: [StarterKit],
     content: "",
     onUpdate: ({ editor }) => {
-      setContent(editor.getHTML());
+      setContent(editor.getText());
     },
   });
 
@@ -83,7 +83,7 @@ const MyProjects = () => {
     } else {
       setStatus("Project submitted successfully");
       setTitle("");
-      setCategory("In Progress");
+      setCategory("Clinical Research");
       setContent("");
       setFile(null);
       editor?.commands.clearContent();
@@ -225,8 +225,11 @@ const MyProjects = () => {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
+                  <option value="Clinical Research">Clinical Research</option>
+                  <option value="Development">Development</option>
+                  <option value="Intervention">Intervention</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Case Studies">Case Studies</option>
                 </select>
               </div>
 
@@ -299,7 +302,7 @@ const MyProjects = () => {
               </div>
             </form>
             {status && (
-              <p className="mt-4 text-center text-red-600">{status}</p>
+              <p className="mt-4 text-center text-green-600">{status}</p>
             )}
           </div>
         )}

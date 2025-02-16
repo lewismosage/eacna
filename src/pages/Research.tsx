@@ -8,6 +8,7 @@ import {
   ExternalLink,
   BookOpen,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../supabaseClient";
 
 const Research = () => {
@@ -171,10 +172,13 @@ const Research = () => {
                     ))}
                   </div>
                   <div className="flex justify-end">
-                    <button className="inline-flex items-center text-blue-600 hover:text-blue-700">
+                    <Link
+                      to={`/article/${article.id}`}
+                      className="inline-flex items-center text-blue-600 hover:text-blue-700"
+                    >
                       <ExternalLink className="h-5 w-5 mr-2" />
                       Read Article
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

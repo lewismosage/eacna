@@ -17,24 +17,6 @@ const menuItems = [
   { icon: BookOpen, label: "Learning", href: "/portal/learning" },
 ];
 
-const projects = [
-  {
-    title: "Epilepsy Research",
-    status: "In Progress",
-    deadline: "March 15, 2025",
-  },
-  {
-    title: "Neuroscience Study",
-    status: "Completed",
-    deadline: "January 10, 2025",
-  },
-  {
-    title: "Brain Mapping Project",
-    status: "In Progress",
-    deadline: "April 20, 2025",
-  },
-];
-
 const quickAccessLinks = [
   { label: "Research Library", href: "/portal/research-library" },
   { label: "Resource Sharing", href: "/portal/resource-sharing" },
@@ -46,8 +28,15 @@ interface User {
   };
 }
 
+interface Project {
+  title: string;
+  status: string;
+  deadline: string;
+}
+
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,7 +53,20 @@ const Dashboard = () => {
       }
     };
 
+    const fetchProjects = async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .limit(3);
+      if (error) {
+        console.error("Error fetching projects:", error);
+      } else {
+        setProjects(data);
+      }
+    };
+
     fetchUser();
+    fetchProjects();
   }, []);
 
   return (
@@ -115,22 +117,26 @@ const Dashboard = () => {
                 My Projects
               </h3>
               <div className="space-y-4">
-                {projects.map((project, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center"
-                  >
-                    <div>
-                      <span className="text-gray-600">{project.title}</span>
-                      <span className="block text-sm text-gray-500">
-                        {project.status}
+                {projects.length > 0 ? (
+                  projects.map((project, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center"
+                    >
+                      <div>
+                        <span className="text-gray-600">{project.title}</span>
+                        <span className="block text-sm text-gray-500">
+                          {project.status}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {project.deadline}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-500">
-                      {project.deadline}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-gray-500">No projects available</div>
+                )}
               </div>
             </div>
           </div>
@@ -164,7 +170,7 @@ const Dashboard = () => {
             href="/research"
             className="block bg-blue-600 text-white text-center py-4 rounded-lg shadow hover:bg-blue-700 transition-colors"
           >
-            Go to Research
+            Go to Articles & Resources
           </a>
         </div>
       </div>
