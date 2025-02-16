@@ -22,6 +22,11 @@ import { Support } from "./pages/Support";
 import { Approach } from "./pages/Approach";
 import MyProjects from "./pages/portal/MyProjects";
 import ArticleDetail from "./pages/ArticleDetail";
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { ManageResources } from './pages/admin/ManageResources';
+import { ManageEvents } from './pages/admin/ManageEvents';
+import { RequireAuth } from './components/admin/RequireAuth';
+import { AdminLogin } from './pages/admin/AdminLogin';
 
 function HomePage() {
   return (
@@ -57,6 +62,19 @@ function App() {
           <Route path="/approach" element={<Approach />} />
           <Route path="/portal/myprojects" element={<MyProjects />} />{" "}
           <Route path="/article/:id" element={<ArticleDetail />} />
+        <Route path="/admin" element={<AdminLayout />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <AdminLayout />
+            </RequireAuth>
+          }
+        >
+          <Route path="resources" element={<ManageResources />} />
+          <Route path="events" element={<ManageEvents />} />
+        </Route>
         </Routes>
         <Footer />
       </div>
