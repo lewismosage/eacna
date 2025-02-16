@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail } from "lucide-react";
-import { supabase } from "../../../supabaseClient"; 
+import { supabase } from "../../../supabaseClient";
 
 export function Login() {
   const navigate = useNavigate();
@@ -10,6 +10,19 @@ export function Login() {
     password: "",
   });
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/portal/dashboard");
+      }
+    };
+
+    checkSession();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

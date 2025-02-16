@@ -4,9 +4,7 @@ import {
   FileText,
   Users,
   Award,
-  BookOpen,
-  Settings,
-  Folder,
+  LogOut,
 } from "lucide-react";
 import { supabase } from "../../../supabaseClient";
 import { useNavigate } from "react-router-dom";
@@ -14,12 +12,10 @@ import { useNavigate } from "react-router-dom";
 const menuItems = [
   { icon: FileText, label: "My Documents", href: "/portal/documents" },
   { icon: Award, label: "Certifications", href: "/portal/certifications" },
-  { icon: BookOpen, label: "Learning", href: "/portal/learning" },
 ];
 
 const quickAccessLinks = [
   { label: "Research Library", href: "/portal/research-library" },
-  { label: "Resource Sharing", href: "/portal/resource-sharing" },
 ];
 
 interface User {
@@ -37,6 +33,7 @@ interface Project {
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [showLibrary, setShowLibrary] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -69,6 +66,15 @@ const Dashboard = () => {
     fetchProjects();
   }, []);
 
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error logging out:", error);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -78,6 +84,12 @@ const Dashboard = () => {
               Welcome back, {user ? user.user_metadata.full_name : "User"}!
             </h2>
           </div>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            <LogOut className="mr-2 h-5 w-5" /> Log Out
+          </button>
         </div>
 
         <div className="mt-8 grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -149,18 +161,93 @@ const Dashboard = () => {
               </h3>
               <div className="space-y-4">
                 {quickAccessLinks.map((link, index) => (
-                  <a
+                  <button
                     key={index}
-                    href={link.href}
+                    onClick={() => setShowLibrary(true)}
                     className="block text-blue-600 hover:text-blue-800 transition-colors"
                   >
                     {link.label}
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
           </div>
         </div>
+
+        {showLibrary && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Top Neurology Research Libraries
+              </h3>
+              <ul className="space-y-2">
+                <li>
+                  <strong>Johns Hopkins University</strong> –{" "}
+                  <a
+                    href="https://guides.library.jhu.edu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Visit Guide
+                  </a>
+                </li>
+                <li>
+                  <strong>Yale University</strong> –{" "}
+                  <a
+                    href="https://guides.library.yale.edu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Visit Guide
+                  </a>
+                </li>
+                <li>
+                  <strong>Mayo Clinic Libraries</strong> –{" "}
+                  <a
+                    href="https://libraryguides.mayo.edu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Visit Guide
+                  </a>
+                </li>
+                <li>
+                  <strong>University of Miami</strong> –{" "}
+                  <a
+                    href="https://guides.library.miami.edu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Visit Guide
+                  </a>
+                </li>
+                <li>
+                  <strong>University of Chicago</strong> –{" "}
+                  <a
+                    href="https://guides.lib.uchicago.edu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Visit Guide
+                  </a>
+                </li>
+              </ul>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowLibrary(false)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 grid gap-8 grid-cols-1 lg:grid-cols-2"></div>
 

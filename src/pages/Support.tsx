@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Heart, Gift, Users, Coins, Calendar, HandHeart } from 'lucide-react';
+import { Heart, Gift, Users, Coins, Calendar, HandHeart, Handshake } from 'lucide-react';
 
 export function Support() {
   useEffect(() => {
@@ -21,11 +21,11 @@ export function Support() {
       href: "#partner"
     },
     {
-      icon: Calendar,
-      title: "Fundraising Events",
-      description: "Organize or participate in fundraising events",
-      action: "View Events",
-      href: "#events"
+      icon: Handshake,
+      title: "Volunteer Support",
+      description: "Join or contribute to volunteer support initiatives",
+      action: "Get Involved",
+      href: "#volunteer"
     }
   ];
 
