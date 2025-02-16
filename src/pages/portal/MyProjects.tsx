@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../supabaseClient";
-import { PlusCircle, FileText, Users, Tag, ExternalLink } from "lucide-react";
-import { EditorContent } from "@tiptap/react";
+import {
+  PlusCircle,
+  FileText,
+  Users,
+  Tag,
+  ExternalLink,
+  Edit,
+  Trash,
+  Share,
+} from "lucide-react";
+import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useEditor } from "@tiptap/react";
 
 const MyProjects = () => {
   const navigate = useNavigate();
@@ -14,6 +22,9 @@ const MyProjects = () => {
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
   interface Project {
     id: number;
     title: string;
@@ -22,8 +33,9 @@ const MyProjects = () => {
     author: string;
     publishedAt: string;
     tags?: string[];
+    file_url?: string;
   }
-  
+
   const [projects, setProjects] = useState<Project[]>([]);
 
   const editor = useEditor({
@@ -81,6 +93,87 @@ const MyProjects = () => {
     }
   };
 
+  const handleEdit = (project: Project) => {
+    setSelectedProject(project);
+    setTitle(project.title);
+    setCategory(project.category);
+    setContent(project.content);
+    editor?.commands.setContent(project.content);
+    setShowEditor(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedProject) return;
+
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        title,
+        category,
+        content,
+        file_url: file ? file.name : selectedProject.file_url,
+      })
+      .eq("id", selectedProject.id);
+
+    if (error) {
+      setStatus("Error updating project");
+      console.error(error);
+    } else {
+      setStatus("Project updated successfully");
+      setProjects(
+        projects.map((project) =>
+          project.id === selectedProject.id
+            ? {
+                ...project,
+                title,
+                category,
+                content,
+                file_url: file ? file.name : selectedProject.file_url,
+              }
+            : project
+        )
+      );
+      setShowEditor(false);
+      setSelectedProject(null);
+    }
+  };
+
+  const handleDelete = async (projectId: number) => {
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", projectId);
+
+    if (error) {
+      console.error("Error deleting project:", error);
+    } else {
+      setProjects(projects.filter((project) => project.id !== projectId));
+    }
+  };
+
+  const handleShare = async (project: Project) => {
+    const { data, error } = await supabase.from("research").insert([
+      {
+        title: project.title,
+        category: project.category,
+        content: project.content,
+        author: project.author,
+        publishedAt: project.publishedAt,
+        tags: project.tags,
+        file_url: project.file_url,
+      },
+    ]);
+
+    if (error) {
+      console.error("Error sharing project:", error);
+      setShareStatus(`Failed to share the project: ${error.message}`);
+    } else {
+      setShareStatus("Shared to Articles & Resources!");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -98,7 +191,7 @@ const MyProjects = () => {
 
         {showEditor && (
           <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={selectedProject ? handleUpdate : handleSubmit}>
               <div className="mb-4">
                 <label
                   htmlFor="title"
@@ -201,7 +294,7 @@ const MyProjects = () => {
                   type="submit"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Submit
+                  {selectedProject ? "Update" : "Submit"}
                 </button>
               </div>
             </form>
@@ -249,12 +342,34 @@ const MyProjects = () => {
                       </span>
                     ))}
                 </div>
-                <div className="flex justify-end">
-                  <button className="inline-flex items-center text-blue-600 hover:text-blue-700">
-                    <ExternalLink className="h-5 w-5 mr-2" />
-                    Read Article
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => handleEdit(project)}
+                    className="inline-flex items-center text-blue-600 hover:text-blue-700"
+                  >
+                    <Edit className="h-5 w-5 mr-2" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(project.id)}
+                    className="inline-flex items-center text-red-600 hover:text-red-700"
+                  >
+                    <Trash className="h-5 w-5 mr-2" />
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => handleShare(project)}
+                    className="inline-flex items-center text-green-600 hover:text-green-700"
+                  >
+                    <Share className="h-5 w-5 mr-2" />
+                    Share
                   </button>
                 </div>
+                {shareStatus && (
+                  <p className="mt-4 text-center text-green-600">
+                    {shareStatus}
+                  </p>
+                )}
               </div>
             </div>
           ))}

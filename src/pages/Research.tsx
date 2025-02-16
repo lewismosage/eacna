@@ -28,11 +28,7 @@ const Research = () => {
 
   useEffect(() => {
     const fetchArticles = async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, title, content, author, publishedAt, tags, category, type");
-
-
+      const { data, error } = await supabase.from("research").select("*");
       if (error) {
         console.error("Error fetching articles:", error);
       } else {
@@ -41,14 +37,17 @@ const Research = () => {
           publishedAt: article.publishedAt
             ? new Date(article.publishedAt).toLocaleDateString() // Format Date
             : "N/A", // Handle null case
-          tags: typeof article.tags === "string" ? JSON.parse(article.tags) : article.tags || [],
-              }));
-              setArticles(formattedData as Article[]);
-            }
-          };
-      
-          fetchArticles();
-        }, [selectedCategory, searchQuery]);
+          tags:
+            typeof article.tags === "string"
+              ? JSON.parse(article.tags)
+              : article.tags || [],
+        }));
+        setArticles(formattedData as Article[]);
+      }
+    };
+
+    fetchArticles();
+  }, []);
 
   const filteredArticles = articles.filter((article) => {
     const matchesCategory =
