@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../supabaseClient";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, FileText, Users, Tag, ExternalLink } from "lucide-react";
 import { EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useEditor } from "@tiptap/react";
@@ -14,6 +14,17 @@ const MyProjects = () => {
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
+  interface Project {
+    id: number;
+    title: string;
+    category: string;
+    content: string;
+    author: string;
+    publishedAt: string;
+    tags?: string[];
+  }
+  
+  const [projects, setProjects] = useState<Project[]>([]);
 
   const editor = useEditor({
     extensions: [StarterKit],
@@ -22,6 +33,19 @@ const MyProjects = () => {
       setContent(editor.getHTML());
     },
   });
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const { data, error } = await supabase.from("projects").select("*");
+      if (error) {
+        console.error("Error fetching projects:", error);
+      } else {
+        setProjects(data);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -51,6 +75,9 @@ const MyProjects = () => {
       setContent("");
       setFile(null);
       editor?.commands.clearContent();
+      if (data) {
+        setProjects([...projects, data[0]]);
+      }
     }
   };
 
@@ -185,6 +212,53 @@ const MyProjects = () => {
         )}
 
         {/* Display projects here */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+            >
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <span className="text-sm font-medium text-blue-600">
+                      {project.category}
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">{project.title}</h3>
+                <p className="text-gray-600 mb-4">{project.content}</p>
+                <div className="flex items-center text-sm text-gray-500 mb-4">
+                  <Users className="h-4 w-4 mr-1" />
+                  <span>{project.author}</span>
+                  <span className="mx-2">•</span>
+                  <span>{project.publishedAt}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {project.tags &&
+                    project.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                      >
+                        <Tag className="h-4 w-4 mr-1" />
+                        {tag}
+                      </span>
+                    ))}
+                </div>
+                <div className="flex justify-end">
+                  <button className="inline-flex items-center text-blue-600 hover:text-blue-700">
+                    <ExternalLink className="h-5 w-5 mr-2" />
+                    Read Article
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
