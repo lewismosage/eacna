@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
 import { Hero } from "./components/home/Hero";
@@ -60,21 +60,27 @@ function App() {
           <Route path="/join-mission" element={<JoinMission />} />
           <Route path="/support" element={<Support />} />
           <Route path="/approach" element={<Approach />} />
-          <Route path="/portal/myprojects" element={<MyProjects />} />{" "}
+          <Route path="/portal/myprojects" element={<MyProjects />} />
           <Route path="/article/:id" element={<ArticleDetail />} />
-        <Route path="/admin" element={<AdminLayout />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route
-          path="/admin"
-          element={
-            <RequireAuth>
-              <AdminLayout />
-            </RequireAuth>
-          }
-        >
-          <Route path="resources" element={<ManageResources />} />
-          <Route path="events" element={<ManageEvents />} />
-        </Route>
+
+          {/* Admin Login Page */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+
+          {/* Redirect "/admin" to "/admin/login" if not authenticated */}
+          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+
+          {/* Protected Admin Routes */}
+          <Route
+            path="/admin/*"
+            element={
+              <RequireAuth>
+                <AdminLayout />
+              </RequireAuth>
+            }
+          >
+            <Route path="resources" element={<ManageResources />} />
+            <Route path="events" element={<ManageEvents />} />
+          </Route>
         </Routes>
         <Footer />
       </div>
