@@ -28,16 +28,27 @@ const Research = () => {
 
   useEffect(() => {
     const fetchArticles = async () => {
-      const { data, error } = await supabase.from("projects").select("*");
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, title, content, author, publishedAt, tags, category, type");
+
+
       if (error) {
         console.error("Error fetching articles:", error);
       } else {
-        setArticles(data);
-      }
-    };
-
-    fetchArticles();
-  }, []);
+        const formattedData = data.map((article) => ({
+          ...article,
+          publishedAt: article.publishedAt
+            ? new Date(article.publishedAt).toLocaleDateString() // Format Date
+            : "N/A", // Handle null case
+          tags: typeof article.tags === "string" ? JSON.parse(article.tags) : article.tags || [],
+              }));
+              setArticles(formattedData as Article[]);
+            }
+          };
+      
+          fetchArticles();
+        }, [selectedCategory, searchQuery]);
 
   const filteredArticles = articles.filter((article) => {
     const matchesCategory =
