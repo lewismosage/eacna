@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { FileText, Calendar, Settings, LogOut } from "lucide-react";
+import { FileText, Calendar, Settings, LogOut, Menu, X } from "lucide-react";
 import { RequireAuth } from "../../components/admin/RequireAuth";
 
 const sidebarItems = [
@@ -11,11 +11,12 @@ const sidebarItems = [
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSignOut = () => {
     // Clear authentication (adjust as needed for your auth logic)
     localStorage.removeItem("authToken");
-    
+
     // Redirect to the admin login page
     navigate("/admin/login");
   };
@@ -25,13 +26,26 @@ export function AdminLayout() {
       <div className="min-h-screen bg-gray-100 pt-16">
         <div className="flex h-screen">
           {/* Sidebar */}
-          <div className="w-64 bg-white shadow-lg flex flex-col justify-between">
+          <div
+            className={`fixed inset-y-0 left-0 transform ${
+              sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            } transition-transform lg:relative lg:translate-x-0 w-64 bg-white shadow-lg flex flex-col justify-between`}
+            style={{ paddingTop: "4rem" }} // Adjust this value as needed
+          >
             <div>
-              <div className="p-6">
+              <div className="p-6 flex justify-between items-center">
                 <div className="flex items-center space-x-3">
                   <Settings className="h-8 w-8 text-blue-600" />
-                  <span className="text-2xl font-bold text-gray-900">Admin Panel</span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    Admin Panel
+                  </span>
                 </div>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="text-gray-700 hover:text-gray-900 focus:outline-none lg:hidden"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
               <nav className="mt-6">
                 {sidebarItems.map((item) => {
@@ -65,6 +79,14 @@ export function AdminLayout() {
 
           {/* Main Content */}
           <div className="flex-1 overflow-auto">
+            <div className="lg:hidden p-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="text-gray-700 hover:text-gray-900 focus:outline-none"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+            </div>
             <Outlet />
           </div>
         </div>
