@@ -1,0 +1,230 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
+import Section from '../components/common/Section';
+
+const ContactPage = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: '',
+  });
+
+  const [status, setStatus] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus('Message sent successfully!');
+    setFormData({ name: '', email: '', subject: '', message: '' });
+  };
+
+  return (
+    <>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-r from-primary-900 via-primary-800 to-primary-700 text-white">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/4226262/pexels-photo-4226262.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center mix-blend-overlay"></div>
+        </div>
+        
+        <div className="container-custom relative py-24">
+          <motion.div 
+            className="text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-4xl font-bold mb-6">Contact Us</h1>
+            <p className="text-xl text-white/90 max-w-2xl mx-auto">
+              Get in touch with our team for inquiries, support, or collaboration opportunities.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <Section>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 -mt-16">
+          {/* Contact Information */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-primary-800 mb-6">
+                  Get in Touch
+                </h2>
+                <div className="space-y-6">
+                  <div className="flex items-start">
+                    <MapPin className="h-6 w-6 text-primary-600 mt-1" />
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Visit Us
+                      </h3>
+                      <p className="mt-1 text-gray-600">
+                        5th Ngong Avenue<br />
+                        Avenue Suites<br />
+                        6th Floor, Suite 8<br />
+                        Nairobi, Kenya
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <Phone className="h-6 w-6 text-primary-600 mt-1" />
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Call Us
+                      </h3>
+                      <p className="mt-1 text-gray-600">+254 123 456 789</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <Mail className="h-6 w-6 text-primary-600 mt-1" />
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Email Us
+                      </h3>
+                      <p className="mt-1 text-gray-600">
+                        <a href="mailto:info@eacna.org" className="text-primary-600 hover:underline">
+                          info@eacna.co.ke
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <Clock className="h-6 w-6 text-primary-600 mt-1" />
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Office Hours
+                      </h3>
+                      <p className="mt-1 text-gray-600">
+                        Monday - Friday: 8:00 AM - 5:00 PM<br />
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Form */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-primary-800 mb-6">
+                  Send Us a Message
+                </h2>
+                {status && (
+                  <p className="text-center text-green-600 mb-4">{status}</p>
+                )}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="subject">
+                      Subject
+                    </label>
+                    <select
+                      id="subject"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                      required
+                    >
+                      <option value="">Select a subject</option>
+                      <option value="general">General Inquiry</option>
+                      <option value="membership">Membership</option>
+                      <option value="events">Events</option>
+                      <option value="support">Support</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="message">
+                      Message
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      rows={6}
+                      value={formData.message}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <button
+                      type="submit"
+                      className="w-full flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                      <Send className="h-5 w-5 mr-2" />
+                      Send Message
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Map Section */}
+        <div className="mt-16">
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="aspect-w-16 aspect-h-9">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.8193213776024!2d36.81275261475895!3d-1.2924399990631648!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f10d22f42bf25%3A0x8f4f6c6c4b9fa84b!2s5th%20Avenue%20Suites!5e0!3m2!1sen!2sus!4v1647940434242!5m2!1sen!2sus"
+                width="100%"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </Section>
+    </>
+  );
+};
+
+export default ContactPage;
