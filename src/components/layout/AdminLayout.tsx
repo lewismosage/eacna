@@ -64,7 +64,7 @@ const AdminLayout = () => {
       icon: UserPlus,
       subItems: [
         { name: 'Applications', href: '/admin/specialists/applications' },
-        { name: 'Directory', href: '/admin/specialists/directory' }
+       
       ]
     },
     { 
@@ -209,7 +209,7 @@ const AdminLayout = () => {
               <div className="flex items-center space-x-2 text-primary-700">
                 <Brain className="h-8 w-8" />
                 <div>
-                  <span className="text-xl font-bold font-display tracking-tight block">EACNA</span>
+                  <span className="text-xl font-bold font-display tracking-tight block">EACNA Admin Dashboard</span>
                   <span className="text-xs text-primary-600 tracking-wider block">East African Child Neurology Association</span>
                 </div>
               </div>

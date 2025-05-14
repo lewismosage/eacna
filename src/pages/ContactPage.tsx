@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Send, Loader2 } from 'lucide-react';
 import Section from '../components/common/Section';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -9,9 +15,15 @@ const ContactPage = () => {
     email: '',
     subject: '',
     message: '',
+    phone: '',
+    preferred_contact_method: 'email'
   });
 
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState<{
+    type: 'success' | 'error' | '';
+    message: string;
+  }>({ type: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -23,8 +35,48 @@ const ContactPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStatus('Message sent successfully!');
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    setIsSubmitting(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          phone: formData.phone,
+          preferred_contact_method: formData.preferred_contact_method,
+          read: false
+        }]);
+
+      if (error) throw error;
+
+      setStatus({
+        type: 'success',
+        message: 'Message sent successfully! We will get back to you soon.'
+      });
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+        phone: '',
+        preferred_contact_method: 'email'
+      });
+
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setStatus({
+        type: 'error',
+        message: 'Failed to send message. Please try again later.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -121,14 +173,23 @@ const ContactPage = () => {
                 <h2 className="text-2xl font-bold text-primary-800 mb-6">
                   Send Us a Message
                 </h2>
-                {status && (
-                  <p className="text-center text-green-600 mb-4">{status}</p>
+                
+                {/* Status Message */}
+                {status.type && (
+                  <div className={`mb-6 p-4 rounded-md ${
+                    status.type === 'success' 
+                      ? 'bg-green-50 text-green-700 border border-green-200' 
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {status.message}
+                  </div>
                 )}
+                
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
-                        Full Name
+                        Full Name *
                       </label>
                       <input
                         type="text"
@@ -142,7 +203,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
-                        Email Address
+                        Email Address *
                       </label>
                       <input
                         type="email"
@@ -156,9 +217,40 @@ const ContactPage = () => {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="phone">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="preferred_contact_method">
+                        Preferred Contact Method
+                      </label>
+                      <select
+                        id="preferred_contact_method"
+                        name="preferred_contact_method"
+                        value={formData.preferred_contact_method}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                      >
+                        <option value="email">Email</option>
+                        <option value="phone">Phone</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="subject">
-                      Subject
+                      Subject *
                     </label>
                     <select
                       id="subject"
@@ -178,7 +270,7 @@ const ContactPage = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="message">
-                      Message
+                      Message *
                     </label>
                     <textarea
                       id="message"
@@ -194,10 +286,20 @@ const ContactPage = () => {
                   <div>
                     <button
                       type="submit"
-                      className="w-full flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      disabled={isSubmitting}
+                      className="w-full flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-75"
                     >
-                      <Send className="h-5 w-5 mr-2" />
-                      Send Message
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-5 w-5 mr-2" />
+                          Send Message
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>

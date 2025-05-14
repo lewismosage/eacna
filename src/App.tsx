@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 // Layouts
 import Layout from './components/layout/Layout';
@@ -37,12 +38,27 @@ import Notifications from './components/portal/Notifications';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard';
+import ContactMessages from './pages/Admin/ContactMessages';
+import Newsletter from './pages/Admin/Newsletter';
+import Subscribers from './pages/Admin/Subscribers';
+import SpecialistsApplications from './pages/Admin/SpecialistsApplications';
+import MembershipApplications from './pages/Admin/MembershipApplications';
+
 
 // Modals
 import PaymentModal from './components/common/PaymentModal';
 
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+
+
 function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
 
   return (
     <>
@@ -92,6 +108,12 @@ function App() {
         {/* Admin Route with Header only (no footer) */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
+          <Route path="/admin/communications/messages" element={<ContactMessages supabase={supabase} />} />
+          <Route path="/admin/communications/newsletter" element={<Newsletter supabase={supabase} />} />
+          <Route path="/admin/communications/subscribers" element={<Subscribers supabase={supabase} />} />
+          <Route path="/admin/specialists/applications" element={<SpecialistsApplications supabase={supabase} />} />
+          <Route path="/admin/members/applications" element={<MembershipApplications supabase={supabase} />} /> 
+
         </Route>
       </Routes>
 
