@@ -43,6 +43,7 @@ function App() {
           <Route path="login" element={<Login />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="gallery" element={<GalleryPage />} />
+          <Route path="/gallery/:year" element={<GalleryPage />} />
           <Route path="find-specialist" element={<FindSpecialistPage />} />
           <Route path="/specialist/:id" element={<SpecialistProfilePage />} />
           <Route path="contact" element={<ContactPage />} />

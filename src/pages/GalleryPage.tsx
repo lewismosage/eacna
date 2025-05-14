@@ -1,14 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, ArrowLeft, ArrowRight } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import Section from '../components/common/Section';
 import Button from '../components/common/Button';
 
 const GalleryPage = () => {
+  const { year } = useParams<{ year?: string }>();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState('2024');
   
   const galleryYears = ['2024', '2023', '2022'];
+  
+  // Set the selected year based on URL parameter
+  useEffect(() => {
+    if (year && galleryYears.includes(year)) {
+      setSelectedYear(year);
+    } else {
+      setSelectedYear(galleryYears[0]);
+    }
+  }, [year]);
   
   // Gallery images by year
   const galleryImages = {
