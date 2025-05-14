@@ -6,7 +6,7 @@ import {
   ThumbsUp, MessageCircle, Share2, MoreHorizontal, 
   FileText, UserPlus, Award, Settings, LogOut, Calendar
 } from 'lucide-react';
-import WritePublication from './writepublicationpage';
+import WritePublication from './WritePublicationPage';
 import Notification from './Notifications';
 import PostsFeed from './PostsFeed';
 
