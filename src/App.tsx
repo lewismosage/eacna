@@ -26,7 +26,7 @@ import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
 import AllPublicationsPage from './pages/AllPublicationsPage';
 import ReadPaperPage from './pages/ReadPaperPage';
-import WritePublicationPage from './components/portal/writepublicationpage';
+import WritePublicationPage from './components/portal/WritePublicationPage';
 import Notifications from './components/portal/Notifications';
 
 function App() {
