@@ -1,6 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
 import { useState } from 'react';
+
+// Layouts
 import Layout from './components/layout/Layout';
+import AdminLayout from './components/layout/AdminLayout';
+
+// Public Pages
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import TrainingPage from './pages/TrainingPage';
@@ -19,35 +24,45 @@ import EventDetails from './pages/EventDetails';
 import AllEvents from './pages/AllEvents';
 import ConferenceArchives from './pages/ConferenceArchives';
 import AllWebinars from './pages/AllWebinars';
-import MemberPortal from './components/portal/memberportal';
-import PaymentModal from './components/common/PaymentModal';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
 import AllPublicationsPage from './pages/AllPublicationsPage';
 import ReadPaperPage from './pages/ReadPaperPage';
+
+// Member Portal Components
+import MemberPortal from './components/portal/memberportal';
 import WritePublicationPage from './components/portal/WritePublicationPage';
 import Notifications from './components/portal/Notifications';
 
+// Admin Pages
+import AdminDashboard from './pages/Admin/AdminDashboard';
+
+// Modals
+import PaymentModal from './components/common/PaymentModal';
+
 function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  
+
   return (
     <>
       <Routes>
+        {/* Public Routes with Layout (includes Header + Footer) */}
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="training" element={<TrainingPage />} />
-          <Route path="membership" element={<MembershipPage setShowPaymentModal={setShowPaymentModal} />} />
+          <Route
+            path="membership"
+            element={<MembershipPage setShowPaymentModal={setShowPaymentModal} />}
+          />
           <Route path="login" element={<Login />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="gallery" element={<GalleryPage />} />
-          <Route path="/gallery/:year" element={<GalleryPage />} />
+          <Route path="gallery/:year" element={<GalleryPage />} />
           <Route path="find-specialist" element={<FindSpecialistPage />} />
-          <Route path="/specialist/:id" element={<SpecialistProfilePage />} />
+          <Route path="specialist/:id" element={<SpecialistProfilePage />} />
           <Route path="contact" element={<ContactPage />} />
-          <Route path="*" element={<NotFoundPage />} />
           <Route path="renew-membership" element={<RenewMembershipPage />} />
           <Route path="join-directory" element={<JoinDirectory />} />
           <Route path="events" element={<EventsSection />} />
@@ -55,18 +70,32 @@ function App() {
           <Route path="all-events" element={<AllEvents />} />
           <Route path="conference-archives" element={<ConferenceArchives />} />
           <Route path="webinars" element={<AllWebinars />} />
+
+          {/* Legal Pages */}
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="terms-of-service" element={<TermsOfService />} />
+          <Route path="cookie-policy" element={<CookiePolicy />} />
+
+          {/* Publications */}
+          <Route path="all-publications" element={<AllPublicationsPage />} />
+          <Route path="read-publication/:id" element={<ReadPaperPage />} />
+
+          {/* Member Portal */}
+          <Route path="portal/publications" element={<WritePublicationPage />} />
+          <Route path="portal/notifications" element={<Notifications />} />
           <Route path="member-portal" element={<MemberPortal />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/cookie-policy" element={<CookiePolicy />} />
-          <Route path="/all-publications" element={<AllPublicationsPage />} />
-          <Route path="/read-publication/:id" element={<ReadPaperPage />} />
-          <Route path="/portal/publications" element={<WritePublicationPage />} /> 
-          <Route path="/portal/notifications" element={<Notifications />} /> 
-          
+
+          {/* 404 */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+
+        {/* Admin Route with Header only (no footer) */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
         </Route>
       </Routes>
-      
+
+      {/* Payment Modal */}
       {showPaymentModal && (
         <PaymentModal onClose={() => setShowPaymentModal(false)} />
       )}
