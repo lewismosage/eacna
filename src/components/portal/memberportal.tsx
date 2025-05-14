@@ -490,14 +490,7 @@ const handleNavigation = (path: string) => {
                       <span>Membership Status</span>
                     </Link>
                     
-                    <Link 
-                      to="/portal/connections" 
-                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                    >
-                      <UserPlus className="w-5 h-5" />
-                      <span>My Connections</span>
-                    </Link>
+                    
                   </div>
                   
                   <div className="border-t border-gray-100 py-1">
@@ -550,14 +543,7 @@ const handleNavigation = (path: string) => {
                 <span>Membership Status</span>
               </Link>
               
-              <Link 
-                to="/portal/connections" 
-                className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50"
-                onClick={() => setIsProfileDropdownOpen(false)}
-              >
-                <UserPlus className="w-5 h-5" />
-                <span>My Connections</span>
-              </Link>
+              
             </div>
             
             {/* Sign out */}
