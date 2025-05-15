@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../components/common/Card';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 interface SpecialistApplication {
   id: string;
@@ -312,8 +313,8 @@ export default function ApplicationsContent({ supabase }: ApplicationsContentPro
         </div>
 
         {isLoading ? (
-          <div className="text-center p-8">
-            <p className="text-gray-500">Loading applications...</p>
+          <div className="py-12">
+            <LoadingSpinner />
           </div>
         ) : filteredApplications.length > 0 ? (
           <div className="overflow-x-auto">

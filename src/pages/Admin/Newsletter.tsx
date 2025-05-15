@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../components/common/Card';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 interface NewsletterContentProps {
   supabase: SupabaseClient;
@@ -362,8 +363,8 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
 
       <Card>
         {isLoading ? (
-          <div className="text-center p-8">
-            <p className="text-gray-500">Loading newsletters...</p>
+          <div className="py-12">
+            <LoadingSpinner />
           </div>
         ) : newsletters.length > 0 ? (
           <div className="overflow-x-auto">

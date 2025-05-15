@@ -3,6 +3,7 @@ import { Trash2, Eye, X, Mail, RefreshCw } from 'lucide-react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import ContactModal from './Contactmodal';
 import Card from '../../components/common/Card';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 // Define the type for a message
 interface Message {
@@ -115,8 +116,8 @@ export default function MessagesContent({ supabase }: MessagesContentProps) {
 
       <Card>
         {isLoading ? (
-          <div className="text-center p-8">
-            <p className="text-gray-500">Loading messages...</p>
+          <div className="py-12">
+            <LoadingSpinner />
           </div>
         ) : messages.length > 0 ? (
           <div className="overflow-x-auto">
@@ -191,7 +192,8 @@ export default function MessagesContent({ supabase }: MessagesContentProps) {
       {/* Message View Modal */}
       {isViewOpen && selectedMessage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">
                 Message from {selectedMessage.name}
@@ -203,7 +205,9 @@ export default function MessagesContent({ supabase }: MessagesContentProps) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6">
+            
+            {/* Scrollable Content */}
+            <div className="p-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">From</h4>
@@ -233,6 +237,8 @@ export default function MessagesContent({ supabase }: MessagesContentProps) {
                 </div>
               </div>
             </div>
+            
+            {/* Footer with buttons */}
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
               <button
                 type="button"
@@ -242,7 +248,10 @@ export default function MessagesContent({ supabase }: MessagesContentProps) {
                 Close
               </button>
               <button
-                onClick={openContactModal}
+                onClick={() => {
+                  setIsViewOpen(false);
+                  openContactModal();
+                }}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
               >
                 <Mail className="w-4 h-4 mr-2" />

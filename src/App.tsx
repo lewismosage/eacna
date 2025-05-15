@@ -37,6 +37,7 @@ import WritePublicationPage from './components/portal/WritePublicationPage';
 import Notifications from './components/portal/Notifications';
 
 // Admin Pages
+import AdminLogin from './pages/Admin/AdminLogin';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContactMessages from './pages/Admin/ContactMessages';
 import Newsletter from './pages/Admin/Newsletter';
@@ -44,21 +45,18 @@ import Subscribers from './pages/Admin/Subscribers';
 import SpecialistsApplications from './pages/Admin/SpecialistsApplications';
 import MembershipApplications from './pages/Admin/MembershipApplications';
 
-
 // Modals
 import PaymentModal from './components/common/PaymentModal';
 
+// Route protection
+import ProtectedRoute from './components/common/ProtectedRoute';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
-
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-
 
 function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-
 
   return (
     <>
@@ -68,10 +66,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="training" element={<TrainingPage />} />
-          <Route
-            path="membership"
-            element={<MembershipPage setShowPaymentModal={setShowPaymentModal} />}
-          />
+          <Route path="membership" element={<MembershipPage setShowPaymentModal={setShowPaymentModal} />} />
           <Route path="login" element={<Login />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="gallery" element={<GalleryPage />} />
@@ -86,34 +81,35 @@ function App() {
           <Route path="all-events" element={<AllEvents />} />
           <Route path="conference-archives" element={<ConferenceArchives />} />
           <Route path="webinars" element={<AllWebinars />} />
-
-          {/* Legal Pages */}
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
           <Route path="terms-of-service" element={<TermsOfService />} />
           <Route path="cookie-policy" element={<CookiePolicy />} />
-
-          {/* Publications */}
           <Route path="all-publications" element={<AllPublicationsPage />} />
           <Route path="read-publication/:id" element={<ReadPaperPage />} />
 
-          {/* Member Portal */}
-          <Route path="portal/publications" element={<WritePublicationPage />} />
-          <Route path="portal/notifications" element={<Notifications />} />
-          <Route path="member-portal" element={<MemberPortal />} />
+          {/* Protected Member Portal */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="portal/publications" element={<WritePublicationPage />} />
+            <Route path="portal/notifications" element={<Notifications />} />
+            <Route path="member-portal" element={<MemberPortal />} />
+          </Route>
 
-          {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 
-        {/* Admin Route with Header only (no footer) */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="/admin/communications/messages" element={<ContactMessages supabase={supabase} />} />
-          <Route path="/admin/communications/newsletter" element={<Newsletter supabase={supabase} />} />
-          <Route path="/admin/communications/subscribers" element={<Subscribers supabase={supabase} />} />
-          <Route path="/admin/specialists/applications" element={<SpecialistsApplications supabase={supabase} />} />
-          <Route path="/admin/members/applications" element={<MembershipApplications supabase={supabase} />} /> 
+        {/* Admin Login */}
+        <Route path="/admin/login" element={<AdminLogin />} />
 
+        {/* Admin Dashboard - Protected Route */}
+        <Route element={<ProtectedRoute adminOnly />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="communications/messages" element={<ContactMessages supabase={supabase} />} />
+            <Route path="communications/newsletter" element={<Newsletter supabase={supabase} />} />
+            <Route path="communications/subscribers" element={<Subscribers supabase={supabase} />} />
+            <Route path="specialists/applications" element={<SpecialistsApplications supabase={supabase} />} />
+            <Route path="members/applications" element={<MembershipApplications supabase={supabase} />} />
+          </Route>
         </Route>
       </Routes>
 
