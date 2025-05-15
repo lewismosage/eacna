@@ -51,7 +51,11 @@ const Footer = () => {
       }, 3000);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to subscribe. Please try again.');
+      if (err instanceof Error && err.message.includes('duplicate key value')) {
+        setError('This email is already subscribed.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to subscribe. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

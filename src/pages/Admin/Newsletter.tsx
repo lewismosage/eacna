@@ -25,7 +25,9 @@ interface Newsletter {
 interface Subscriber {
   id: string;
   email: string;
-  created_at: string;
+  name: string | null;
+  subscribed_at: string;
+  is_active: boolean;
 }
 
 export default function NewsletterContent({ supabase }: NewsletterContentProps) {
@@ -52,6 +54,7 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
   useEffect(() => {
     fetchNewsletters();
     fetchSubscribers();
+    // eslint-disable-next-line
   }, []);
 
   const fetchNewsletters = async () => {
@@ -75,13 +78,18 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
     try {
       const { data, error } = await supabase
         .from('subscribers')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, email, name, subscribed_at, is_active')
+        .eq('is_active', true)
+        .order('subscribed_at', { ascending: false });
       
       if (error) throw error;
       setSubscribers(data as Subscriber[] || []);
     } catch (error) {
       console.error('Error fetching subscribers:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to fetch subscribers'
+      });
     }
   };
 
@@ -209,7 +217,7 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
       return;
     }
   
-    if (confirm(`Are you sure you want to send this newsletter to ${subscribers.length} subscribers?`)) {
+    if (confirm(`Are you sure you want to send this newsletter to ${subscribers.filter(s => s.is_active).length} subscribers?`)) {
       setIsSending(true);
       
       try {
@@ -243,7 +251,7 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
         fetchNewsletters();
         setNotification({
           type: 'success',
-          message: `Newsletter sent to ${subscribers.length} subscribers!`
+          message: `Newsletter sent to ${subscribers.filter(s => s.is_active).length} subscribers!`
         });
       } catch (error) {
         console.error('Error sending newsletter:', error);
@@ -313,7 +321,7 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Newsletters</h1>
           <p className="text-gray-500 mt-1">
-            Create and send newsletters to {subscribers.length} subscribers
+            Create and send newsletters to {subscribers.filter(s => s.is_active).length} active subscribers
           </p>
         </div>
         <button 
