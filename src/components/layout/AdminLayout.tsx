@@ -114,7 +114,7 @@ const AdminLayout = () => {
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-primary-800 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out overflow-y-auto`}>
         <div className="flex items-center justify-between h-16 px-4 bg-primary-900">
           <Link to="/" className="flex items-center space-x-2 text-white">
-            <Brain className="h-8 w-8" />
+            <Brain className="h-8 w-8" /> 
             <span className="text-xl font-bold">EACNA Admin</span>
           </Link>
         </div>
