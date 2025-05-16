@@ -52,6 +52,7 @@ import SpecialistsDirectory from './pages/Admin/Specialists/Directory';
 import AnnualMeetings from './pages/Admin/events/AnnualMeetings';
 import TrainingEvents from './pages/Admin/events/TrainingEvents';
 import Webinars from './pages/Admin/events/Webinars';
+import AbtractSubmissions from './pages/Admin/events/AbstractSubmissions';
 
 // Modals
 import PaymentModal from './components/common/PaymentModal';
@@ -135,6 +136,7 @@ function App() {
             <Route path="specialists/directory" element={<SpecialistsDirectory supabase={supabase} />} />
             <Route path="publications/review" element={<PublicationReview supabase={supabase} />} />
             <Route path="publications/published" element={<PublishedArticles supabase={supabase} />} />
+            <Route path="events/abstracts" element={<AbtractSubmissions />} /> 
           </Route>
         </Route>
       </Routes>

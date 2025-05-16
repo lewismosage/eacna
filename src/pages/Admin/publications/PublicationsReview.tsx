@@ -19,6 +19,7 @@ import {
 import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 interface Publication {
   id: string;
@@ -289,7 +290,7 @@ export default function AdminPublicationsReview({ supabase }: AdminPublicationsR
 
         {isLoading ? (
           <div className="py-12 flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+            <LoadingSpinner />
           </div>
         ) : filteredPublications.length > 0 ? (
           <div className="overflow-x-auto">
