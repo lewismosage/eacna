@@ -42,11 +42,11 @@ import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContactMessages from './pages/Admin/communications/ContactMessages';
 import Newsletter from './pages/Admin/communications/Newsletter';
 import Subscribers from './pages/Admin/communications/Subscribers';
-import SpecialistsApplications from './pages/Admin/SpecialistsApplications';
-import MembershipApplications from './pages/Admin/MembershipApplications';
+import MemberApplications from './pages/Admin/members/MemberApplications';
 import Directory from './pages/Admin/members/Directory';
-//import MembershipRenewals from './pages/Admin/members/MembershipRenewals';
-//import MembershipPayments from './pages/Admin/members/MembershipPayments';
+import MembershipPayments from './pages/Admin/members/Payments';
+import PublicationReview from './pages/Admin/publications/PublicationsReview';
+import PublishedArticles from './pages/Admin/publications/PublishedArticles';
 import Applications from './pages/Admin/Specialists/Applications';
 import SpecialistsDirectory from './pages/Admin/Specialists/Directory';
 import AnnualMeetings from './pages/Admin/events/AnnualMeetings';
@@ -55,9 +55,11 @@ import Webinars from './pages/Admin/events/Webinars';
 
 // Modals
 import PaymentModal from './components/common/PaymentModal';
+import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Route protection
 import ProtectedRoute from './components/common/ProtectedRoute';
+import MembershipRenewalPage from './pages/RenewMembershipPage';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
@@ -65,9 +67,17 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [loading, setLoading] = useState(false); // <-- Global loading state
+
+  // Optionally, you can provide setLoading to children via context for global control
 
   return (
     <>
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <LoadingSpinner />
+        </div>
+      )}
       <Routes>
         {/* Public Routes with Layout (includes Header + Footer) */}
         <Route path="/" element={<Layout />}>
@@ -115,16 +125,16 @@ function App() {
             <Route path="communications/messages" element={<ContactMessages supabase={supabase} />} />
             <Route path="communications/newsletter" element={<Newsletter supabase={supabase} />} />
             <Route path="communications/subscribers" element={<Subscribers supabase={supabase} />} />
-            <Route path="specialists/applications" element={<SpecialistsApplications supabase={supabase} />} />
-            <Route path="members/applications" element={<MembershipApplications supabase={supabase} />} />
-            <Route path="members/renewals" element={<MembershipApplications supabase={supabase} />} />
-            <Route path="members/payments" element={<MembershipApplications supabase={supabase} />} />
+            <Route path="members/applications" element={<MemberApplications />} />
+            <Route path="members/payments" element={<MembershipPayments supabase={supabase} />} />
             <Route path="members/directory" element={<Directory />} />
             <Route path="events/meetings" element={<AnnualMeetings/>} />
             <Route path="events/training" element={<TrainingEvents />} />
             <Route path="events/webinars" element={<Webinars />} />
             <Route path="specialists/applications" element={<Applications supabase={supabase} />} />
             <Route path="specialists/directory" element={<SpecialistsDirectory supabase={supabase} />} />
+            <Route path="publications/review" element={<PublicationReview supabase={supabase} />} />
+            <Route path="publications/published" element={<PublishedArticles supabase={supabase} />} />
           </Route>
         </Route>
       </Routes>

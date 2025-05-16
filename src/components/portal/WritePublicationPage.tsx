@@ -25,12 +25,9 @@ const WritePublicationPage = () => {
     abstract: string;
     journal: string;
     year: string;
-    volume: string;
-    issue: string;
     pages: string;
-    doi: string;
     keywords: string[];
-    references?: string[]; // Add references to the Publication interface
+    references?: string[];
   }
 
   const [publication, setPublication] = useState<Publication>({
@@ -39,10 +36,7 @@ const WritePublicationPage = () => {
     abstract: '',
     journal: '',
     year: new Date().getFullYear().toString(),
-    volume: '',
-    issue: '',
     pages: '',
-    doi: '',
     keywords: [],
   });
 
@@ -464,36 +458,6 @@ const WritePublicationPage = () => {
               </div>
               
               <div>
-                <label htmlFor="volume" className="block text-sm font-medium text-gray-700 mb-1">
-                  Volume
-                </label>
-                <input
-                  type="text"
-                  id="volume"
-                  name="volume"
-                  value={publication.volume}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="e.g., 100"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="issue" className="block text-sm font-medium text-gray-700 mb-1">
-                  Issue
-                </label>
-                <input
-                  type="text"
-                  id="issue"
-                  name="issue"
-                  value={publication.issue}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="e.g., 2"
-                />
-              </div>
-              
-              <div>
                 <label htmlFor="pages" className="block text-sm font-medium text-gray-700 mb-1">
                   Pages
                 </label>
@@ -505,21 +469,6 @@ const WritePublicationPage = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="e.g., 124-152"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="doi" className="block text-sm font-medium text-gray-700 mb-1">
-                  DOI
-                </label>
-                <input
-                  type="text"
-                  id="doi"
-                  name="doi"
-                  value={publication.doi}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="e.g., 10.1234/eamj.2023.042"
                 />
               </div>
             </div>

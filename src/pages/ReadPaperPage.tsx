@@ -23,10 +23,7 @@ const ReadPaperPage = () => {
     authors: "Njeri S, Omondi B, Wanjala P, Kimathi M, Achieng J",
     journal: "East African Medical Journal",
     year: "2023",
-    volume: "100",
-    issue: "2",
     pages: "124-152",
-    doi: "10.1234/eamj.2023.042",
     keywords: ["epilepsy", "East Africa", "management guidelines", "pediatric neurology", "resource-limited settings"],
     readTime: "25 minutes",
     publishDate: "April 15, 2023"
@@ -223,20 +220,8 @@ const ReadPaperPage = () => {
                     <span className="text-gray-900">{publication.year}</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-gray-600 w-24 flex-shrink-0">Volume:</span>
-                    <span className="text-gray-900">{publication.volume}</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-gray-600 w-24 flex-shrink-0">Issue:</span>
-                    <span className="text-gray-900">{publication.issue}</span>
-                  </li>
-                  <li className="flex items-start">
                     <span className="text-gray-600 w-24 flex-shrink-0">Pages:</span>
                     <span className="text-gray-900">{publication.pages}</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-gray-600 w-24 flex-shrink-0">DOI:</span>
-                    <span className="text-gray-900">{publication.doi}</span>
                   </li>
                 </ul>
                 

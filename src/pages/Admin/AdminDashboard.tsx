@@ -6,10 +6,12 @@ import {
   MessageSquare,
   TrendingUp,
   UserPlus,
+  CreditCard,
   RefreshCw,
   Mail
 } from 'lucide-react';
 import Card, { CardContent } from '../../components/common/Card';
+import LoadingSpinner from '../../components/common/LoadingSpinner'; // <-- Import LoadingSpinner
 
 const AdminDashboard = () => {
   const [stats] = useState({
@@ -17,11 +19,14 @@ const AdminDashboard = () => {
     activeMembers: 198,
     pendingApplications: 12,
     pendingRenewals: 8,
-    upcomingEvents: 5,
+    pendingUpgrade: 4,
+    paymentsmade: 12450,
     pendingPublications: 7,
     unreadMessages: 15,
     newsletterSubscribers: 567
   });
+
+  const [loading, setLoading] = useState(false); 
 
   const recentActivities = [
     {
@@ -68,6 +73,14 @@ const AdminDashboard = () => {
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -98,7 +111,7 @@ const AdminDashboard = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending Applications</p>
               <p className="text-2xl font-semibold text-gray-900">{stats.pendingApplications}</p>
-              <p className="text-sm text-gray-500">{stats.pendingRenewals} renewals</p>
+              <p className="text-sm text-gray-500">+5 new applications this month</p>
             </div>
           </CardContent>
         </Card>
@@ -106,12 +119,20 @@ const AdminDashboard = () => {
         <Card>
           <CardContent className="flex items-center p-6">
             <div className="rounded-full bg-accent-100 p-3">
-              <Calendar className="h-6 w-6 text-accent-600" />
+              <CreditCard className="h-6 w-6 text-accent-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Upcoming Events</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.upcomingEvents}</p>
-              <p className="text-sm text-gray-500">Next 30 days</p>
+              <p className="text-sm font-medium text-gray-600">Payments Made</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.paymentsmade.toLocaleString('en-US', {
+                  style: 'currency',
+                  currency: 'KSH',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0
+                })}
+              </p>
+              <p className="text-sm text-gray-500">+18 new payments this month</p>
+              <p className="text-sm text-gray-500">{stats.pendingRenewals} renewals & {stats.pendingUpgrade} upgrade</p>
             </div>
           </CardContent>
         </Card>

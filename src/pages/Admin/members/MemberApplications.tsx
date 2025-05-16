@@ -210,7 +210,7 @@ const Applications = () => {
     }
   };
   
-  // Add this helper function near the top (after getStatusClass or before return)
+  // Update the getMembershipLabel helper function to show "Full Member" for "ordinary"
   const getMembershipLabel = (type: string) => {
     if (type === 'ordinary') return 'Full Member';
     // Add more mappings if needed
@@ -274,7 +274,7 @@ const Applications = () => {
                 onChange={(e) => setMembershipFilter(e.target.value)}
               >
                 <option value="all">All Memberships</option>
-                <option value="ordinary">Ordinary</option>
+                <option value="ordinary">Full Member</option>
                 <option value="associate">Associate</option>
                 <option value="student">Student</option>
                 <option value="institutional">Institutional</option>
