@@ -39,11 +39,19 @@ import Notifications from './components/portal/Notifications';
 // Admin Pages
 import AdminLogin from './pages/Admin/AdminLogin';
 import AdminDashboard from './pages/Admin/AdminDashboard';
-import ContactMessages from './pages/Admin/ContactMessages';
-import Newsletter from './pages/Admin/Newsletter';
-import Subscribers from './pages/Admin/Subscribers';
+import ContactMessages from './pages/Admin/communications/ContactMessages';
+import Newsletter from './pages/Admin/communications/Newsletter';
+import Subscribers from './pages/Admin/communications/Subscribers';
 import SpecialistsApplications from './pages/Admin/SpecialistsApplications';
 import MembershipApplications from './pages/Admin/MembershipApplications';
+import Directory from './pages/Admin/members/Directory';
+//import MembershipRenewals from './pages/Admin/members/MembershipRenewals';
+//import MembershipPayments from './pages/Admin/members/MembershipPayments';
+import Applications from './pages/Admin/Specialists/Applications';
+import SpecialistsDirectory from './pages/Admin/Specialists/Directory';
+import AnnualMeetings from './pages/Admin/events/AnnualMeetings';
+import TrainingEvents from './pages/Admin/events/TrainingEvents';
+import Webinars from './pages/Admin/events/Webinars';
 
 // Modals
 import PaymentModal from './components/common/PaymentModal';
@@ -109,6 +117,14 @@ function App() {
             <Route path="communications/subscribers" element={<Subscribers supabase={supabase} />} />
             <Route path="specialists/applications" element={<SpecialistsApplications supabase={supabase} />} />
             <Route path="members/applications" element={<MembershipApplications supabase={supabase} />} />
+            <Route path="members/renewals" element={<MembershipApplications supabase={supabase} />} />
+            <Route path="members/payments" element={<MembershipApplications supabase={supabase} />} />
+            <Route path="members/directory" element={<Directory />} />
+            <Route path="events/meetings" element={<AnnualMeetings/>} />
+            <Route path="events/training" element={<TrainingEvents />} />
+            <Route path="events/webinars" element={<Webinars />} />
+            <Route path="specialists/applications" element={<Applications supabase={supabase} />} />
+            <Route path="specialists/directory" element={<SpecialistsDirectory supabase={supabase} />} />
           </Route>
         </Route>
       </Routes>

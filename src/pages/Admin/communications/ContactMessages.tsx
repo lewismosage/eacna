@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Trash2, Eye, X, Mail, RefreshCw } from 'lucide-react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import ContactModal from './Contactmodal';
-import Card from '../../components/common/Card';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import Card from '../../../components/common/Card';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 // Define the type for a message
 interface Message {

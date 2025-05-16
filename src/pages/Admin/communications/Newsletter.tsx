@@ -3,8 +3,8 @@ import { Send, Edit, Eye, Trash2, Clock, User, Check, X, AlertCircle } from 'luc
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SupabaseClient } from '@supabase/supabase-js';
-import Card from '../../components/common/Card';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import Card from '../../../components/common/Card';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 interface NewsletterContentProps {
   supabase: SupabaseClient;

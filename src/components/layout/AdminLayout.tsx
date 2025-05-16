@@ -35,7 +35,8 @@ const AdminLayout = () => {
       subItems: [
         { name: 'Training Events', href: '/admin/events/training' },
         { name: 'Annual Meetings', href: '/admin/events/meetings' },
-        { name: 'Webinars', href: '/admin/events/webinars' }
+        { name: 'Webinars', href: '/admin/events/webinars' },
+        { name: 'Abstract Submissions', href: '/admin/events/abstracts' },
       ]
     },
     { 
@@ -64,7 +65,7 @@ const AdminLayout = () => {
       icon: UserPlus,
       subItems: [
         { name: 'Applications', href: '/admin/specialists/applications' },
-       
+        { name: 'Directory', href: '/admin/specialists/directory' },
       ]
     },
     { 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Mail, User, Trash2, Download, X, AlertCircle, Check } from 'lucide-react';
 import { SupabaseClient } from '@supabase/supabase-js';
-import Card from '../../components/common/Card';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import Card from '../../../components/common/Card';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 interface Subscriber {
   id: string;
