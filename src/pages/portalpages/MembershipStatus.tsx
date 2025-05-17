@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Download, Award, Clock, CreditCard, BadgeCheck, Calendar, ChevronRight } from 'lucide-react';
+import { Award, Clock, CreditCard, Calendar, BadgeCheck } from 'lucide-react';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import CertificateSection from './CertificateSection'; 
 
 // Mock membership data for demonstration
 const MOCK_MEMBERSHIP = {
@@ -125,7 +126,7 @@ interface MembershipOptionsProps {
 
 const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
   const [selectedTier, setSelectedTier] = useState<MembershipTierKey | null>(null);
-  
+
   // Get current membership tier key and rank
   const currentTierKey = getCurrentMembershipTierKey(currentMembership.type);
   const currentTierRank = MEMBERSHIP_TIERS[currentTierKey].rank;
@@ -188,7 +189,7 @@ const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
             </div>
             
             <div className="mt-4 flex justify-between items-center">
-              <span className="font-semibold">${currentMembership.renewalFee}</span>
+              <span className="font-semibold">KSH{currentMembership.renewalFee}</span>
               <button className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors">
                 Renew Now
               </button>
@@ -223,19 +224,14 @@ const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
                 {Object.keys(MEMBERSHIP_TIERS).map(tier => {
                   const tierKey = tier as MembershipTierKey;
                   const isHonorary = tierKey === 'Honorary Membership';
-                  const isDisabled = isHonorary;
-                  
                   return (
                     <button
                       key={tier}
-                      onClick={() => !isDisabled && setSelectedTier(tierKey)}
-                      disabled={isDisabled}
-                      className={`px-3 py-1 text-sm rounded-lg ${
-                        isHonorary
-                          ? 'border border-blue-300 bg-white text-blue-700 cursor-default'
-                          : selectedTier === tier
-                            ? 'bg-primary-100 border border-primary-300 text-primary-800'
-                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                      onClick={() => setSelectedTier(tierKey)}
+                      className={`px-3 py-1 text-sm rounded-lg border ${
+                        selectedTier === tierKey
+                          ? 'bg-primary-100 border-primary-300 text-primary-800'
+                          : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       {tier}
@@ -248,7 +244,7 @@ const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
               {/* Display benefits for selected tier */}
               {selectedTier ? (
                 <div className="border-t border-gray-100 pt-4">
-                  <h6 className="font-medium text-gray-700 mb-1">{selectedTier}</h6>
+                  <h6 className="font-medium text-gray-700 mb-1">{selectedTier}{selectedTier === 'Honorary Membership' && ' (Invitation Only)'}</h6>
                   <p className="text-sm text-gray-600 mb-3">{MEMBERSHIP_TIERS[selectedTier].description}</p>
                   <ul className="space-y-2">
                     {MEMBERSHIP_TIERS[selectedTier].benefits.map((benefit, index) => (
@@ -260,11 +256,22 @@ const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
                   </ul>
                   <div className="mt-4 flex justify-between items-center">
                     <span className="font-semibold">
-                      ${MEMBERSHIP_TIERS[selectedTier].fee > 0 ? MEMBERSHIP_TIERS[selectedTier].fee : 'Free'}
+                      {MEMBERSHIP_TIERS[selectedTier].fee > 0
+                        ? `KSH${MEMBERSHIP_TIERS[selectedTier].fee}`
+                        : 'Free'}
                     </span>
-                    <button className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors">
-                      {showAsUpgrade ? `Upgrade to ${selectedTier.split(' ')[0]}` : `Change to ${selectedTier.split(' ')[0]}`}
-                    </button>
+                    {selectedTier === 'Honorary Membership' ? (
+                      <button
+                        className="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg font-medium cursor-not-allowed"
+                        disabled
+                      >
+                        Invitations Only
+                      </button>
+                    ) : (
+                      <button className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                        {showAsUpgrade ? `Upgrade to ${selectedTier.split(' ')[0]}` : `Change to ${selectedTier.split(' ')[0]}`}
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -289,9 +296,8 @@ const CheckIcon = () => (
 
 const MembershipStatus = () => {
   const [viewCertificate, setViewCertificate] = useState(false);
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false);
 
-  // Calculate days remaining until expiry
   const calculateDaysRemaining = () => {
     const today = new Date();
     const expiryDate = new Date(MOCK_MEMBERSHIP.expiryDate);
@@ -303,9 +309,8 @@ const MembershipStatus = () => {
   const daysRemaining = calculateDaysRemaining();
 
   const handleDownloadCertificate = () => {
-    // In a real application, this would trigger a certificate download
     console.log("Downloading certificate...");
-    // Implementation would connect to backend API to generate and download the certificate
+    // Implementation would connect to backend API
   };
 
   return (
@@ -315,7 +320,14 @@ const MembershipStatus = () => {
           <LoadingSpinner />
         </div>
       )}
-      {!viewCertificate ? (
+      
+      {viewCertificate ? (
+        <CertificateSection 
+          membership={MOCK_MEMBERSHIP}
+          onClose={() => setViewCertificate(false)}
+          onDownload={handleDownloadCertificate}
+        />
+      ) : (
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-primary-800">Membership Status</h2>
@@ -377,72 +389,6 @@ const MembershipStatus = () => {
 
           {/* Membership Options */}
           <MembershipOptions currentMembership={MOCK_MEMBERSHIP} />
-        </div>
-      ) : (
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-primary-800">Membership Certificate</h2>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setViewCertificate(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-              >
-                Back to Status
-              </button>
-              <button 
-                onClick={handleDownloadCertificate}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-primary-700 transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                <span>Download</span>
-              </button>
-            </div>
-          </div>
-          
-          {/* Certificate Display */}
-          <div className="border-4 border-primary-100 p-8 rounded-lg bg-white mx-auto max-w-3xl">
-            <div className="text-center mb-6">
-              <div className="flex justify-center mb-4">
-                {/* This would be the actual logo in a real application */}
-                <div className="bg-primary-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-xl font-bold">
-                  EACNA
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold text-primary-800 mb-1">East African Child Neurology Association</h1>
-              <h2 className="text-lg font-semibold text-primary-600">Certificate of Membership</h2>
-            </div>
-            
-            <div className="my-10 text-center">
-              <p className="text-gray-700 mb-2">This certifies that</p>
-              <p className="text-xl font-bold text-gray-900 mb-2">Dr. Lewis Mosage</p>
-              <p className="text-gray-700">is a recognized</p>
-              <p className="text-xl font-semibold text-primary-700 my-2">{MOCK_MEMBERSHIP.type}</p>
-              <p className="text-gray-700">of the East African Child Neurology Association</p>
-              <p className="text-gray-700 mt-6">Membership ID: {MOCK_MEMBERSHIP.membershipId}</p>
-              <p className="text-gray-700">Valid from {MOCK_MEMBERSHIP.startDate} to {MOCK_MEMBERSHIP.expiryDate}</p>
-            </div>
-            
-            <div className="mt-10 flex justify-between items-end">
-              <div>
-                <div className="border-b border-gray-400 w-40 mb-1"></div>
-                <p className="text-gray-700">Dr. Samantha Njeri</p>
-                <p className="text-sm text-gray-600">President, EACNA</p>
-              </div>
-              
-              <div className="flex flex-col items-center">
-                {/* This would be an actual seal in a real application */}
-                <div className="w-20 h-20 border-2 border-primary-600 rounded-full flex items-center justify-center text-primary-800 font-bold">
-                  SEAL
-                </div>
-              </div>
-              
-              <div>
-                <div className="border-b border-gray-400 w-40 mb-1"></div>
-                <p className="text-gray-700">Dr. Faith Mueni</p>
-                <p className="text-sm text-gray-600">Secretary General, EACNA</p>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>

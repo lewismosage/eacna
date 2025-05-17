@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   Users, MessageSquare, BookOpen, Bell, Search,
   ThumbsUp, MessageCircle, Share2, MoreHorizontal, 
-  FileText, UserPlus, Award, Settings, LogOut, Calendar
+  FileText, UserPlus, Award, User, LogOut, Calendar
 } from 'lucide-react';
 import WritePublication from './WritePublicationPage';
 import Notification from './Notifications';
@@ -376,45 +375,51 @@ const MemberPortal = () => {
   const [currentTab, setCurrentTab] = useState("home");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  const [isSidebarDropdownOpen, setIsSidebarDropdownOpen] = useState(false); // New state for sidebar dropdown
+
   // Set the current tab based on location
   useEffect(() => {
     const path = location.pathname.split('/')[2] || 'home';
     setCurrentTab(path);
   }, [location]);
-  
+
   // Navigation items
-const navItems = [
-  { icon: Users, label: "Home Feed", path: "home", badge: null },
-  { icon: BookOpen, label: "Publications", path: "publications", badge: null },
-  { icon: Bell, label: "Notifications", path: "notifications", badge: MOCK_USER.unreadNotifications }
-];
-  
-  // Toggle profile dropdown
+  const navItems = [
+    { icon: Users, label: "Home Feed", path: "home", badge: null },
+    { icon: BookOpen, label: "Publications", path: "publications", badge: null },
+    { icon: Bell, label: "Notifications", path: "notifications", badge: MOCK_USER.unreadNotifications }
+  ];
+
+  // Toggle profile dropdown (for mobile)
   const toggleProfileDropdown = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
-  
+
+  // Toggle sidebar dropdown (for desktop)
+  const toggleSidebarDropdown = () => {
+    setIsSidebarDropdownOpen(!isSidebarDropdownOpen);
+  };
+
   // Toggle mobile menu
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-  
+
   // Handle navigation
-const handleNavigation = (path: string) => {
-  if (path !== "home") {
-    navigate(`/portal/${path}`);
-  }
-  setIsMobileMenuOpen(false);
-  setCurrentTab(path); // Always update the current tab
-};
-  
+  const handleNavigation = (path: string) => {
+    if (path !== "home") {
+      navigate(`/portal/${path}`);
+    }
+    setIsMobileMenuOpen(false);
+    setCurrentTab(path);
+  };
+
   // Handle logout
   const handleLogout = () => {
     // Implement actual logout logic here
     navigate('/login');
   };
-  
+
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
@@ -448,62 +453,13 @@ const handleNavigation = (path: string) => {
               <Avatar user={MOCK_USER} />
             </button>
             
-            {/* User profile */}
-            <div className="hidden md:flex items-center gap-3 relative">
+            {/* User profile - only show name and avatar on desktop */}
+            <div className="hidden md:flex items-center gap-3">
               <div className="flex flex-col items-end mr-2">
                 <span className="font-medium text-gray-800">{`${MOCK_USER.firstName} ${MOCK_USER.lastName}`}</span>
                 <span className="text-xs text-gray-500">{MOCK_USER.email}</span>
               </div>
-              
-              <button 
-                className="relative"
-                onClick={toggleProfileDropdown}
-              >
-                <Avatar user={MOCK_USER} />
-              </button>
-              
-              {/* Profile dropdown */}
-              {isProfileDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 z-20">
-                  <div className="p-3 border-b border-gray-100">
-                    <div className="font-medium text-gray-800">{`${MOCK_USER.firstName} ${MOCK_USER.lastName}`}</div>
-                    <div className="text-sm text-gray-500">{MOCK_USER.email}</div>
-                    <div className="text-xs text-primary-600 mt-1">{MOCK_USER.role}</div>
-                  </div>
-                  
-                  <div className="py-1">
-                    <Link 
-                      to="/portal/profile" 
-                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                    >
-                      <Settings className="w-5 h-5" />
-                      <span>Profile Settings</span>
-                    </Link>
-                    
-                    <Link 
-                      to="/portal/membership" 
-                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                    >
-                      <Award className="w-5 h-5" />
-                      <span>Membership Status</span>
-                    </Link>
-                    
-                    
-                  </div>
-                  
-                  <div className="border-t border-gray-100 py-1">
-                    <button 
-                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full text-left"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="w-5 h-5" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+              <Avatar user={MOCK_USER} />
             </div>
           </div>
         </div>
@@ -530,8 +486,8 @@ const handleNavigation = (path: string) => {
                 className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50"
                 onClick={() => setIsProfileDropdownOpen(false)}
               >
-                <Settings className="w-5 h-5" />
-                <span>Profile Settings</span>
+                <User className="w-5 h-5" />
+                <span>Profile</span>
               </Link>
               
               <Link 
@@ -542,8 +498,6 @@ const handleNavigation = (path: string) => {
                 <Award className="w-5 h-5" />
                 <span>Membership Status</span>
               </Link>
-              
-              
             </div>
             
             {/* Sign out */}
@@ -565,7 +519,7 @@ const handleNavigation = (path: string) => {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
           <aside className="hidden md:block w-64 space-y-1">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4 relative">
               <div className="flex items-center gap-3 mb-3">
                 <Avatar user={MOCK_USER} size="lg" />
                 <div>
@@ -577,12 +531,47 @@ const handleNavigation = (path: string) => {
                 <p>Member since {MOCK_USER.joinDate}</p>
                 <p>{MOCK_USER.country}</p>
               </div>
-              <Link 
-                to="/portal/profile" 
+              <button
+                onClick={toggleSidebarDropdown}
                 className="mt-3 text-primary-600 text-sm font-medium hover:text-primary-700 block"
               >
                 View Profile
-              </Link>
+              </button>
+              
+              {/* Sidebar dropdown */}
+              {isSidebarDropdownOpen && (
+                <div className="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-100 z-20">
+                  <div className="py-1">
+                    <Link 
+                      to="/portal/profile" 
+                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                      onClick={() => setIsSidebarDropdownOpen(false)}
+                    >
+                      <User className="w-5 h-5" />
+                      <span>Profile</span>
+                    </Link>
+                    
+                    <Link 
+                      to="/portal/membership" 
+                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                      onClick={() => setIsSidebarDropdownOpen(false)}
+                    >
+                      <Award className="w-5 h-5" />
+                      <span>Membership Status</span>
+                    </Link>
+                  </div>
+                  
+                  <div className="border-t border-gray-100 py-1">
+                    <button 
+                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 w-full text-left"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             
             <nav className="bg-white rounded-xl p-2 shadow-sm border border-gray-100 mb-4">
@@ -599,7 +588,7 @@ const handleNavigation = (path: string) => {
               ))}
             </nav>
             
-            {/* Quick Links moved here */}
+            {/* Quick Links */}
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <h3 className="font-semibold text-gray-800 mb-3">Quick Links</h3>
               <ul className="space-y-2">
