@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { ThumbsUp, MessageCircle, Share2, FileText } from 'lucide-react';
-import Avatar from './Avatar'; // You'll need to move the Avatar component to its own file
-import CreatePostCard from './CreatePostCard';
+import { useRef, useState } from 'react';
+import { ThumbsUp, MessageCircle, Share2, FileText, Paperclip } from 'lucide-react';
+import Avatar from './Avatar';
 
 interface Post {
   id: number;
@@ -139,6 +138,99 @@ const Post = ({ post }: { post: Post }) => {
         <button className="flex items-center gap-2 px-4 py-2 rounded-md text-gray-600 hover:bg-gray-50">
           <Share2 className="w-5 h-5" />
           <span>Share</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const CreatePostCard = ({ user }: { user: { firstName: string; lastName: string; profileImage: string | null } }) => {
+  const [postText, setPostText] = useState('');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle textarea input and Ctrl+Enter for new line
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      // Insert a newline at the cursor position
+      const { selectionStart, selectionEnd } = e.currentTarget;
+      const value = postText;
+      setPostText(
+        value.substring(0, selectionStart) + '\n' + value.substring(selectionEnd)
+      );
+      // Prevent default to avoid form submission
+      e.preventDefault();
+    }
+  };
+
+  // Handle file selection
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAttachedFile(e.target.files[0]);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+      <div className="flex items-center gap-3 mb-4">
+        <Avatar user={user} />
+        <div className="flex-1">
+          <textarea
+            placeholder="Start a discussion or share something with the community..."
+            className="w-full px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300 resize-none"
+            value={postText}
+            onChange={(e) => setPostText(e.target.value)}
+            rows={3}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+      </div>
+
+      {attachedFile && (
+        <div className="flex items-center gap-2 mb-2">
+          <FileText className="w-5 h-5 text-primary-600" />
+          <span className="text-sm text-gray-700">{attachedFile.name}</span>
+          <button
+            className="text-xs text-red-500 ml-2"
+            onClick={() => setAttachedFile(null)}
+            type="button"
+          >
+            Remove
+          </button>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center border-t border-gray-100 pt-3">
+        <div className="flex gap-4">
+          <button
+            type="button"
+            className="flex items-center gap-2 text-gray-600 hover:text-primary-600"
+            onClick={handleAttachClick}
+          >
+            <Paperclip className="w-5 h-5" />
+            <span className="text-sm">Attach File</span>
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </div>
+
+        <button
+          className={`px-4 py-2 rounded-md text-white font-medium ${
+            postText.trim()
+              ? "bg-primary-600 hover:bg-primary-700"
+              : "bg-gray-300 cursor-not-allowed"
+          }`}
+          disabled={!postText.trim()}
+        >
+          Post
         </button>
       </div>
     </div>
