@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight, Search, Filter, Calendar as CalendarIcon } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
-import Card, { CardContent } from '../components/common/Card';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
+import Card, { CardContent } from '../../components/common/Card';
 
 interface Event {
   id: number;

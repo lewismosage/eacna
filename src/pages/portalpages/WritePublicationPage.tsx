@@ -5,8 +5,8 @@ import {
   Check, HelpCircle, Users, BookOpen, Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Section from '../common/Section';
-import Button from '../common/Button';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
 
 const WritePublicationPage = () => {
   const fadeIn = {

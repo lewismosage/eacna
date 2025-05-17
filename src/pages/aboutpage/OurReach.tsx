@@ -1,5 +1,5 @@
 import React from 'react';
-import Section from '../components/common/Section';
+import Section from '../../components/common/Section';
 import { motion } from 'framer-motion';
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from "react-simple-maps";
 import { GeoJsonProperties, Geometry } from 'geojson';

@@ -2,11 +2,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, ArrowRight, BookOpen, FileText, Download } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
-import Accordion from '../components/common/Accordion';
-import Card, { CardContent } from '../components/common/Card';
-import EventsSection from '../pages/EventsSection';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
+import Accordion from '../../components/common/Accordion';
+import Card, { CardContent } from '../../components/common/Card';
+import EventsSection from './EventsSection';
 
 const TrainingPage = () => {
   const fadeIn = {

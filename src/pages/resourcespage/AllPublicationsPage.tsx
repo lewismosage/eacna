@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, ExternalLink, Download, BookOpen, ArrowLeft } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
 import { Link } from 'react-router-dom';
 
 const AllPublicationsPage = () => {

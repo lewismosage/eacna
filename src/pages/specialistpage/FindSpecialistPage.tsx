@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Phone, Mail, ExternalLink, Filter, Star } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
-import Card, { CardContent } from '../components/common/Card';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
+import Card, { CardContent } from '../../components/common/Card';
 
 type SpecialistType = {
   id: number;

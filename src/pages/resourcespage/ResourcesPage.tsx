@@ -2,9 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Book, Link as LinkIcon, Download, ExternalLink, Play } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
-import Card, { CardContent } from '../components/common/Card';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
+import Card, { CardContent } from '../../components/common/Card';
 
 const ResourcesPage = () => {
   const fadeIn = {

@@ -1,9 +1,9 @@
 // src/pages/EventsSection.tsx
 import React from 'react';
 import { Calendar, ArrowRight, BookOpen } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
-import Card, { CardContent } from '../components/common/Card';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
+import Card, { CardContent } from '../../components/common/Card';
 
 interface Event {
   id: number;

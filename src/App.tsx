@@ -8,58 +8,59 @@ import AdminLayout from './components/layout/AdminLayout';
 
 // Public Pages
 import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
-import TrainingPage from './pages/TrainingPage';
-import MembershipPage from './pages/MembershipPage';
-import Login from './pages/Login';
-import ResourcesPage from './pages/ResourcesPage';
+import AboutPage from './pages/aboutpage/AboutUs';
+import TrainingPage from './pages/trainingpage/TrainingPage';
+import MembershipPage from './pages/membershipage/MembershipPage';
+
+import ResourcesPage from './pages/resourcespage/ResourcesPage';
 import GalleryPage from './pages/GalleryPage';
-import FindSpecialistPage from './pages/FindSpecialistPage';
-import SpecialistProfilePage from './pages/SpecialistProfilePage';
+import FindSpecialistPage from './pages/specialistpage/FindSpecialistPage';
+import SpecialistProfilePage from './pages/specialistpage/SpecialistProfilePage';
 import ContactPage from './pages/ContactPage';
 import NotFoundPage from './pages/NotFoundPage';
-import RenewMembershipPage from './pages/RenewMembershipPage';
-import JoinDirectory from './pages/JoinDirectoryForm';
-import EventsSection from './pages/EventsSection';
-import EventDetails from './pages/EventDetails';
-import AllEvents from './pages/AllEvents';
-import ConferenceArchives from './pages/ConferenceArchives';
-import AllWebinars from './pages/AllWebinars';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import CookiePolicy from './pages/CookiePolicy';
-import AllPublicationsPage from './pages/AllPublicationsPage';
-import ReadPaperPage from './pages/ReadPaperPage';
+import RenewMembershipPage from './pages/membershipage/RenewMembershipPage';
+import JoinDirectory from './pages/specialistpage/JoinDirectoryForm';
+import EventsSection from './pages/trainingpage/EventsSection';
+import EventDetails from './pages/trainingpage/EventDetails';
+import AllEvents from './pages/trainingpage/AllEvents';
+import ConferenceArchives from './pages/trainingpage/ConferenceArchives';
+import AllWebinars from './pages/trainingpage/AllWebinars';
+import PrivacyPolicy from './pages/sitepolicies/PrivacyPolicy';
+import TermsOfService from './pages/sitepolicies/TermsOfService';
+import CookiePolicy from './pages/sitepolicies/CookiePolicy';
+import AllPublicationsPage from './pages/resourcespage/AllPublicationsPage';
+import ReadPaperPage from './pages/resourcespage/ReadPaperPage';
 
 // Member Portal Components
-import MemberPortal from './components/membersportal/memberportal';
-import WritePublicationPage from './components/membersportal/WritePublicationPage';
-import Notifications from './components/membersportal/Notifications';
+import Login from './pages/portalpages/Login';
+import MemberPortal from './pages/portalpages/PortalDashboard';
+import WritePublicationPage from './pages/portalpages/WritePublicationPage';
+import Notifications from './pages/portalpages/Notifications';
 
 // Admin Pages
-import AdminLogin from './pages/Admin/AdminLogin';
-import AdminDashboard from './pages/Admin/AdminDashboard';
-import ContactMessages from './pages/Admin/communications/ContactMessages';
-import Newsletter from './pages/Admin/communications/Newsletter';
-import Subscribers from './pages/Admin/communications/Subscribers';
-import MemberApplications from './pages/Admin/members/MemberApplications';
-import Directory from './pages/Admin/members/Directory';
-import MembershipPayments from './pages/Admin/members/Payments';
-import PublicationReview from './pages/Admin/publications/PublicationsReview';
-import PublishedArticles from './pages/Admin/publications/PublishedArticles';
-import Applications from './pages/Admin/Specialists/Applications';
-import SpecialistsDirectory from './pages/Admin/Specialists/Directory';
-import AnnualMeetings from './pages/Admin/events/AnnualMeetings';
-import TrainingEvents from './pages/Admin/events/TrainingEvents';
-import Webinars from './pages/Admin/events/Webinars';
-import AbtractSubmissions from './pages/Admin/events/AbstractSubmissions';
+import AdminLogin from './pages/adminpages/AdminLogin';
+import AdminDashboard from './pages/adminpages/AdminDashboard';
+import ContactMessages from './pages/adminpages/communications/ContactMessages';
+import Newsletter from './pages/adminpages/communications/Newsletter';
+import Subscribers from './pages/adminpages/communications/Subscribers';
+import MemberApplications from './pages/adminpages/members/MemberApplications';
+import Directory from './pages/adminpages/members/Directory';
+import MembershipPayments from './pages/adminpages/members/Payments';
+import PublicationReview from './pages/adminpages/publications/PublicationsReview';
+import PublishedArticles from './pages/adminpages/publications/PublishedArticles';
+import Applications from './pages/adminpages/Specialists/Applications';
+import SpecialistsDirectory from './pages/adminpages/Specialists/Directory';
+import AnnualMeetings from './pages/adminpages/events/AnnualMeetings';
+import TrainingEvents from './pages/adminpages/events/TrainingEvents';
+import Webinars from './pages/adminpages/events/Webinars';
+import AbtractSubmissions from './pages/adminpages/events/AbstractSubmissions';
 
 // Modals
-import PaymentModal from './pages/PaymentModal';
+import PaymentModal from './pages/membershipage/PaymentModal';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Route protection
-import ProtectedRoute from './components/common/ProtectedRoute';
+import ProtectedRoute from './components/protectedroute/ProtectedRoute';
 
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -85,7 +86,6 @@ function App() {
           <Route path="about" element={<AboutPage />} />
           <Route path="training" element={<TrainingPage />} />
           <Route path="membership" element={<MembershipPage setShowPaymentModal={setShowPaymentModal} />} />
-          <Route path="login" element={<Login />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="gallery" element={<GalleryPage />} />
           <Route path="gallery/:year" element={<GalleryPage />} />
@@ -104,6 +104,10 @@ function App() {
           <Route path="cookie-policy" element={<CookiePolicy />} />
           <Route path="all-publications" element={<AllPublicationsPage />} />
           <Route path="read-publication/:id" element={<ReadPaperPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+
+          {/* Member Login */}
+          <Route path="login" element={<Login />} />
 
           {/* Protected Member Portal */}
           <Route element={<ProtectedRoute />}>
@@ -111,10 +115,8 @@ function App() {
             <Route path="portal/notifications" element={<Notifications />} />
             <Route path="member-portal" element={<MemberPortal />} />
           </Route>
-
-          <Route path="*" element={<NotFoundPage />} />
         </Route>
-
+        
         {/* Admin Login */}
         <Route path="/admin/login" element={<AdminLogin />} />
 

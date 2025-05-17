@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, BookOpen, MapPin, Users, Search, ArrowLeft, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
 
 interface Conference {
   id: number;

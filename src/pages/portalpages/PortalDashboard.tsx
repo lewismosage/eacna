@@ -423,7 +423,7 @@ const handleNavigation = (path: string) => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <Link to="/portal/home" className="text-primary-800 font-bold text-xl">
+              <Link to="/home" className="text-primary-800 font-bold text-xl">
                 EACNA Member Portal
               </Link>
             </div>

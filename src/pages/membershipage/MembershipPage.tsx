@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserPlus, BookOpen, Award, CheckCircle, Users, GraduationCap } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
-import Accordion from '../components/common/Accordion';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
+import Accordion from '../../components/common/Accordion';
 import MembershipForm from './MembershipForm';
 import PaymentComponent from './PaymentModal';
 

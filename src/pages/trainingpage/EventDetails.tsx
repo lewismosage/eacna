@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, MapPin, Clock, ArrowLeft, Share2, Download } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
 
 // Define the event interface
 interface Event {

@@ -7,7 +7,7 @@ import {
   RefreshCw,
   Mail
 } from 'lucide-react';
-import MemberEngagement from '../../pages/MemberEngagement';
+import MemberEngagement from './MemberEngagement';
 import Card, { CardContent } from '../../components/common/Card';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 

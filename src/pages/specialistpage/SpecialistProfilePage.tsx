@@ -5,10 +5,10 @@ import {
   Bookmark, Share2, Clock, Users, Award, CheckCircle, MessageCircle, 
   ExternalLink, AlertCircle, ChevronDown, ChevronUp, UserPlus, Video, User, Info
 } from 'lucide-react';
-import Section from '../components/common/Section';
-import Button from '../components/common/Button';
-import Card, { CardContent } from '../components/common/Card';
-import Badge from '../components/common/Badge';
+import Section from '../../components/common/Section';
+import Button from '../../components/common/Button';
+import Card, { CardContent } from '../../components/common/Card';
+import Badge from '../../components/common/Badge';
 
 const SpecialistProfileView = () => {
   const { id } = useParams();
