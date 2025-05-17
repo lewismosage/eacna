@@ -36,6 +36,8 @@ import Login from './pages/portalpages/Login';
 import MemberPortal from './pages/portalpages/PortalDashboard';
 import WritePublicationPage from './pages/portalpages/WritePublicationPage';
 import Notifications from './pages/portalpages/Notifications';
+import ViewProfile from './pages/portalpages/ViewProfile';
+import MembershipStatus from './pages/portalpages/MembershipStatus';
 
 // Admin Pages
 import AdminLogin from './pages/adminpages/AdminLogin';
@@ -114,6 +116,8 @@ function App() {
             <Route path="portal/publications" element={<WritePublicationPage />} />
             <Route path="portal/notifications" element={<Notifications />} />
             <Route path="member-portal" element={<MemberPortal />} />
+            <Route path="/portal/profile" element={<ViewProfile />} />
+            <Route path="/portal/membership" element={<MembershipStatus />} />
           </Route>
         </Route>
         
