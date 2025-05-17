@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { 
   Users, 
-  Calendar, 
   FileText, 
-  MessageSquare,
-  TrendingUp,
   UserPlus,
   CreditCard,
   RefreshCw,
   Mail
 } from 'lucide-react';
+import MemberEngagement from '../../pages/MemberEngagement';
 import Card, { CardContent } from '../../components/common/Card';
-import LoadingSpinner from '../../components/common/LoadingSpinner'; // <-- Import LoadingSpinner
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const AdminDashboard = () => {
   const [stats] = useState({
@@ -23,10 +21,11 @@ const AdminDashboard = () => {
     paymentsmade: 12450,
     pendingPublications: 7,
     unreadMessages: 15,
-    newsletterSubscribers: 567
+    newsletterSubscribers: 567,
+    paymentsMade: 12450,
   });
 
-  const [loading, setLoading] = useState(false); 
+  const [loading] = useState(false); 
 
   const recentActivities = [
     {
@@ -49,27 +48,6 @@ const AdminDashboard = () => {
       title: 'New Publication Submission',
       description: 'Research paper submitted for review',
       time: '5 hours ago'
-    }
-  ];
-
-  const upcomingTasks = [
-    {
-      id: 1,
-      title: 'Review Membership Applications',
-      count: 12,
-      priority: 'high'
-    },
-    {
-      id: 2,
-      title: 'Approve Publication Submissions',
-      count: 7,
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      title: 'Send Monthly Newsletter',
-      dueDate: '2024-03-31',
-      priority: 'medium'
     }
   ];
 
@@ -181,42 +159,9 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Tasks */}
-        <Card>
-          <CardContent>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Tasks</h2>
-            <div className="space-y-4">
-              {upcomingTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    />
-                    <div>
-                      <p className="font-medium text-gray-900">{task.title}</p>
-                      {task.count && (
-                        <p className="text-sm text-gray-600">{task.count} pending</p>
-                      )}
-                      {task.dueDate && (
-                        <p className="text-sm text-gray-600">Due: {task.dueDate}</p>
-                      )}
-                    </div>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    task.priority === 'high' 
-                      ? 'bg-red-100 text-red-800'
-                      : task.priority === 'medium'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {task.priority}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <section>
+        <MemberEngagement />
+      </section>
       </div>
     </div>
   );
