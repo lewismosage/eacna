@@ -585,7 +585,7 @@ const handleNavigation = (path: string) => {
               </Link>
             </div>
             
-            <nav className="bg-white rounded-xl p-2 shadow-sm border border-gray-100">
+            <nav className="bg-white rounded-xl p-2 shadow-sm border border-gray-100 mb-4">
               {navItems.map((item) => (
                 <NavItem 
                   key={item.path}
@@ -598,6 +598,49 @@ const handleNavigation = (path: string) => {
                 />
               ))}
             </nav>
+            
+            {/* Quick Links moved here */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <h3 className="font-semibold text-gray-800 mb-3">Quick Links</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link 
+                    to="/resources/guidelines" 
+                    className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>Clinical Guidelines</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/training/pet-courses" 
+                    className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>PET Courses Schedule</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/membership/renew" 
+                    className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
+                  >
+                    <Award className="w-4 h-4" />
+                    <span>Renew Membership</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/resources/journal-access" 
+                    className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Journal Access</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </aside>
           
           {/* Main content area */}
@@ -638,59 +681,17 @@ const handleNavigation = (path: string) => {
               <PostsFeed user={MOCK_USER} posts={MOCK_POSTS} />
               
               <div className="lg:w-72">
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
-                  <h3 className="font-semibold text-gray-800 mb-3">Upcoming Events</h3>
-                  {MOCK_EVENTS.map((event) => (
-                    <UpcomingEvent key={event.id} event={event} />
-                  ))}
-                  <Link 
-                    to="/events" 
-                    className="text-sm font-medium text-primary-600 hover:text-primary-700 block text-center mt-2"
-                  >
-                    View All Events
-                  </Link>
-                </div>
-                
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
-                  <h3 className="font-semibold text-gray-800 mb-3">Quick Links</h3>
-                    <ul className="space-y-2">
-                      <li>
-                        <Link 
-                          to="/resources/guidelines" 
-                          className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
-                        >
-                          <BookOpen className="w-4 h-4" />
-                          <span>Clinical Guidelines</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link 
-                          to="/training/pet-courses" 
-                          className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
-                        >
-                          <Calendar className="w-4 h-4" />
-                          <span>PET Courses Schedule</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link 
-                          to="/membership/renew" 
-                          className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
-                        >
-                          <Award className="w-4 h-4" />
-                          <span>Renew Membership</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link 
-                          to="/resources/journal-access" 
-                          className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
-                        >
-                          <FileText className="w-4 h-4" />
-                          <span>Journal Access</span>
-                        </Link>
-                      </li>
-                    </ul>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+                    <h3 className="font-semibold text-gray-800 mb-3">Upcoming Events</h3>
+                    {MOCK_EVENTS.map((event) => (
+                      <UpcomingEvent key={event.id} event={event} />
+                    ))}
+                    <Link 
+                      to="/events" 
+                      className="text-sm font-medium text-primary-600 hover:text-primary-700 block text-center mt-2"
+                    >
+                      View All Events
+                    </Link>
                   </div>
                 </div>
               </div>

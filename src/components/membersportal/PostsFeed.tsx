@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ThumbsUp, MessageCircle, Share2, FileText } from 'lucide-react';
 import Avatar from './Avatar'; // You'll need to move the Avatar component to its own file
-import CreatePostCard from './CreatePostCard'; // You'll need to move this too
+import CreatePostCard from './CreatePostCard';
 
 interface Post {
   id: number;
@@ -29,7 +29,7 @@ interface PostsFeedProps {
 
 const PostsFeed = ({ user, posts }: PostsFeedProps) => {
   return (
-    <div className="flex-1 h-[calc(100vh-180px)] overflow-y-auto"> {/* Fixed height with scroll */}
+    <div className="flex-1 h-[calc(128.5vh-180px)] overflow-y-auto"> {/* Fixed height with scroll */}
       <CreatePostCard user={user} />
       
       {posts.map((post) => (
