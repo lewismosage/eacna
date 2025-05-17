@@ -32,9 +32,9 @@ import AllPublicationsPage from './pages/AllPublicationsPage';
 import ReadPaperPage from './pages/ReadPaperPage';
 
 // Member Portal Components
-import MemberPortal from './components/portal/memberportal';
-import WritePublicationPage from './components/portal/WritePublicationPage';
-import Notifications from './components/portal/Notifications';
+import MemberPortal from './components/membersportal/memberportal';
+import WritePublicationPage from './components/membersportal/WritePublicationPage';
+import Notifications from './components/membersportal/Notifications';
 
 // Admin Pages
 import AdminLogin from './pages/Admin/AdminLogin';

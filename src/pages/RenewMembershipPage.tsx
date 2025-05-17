@@ -1,26 +1,40 @@
 import { useState, useEffect } from 'react';
 import { Search, ArrowRight, RefreshCw, ArrowUpRight, X, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
-// Mock supabase client - replace with your actual client in production
+// Define types for our membership tiers
+type MembershipTier = 'Student' | 'Associate' | 'Full Member';
+
+interface MembershipTierData {
+  price: number;
+  features: string[];
+}
+
+interface MemberData {
+  full_name: string;
+  phone_number: string;
+  email: string;
+  membership_tier: MembershipTier;
+}
+
+// Mock supabase client with proper typing
 const supabase = {
   auth: {
-    getUser: async () => ({ data: null, error: null })
+    getUser: async (): Promise<{ data: { user?: { id: string } } | null, error: Error | null }> => ({ data: null, error: null })
   },
-  from: (table) => ({
-    select: (fields) => ({
-      eq: (field, value) => ({
-        or: (query) => Promise.resolve({ data: [], error: null }),
-        then: (callback) => Promise.resolve({ data: [], error: null })
+  from: (table: string) => ({
+    select: (fields: string) => ({
+      eq: (field: string, value: string) => ({
+        or: (query: string) => Promise.resolve({ data: [] as MemberData[], error: null })
       })
     }),
-    update: (data) => ({
-      eq: (field, value) => Promise.resolve({ data: [], error: null })
+    update: (data: Partial<MemberData>) => ({
+      eq: (field: string, value: string) => Promise.resolve({ data: [] as MemberData[], error: null })
     })
   })
 };
 
-// Pricing data
-const membershipTiers = {
+// Pricing data with proper typing
+const membershipTiers: Record<MembershipTier, MembershipTierData> = {
   Student: {
     price: 2000,
     features: ["Access to online resources", "Student networking events", "Digital newsletter"]
@@ -40,15 +54,14 @@ export default function MembershipRenewalPage() {
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
-  const [membershipTier, setMembershipTier] = useState("");
-  const [originalTier, setOriginalTier] = useState("");
+  const [membershipTier, setMembershipTier] = useState<MembershipTier>("Associate");
+  const [originalTier, setOriginalTier] = useState<MembershipTier>("Associate");
   const [transactionId, setTransactionId] = useState("");
   
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [actionType, setActionType] = useState("renew");
+  const [actionType, setActionType] = useState<"renew" | "upgrade">("renew");
   const [step, setStep] = useState(1); // 1: find record, 2: select plan, 3: payment
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [recordFound, setRecordFound] = useState(false);
   
   // Loading and error states
@@ -66,11 +79,12 @@ export default function MembershipRenewalPage() {
 
         if (error) throw error;
 
-        if (user && user.user) {
+        if (user?.user?.id) {
           const { data: memberData, error: memberError } = await supabase
             .from("members")
             .select("full_name, phone_number, email, membership_tier")
-            .eq("id", user.user.id);
+            .eq("id", user.user.id)
+            .or(""); // Add .or("") to complete the chain and return a promise with 'data'
 
           if (memberError) throw memberError;
 
@@ -78,9 +92,8 @@ export default function MembershipRenewalPage() {
             setFullName(memberData[0].full_name);
             setPhoneNumber(memberData[0].phone_number);
             setEmail(memberData[0].email || "");
-            setMembershipTier(memberData[0].membership_tier);
-            setOriginalTier(memberData[0].membership_tier);
-            setIsLoggedIn(true);
+            setMembershipTier(memberData[0].membership_tier as MembershipTier);
+            setOriginalTier(memberData[0].membership_tier as MembershipTier);
             setRecordFound(true);
             setStep(2); // Skip to plan selection
           }
@@ -93,8 +106,8 @@ export default function MembershipRenewalPage() {
     fetchUserDetails();
   }, []);
 
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSearchLoading(true);
     setSearchError("");
 
@@ -124,7 +137,7 @@ export default function MembershipRenewalPage() {
     }
   };
 
-  const handleSubmitPayment = async (e) => {
+  const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitLoading(true);
     
@@ -302,7 +315,7 @@ export default function MembershipRenewalPage() {
             </p>
             
             <p className="font-semibold text-lg text-gray-800">
-              KES {membershipTiers[originalTier]?.price.toLocaleString() || '—'}
+              KES {membershipTiers[originalTier].price.toLocaleString()}
             </p>
           </div>
           
@@ -333,7 +346,7 @@ export default function MembershipRenewalPage() {
                 </label>
                 <select
                   value={membershipTier}
-                  onChange={(e) => setMembershipTier(e.target.value)}
+                  onChange={(e) => setMembershipTier(e.target.value as MembershipTier)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a tier</option>
@@ -346,7 +359,7 @@ export default function MembershipRenewalPage() {
                     })
                     .map(tier => (
                       <option key={tier} value={tier}>
-                        {tier} - KES {membershipTiers[tier].price.toLocaleString()}
+                        {tier} - KES {membershipTiers[tier as MembershipTier].price.toLocaleString()}
                       </option>
                     ))
                   }
@@ -380,7 +393,7 @@ export default function MembershipRenewalPage() {
 
   const renderPaymentStep = () => {
     const selectedTier = actionType === 'renew' ? originalTier : membershipTier;
-    const price = membershipTiers[selectedTier]?.price || 0;
+    const price = membershipTiers[selectedTier].price;
     
     return (
       <div className="grid md:grid-cols-3 gap-6">
@@ -481,7 +494,7 @@ export default function MembershipRenewalPage() {
             <div className="border-t border-gray-200 pt-4 mt-4">
               <h4 className="font-medium text-gray-800 mb-2">Selected Plan Benefits</h4>
               <ul className="space-y-2">
-                {membershipTiers[selectedTier]?.features.map((feature, index) => (
+                {membershipTiers[selectedTier].features.map((feature, index) => (
                   <li key={index} className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" />
                     <span className="text-sm text-gray-600">{feature}</span>
@@ -516,7 +529,7 @@ export default function MembershipRenewalPage() {
           <div className="text-gray-500">Membership Type:</div>
           <div>{membershipTier}</div>
           <div className="text-gray-500">Amount Paid:</div>
-          <div>KES {membershipTiers[membershipTier]?.price.toLocaleString()}</div>
+          <div>KES {membershipTiers[membershipTier].price.toLocaleString()}</div>
           <div className="text-gray-500">Transaction ID:</div>
           <div>{transactionId}</div>
           <div className="text-gray-500">Status:</div>
