@@ -4,8 +4,8 @@ import { UserPlus, BookOpen, Award, CheckCircle, Users, GraduationCap } from 'lu
 import Section from '../components/common/Section';
 import Button from '../components/common/Button';
 import Accordion from '../components/common/Accordion';
-import MembershipForm from '../components/common/MembershipForm';
-import PaymentComponent from '../components/common/PaymentModal';
+import MembershipForm from './MembershipForm';
+import PaymentComponent from './PaymentModal';
 
 interface MembershipPageProps {
   setShowPaymentModal: (value: boolean) => void;

@@ -55,12 +55,12 @@ import Webinars from './pages/Admin/events/Webinars';
 import AbtractSubmissions from './pages/Admin/events/AbstractSubmissions';
 
 // Modals
-import PaymentModal from './components/common/PaymentModal';
+import PaymentModal from './pages/PaymentModal';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Route protection
 import ProtectedRoute from './components/common/ProtectedRoute';
-import MembershipRenewalPage from './pages/RenewMembershipPage';
+
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
@@ -68,9 +68,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [loading, setLoading] = useState(false); // <-- Global loading state
+  const [loading] = useState(false); 
 
-  // Optionally, you can provide setLoading to children via context for global control
 
   return (
     <>

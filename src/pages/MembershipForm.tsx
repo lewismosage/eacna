@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import Card, { CardContent } from '../common/Card';
-import Button from '../common/Button';
+import Card, { CardContent } from '../components/common/Card';
+import Button from '../components/common/Button';
 
 type FormData = {
   firstName: string;

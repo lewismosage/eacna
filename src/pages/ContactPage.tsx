@@ -134,7 +134,11 @@ const ContactPage = () => {
                       <h3 className="text-lg font-medium text-gray-900">
                         Call Us
                       </h3>
-                      <p className="mt-1 text-gray-600">+254 123 456 789</p>
+                      <p className="mt-1 text-gray-600">
+                        <a href="tel:+254123456789" className="text-primary-600 hover:underline">
+                          +254 123 456 789
+                        </a>
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start">
