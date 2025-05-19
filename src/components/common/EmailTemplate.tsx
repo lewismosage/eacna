@@ -42,7 +42,7 @@ export const EmailTemplate: React.FC<EmailTemplateProps> = ({
         borderBottom: '1px solid #eaeaea'
       }}>
         <img 
-        src="https://eacna.vercel.app/eacna_circular_logo.png" 
+        src="https://eacna.vercel.app/eacna_logo.png" 
         alt="EACNA Logo" 
         style={{ 
             maxWidth: '150px', 

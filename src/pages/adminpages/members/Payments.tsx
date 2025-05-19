@@ -10,7 +10,6 @@ import {
   X, 
   Eye,
   CreditCard,
-  Clock,
   CheckCircle,
   AlertCircle,
   Loader2
@@ -21,6 +20,7 @@ import Button from '../../../components/common/Button';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { getEmailTemplateHTML } from '../../../components/common/EmailTemplate';
 import emailjs from '@emailjs/browser';
+import AlertModal from '../../../components/common/AlertModal';
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
 const mockPayments: Payment[] = [
@@ -157,6 +157,21 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
     key: keyof Payment;
     direction: 'ascending' | 'descending';
   } | null>({ key: 'created_at', direction: 'descending' });
+  const [alert, setAlert] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'confirm';
+    onConfirm?: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   useEffect(() => {
     fetchPayments();
@@ -262,83 +277,88 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
   };
 
   const updatePaymentStatus = async (id: string, status: 'completed' | 'failed' | 'refunded') => {
-  if (confirm(`Are you sure you want to mark this payment as ${status}?`)) {
-    setIsProcessing(true);
-    try {
-      // For mock data in development
-      if (process.env.NODE_ENV === 'development') {
-        const updatedPayments = payments.map(payment => {
-          if (payment.id === id) {
-            const updatedPayment = {
-              ...payment,
+    setAlert({
+      open: true,
+      title: 'Confirm Action',
+      message: `Are you sure you want to mark this payment as ${status}?`,
+      type: 'confirm',
+      confirmText: 'Yes',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setAlert({ ...alert, open: false });
+        setIsProcessing(true);
+        try {
+          // For mock data in development
+          if (process.env.NODE_ENV === 'development') {
+            const updatedPayments = payments.map(payment => {
+              if (payment.id === id) {
+                const updatedPayment = {
+                  ...payment,
+                  status,
+                  verified_at: new Date().toISOString(),
+                  verified_by: 'admin'
+                };
+                if (status === 'completed') {
+                  sendPaymentConfirmationEmail(updatedPayment);
+                }
+                return updatedPayment;
+              }
+              return payment;
+            });
+            setPayments(updatedPayments);
+            setFilteredPayments(updatedPayments);
+            setNotification({
+              type: 'success',
+              message: `Payment marked as ${status} successfully!`
+            });
+            setIsViewOpen(false);
+            return;
+          }
+
+          // Original Supabase code for production
+          const { error } = await supabase
+            .from('payments')
+            .update({ 
               status,
               verified_at: new Date().toISOString(),
               verified_by: 'admin'
-            };
-            
-            // Send confirmation email if status is completed
-            if (status === 'completed') {
-              sendPaymentConfirmationEmail(updatedPayment);
+            })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Send confirmation email if status is completed
+          if (status === 'completed') {
+            const { data } = await supabase
+              .from('payments')
+              .select('*')
+              .eq('id', id)
+              .single();
+
+            if (data) {
+              await sendPaymentConfirmationEmail(data as Payment);
             }
-            
-            return updatedPayment;
           }
-          return payment;
-        });
-        
-        setPayments(updatedPayments);
-        setFilteredPayments(updatedPayments);
-        
-        setNotification({
-          type: 'success',
-          message: `Payment marked as ${status} successfully!`
-        });
-        setIsViewOpen(false);
-        return;
-      }
 
-      // Original Supabase code for production
-      const { error } = await supabase
-        .from('payments')
-        .update({ 
-          status,
-          verified_at: new Date().toISOString(),
-          verified_by: 'admin'
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Send confirmation email if status is completed
-      if (status === 'completed') {
-        const { data } = await supabase
-          .from('payments')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (data) {
-          await sendPaymentConfirmationEmail(data as Payment);
+          fetchPayments();
+          setNotification({
+            type: 'success',
+            message: `Payment marked as ${status} successfully!`
+          });
+          setIsViewOpen(false);
+        } catch (error) {
+          console.error(`Error updating payment status:`, error);
+          setNotification({
+            type: 'error',
+            message: `Failed to update payment status. Please try again.`
+          });
+        } finally {
+          setIsProcessing(false);
         }
-      }
-
-      fetchPayments();
-      setNotification({
-        type: 'success',
-        message: `Payment marked as ${status} successfully!`
-      });
-      setIsViewOpen(false);
-    } catch (error) {
-      console.error(`Error updating payment status:`, error);
-      setNotification({
-        type: 'error',
-        message: `Failed to update payment status. Please try again.`
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }
-};
+      },
+      onCancel: () => setAlert({ ...alert, open: false })
+    });
+  };
 
   const exportPayments = async () => {
     try {
@@ -848,6 +868,18 @@ const getPaymentConfirmationTemplate = (payment: Payment) => {
           </div>
         </div>
       )}
+      {/* AlertModal for confirmations */}
+      <AlertModal
+        isOpen={alert.open}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        confirmText={alert.confirmText}
+        cancelText={alert.cancelText}
+        onConfirm={alert.onConfirm}
+        onCancel={alert.onCancel}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
     </div>
   );
 }
