@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Mail, Phone, Send, Save, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Mail, Phone, Send, Save, Clock, AlertCircle, CheckCircle, Eye } from 'lucide-react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import emailjs from '@emailjs/browser';
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
@@ -67,6 +67,45 @@ function AlertModal({ isOpen, onClose, title, message, type = 'info' }: AlertMod
   );
 }
 
+const getEmailTemplate = (recipientName: string, subject: string, message: string) => {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2d3748;">${subject}</h1>
+      </div>
+      
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px;">
+        <p>Dear ${recipientName},</p>
+        
+        <div style="margin: 20px 0; line-height: 1.6;">
+          ${message.replace(/\n/g, '<br>')}
+        </div>
+        
+        <p style="margin-top: 30px;">Best regards,<br>The EACNA Team</p>
+      </div>
+      
+      <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
+        <p>© ${new Date().getFullYear()} EACNA. All rights reserved.</p>
+        <p>This email was sent to you as part of our member communication.</p>
+        <p>EACNA Headquarters, 5th Ngong Avenue Avenue Suites, 6th Floor, Suite 8 Nairobi, Kenya</p>
+      </div>
+    </div>
+  `;
+};
+
+const getSMSTemplate = (message: string) => {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 300px; margin: 0 auto; padding: 15px; border: 1px solid #eaeaea; border-radius: 8px; background-color: #f5f5f5;">
+      <div style="margin-bottom: 15px; font-size: 14px; line-height: 1.4;">
+        ${message.replace(/\n/g, '<br>')}
+      </div>
+      <div style="font-size: 10px; color: #777; text-align: right;">
+        EACNA
+      </div>
+    </div>
+  `;
+};
+
 export default function ContactModal({
   isOpen,
   onClose,
@@ -82,7 +121,7 @@ export default function ContactModal({
     preferredContactMethod === 'phone' && recipientPhone ? 'phone' : 'email'
   );
   const [subject, setSubject] = useState(subjectContext || '');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(messageContext || '');
   const [templates, setTemplates] = useState<ContactTemplateType[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +129,7 @@ export default function ContactModal({
   const [templateTitle, setTemplateTitle] = useState('');
   const [sentHistory, setSentHistory] = useState<{date: string, method: string, recipient: string}[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   
   // Alert modal state
   const [alertModal, setAlertModal] = useState<{
@@ -123,6 +163,9 @@ export default function ContactModal({
     if (isOpen) {
       fetchTemplates();
       fetchContactHistory();
+      if (messageContext) {
+        setMessage(messageContext);
+      }
     }
   }, [isOpen]);
 
@@ -200,7 +243,6 @@ export default function ContactModal({
         
       if (error) throw error;
       
-      // Update the templates list with the new template
       if (data) {
         setTemplates([...templates, data[0] as ContactTemplateType]);
         setSaveAsTemplate(false);
@@ -231,17 +273,15 @@ export default function ContactModal({
     
     try {
       if (contactMethod === 'email') {
-        // EmailJS implementation
         const templateParams = {
           to_name: recipientName,
           to_email: recipientEmail, 
           from_name: 'EACNA',
           subject: subject,
-          message: message,
+          message: getEmailTemplate(recipientName, subject, message),
           reply_to: recipientEmail 
         };
   
-        // Send email using EmailJS
         const response = await emailjs.send(
           import.meta.env.VITE_EMAILJS_SERVICE_ID,
           import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
@@ -253,7 +293,6 @@ export default function ContactModal({
           throw new Error('Email failed to send');
         }
       } 
-      // SMS service
       else if (contactMethod === 'phone' && recipientPhone) {
         const { error } = await supabase.functions.invoke('send-sms', {
           body: JSON.stringify({
@@ -265,32 +304,29 @@ export default function ContactModal({
         if (error) throw error;
       }
   
-      // Log the contact in the database
       const { error: historyError } = await supabase
-      .from('contact_history')
-      .insert({
-        recipient_name: recipientName,
-        recipient_email: recipientEmail,
-        recipient_phone: recipientPhone,
-        contact_method: contactMethod,
-        subject: contactMethod === 'email' ? subject : null,
-        message: message,
-        user_id: (await supabase.auth.getUser()).data.user?.id
-      });
+        .from('contact_history')
+        .insert({
+          recipient_name: recipientName,
+          recipient_email: recipientEmail,
+          recipient_phone: recipientPhone,
+          contact_method: contactMethod,
+          subject: contactMethod === 'email' ? subject : null,
+          message: message,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        });
       
       if (historyError) {
         console.error('Database insert error:', historyError);
         throw new Error('Failed to save contact record');
       }
       
-      // Success notification
       showAlert(
         'Message Sent', 
         `${contactMethod === 'email' ? 'Email' : 'SMS'} sent successfully to ${recipientName}`,
         'success'
       );
       
-      // Close the contact modal after successful send
       setTimeout(() => {
         closeAlert();
         onClose();
@@ -442,6 +478,18 @@ export default function ContactModal({
               ></textarea>
             </div>
             
+            {/* Preview Button */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowPreview(true)}
+                className="text-primary-600 hover:text-primary-800 text-sm flex items-center"
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Preview Message
+              </button>
+            </div>
+            
             {/* Save as Template Option */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
@@ -543,6 +591,47 @@ export default function ContactModal({
           </div>
         </div>
       </div>
+      
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Message Preview
+              </h3>
+              <button 
+                onClick={() => setShowPreview(false)} 
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                {contactMethod === 'email' ? (
+                  <div dangerouslySetInnerHTML={{ 
+                    __html: getEmailTemplate(recipientName, subject, message) 
+                  }} />
+                ) : (
+                  <div dangerouslySetInnerHTML={{ 
+                    __html: getSMSTemplate(message) 
+                  }} />
+                )}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Alert Modal */}
       <AlertModal 

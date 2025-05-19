@@ -387,7 +387,7 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                   {...register('membershipType', { required: true })}
                 >
                   <option value="">Select membership type</option>
-                  <option value="ordinary">Ordinary Member</option>
+                  <option value="ordinary">Full Member</option>
                   <option value="associate">Associate Member</option>
                   <option value="student">Student Member</option>
                   <option value="institutional">Institutional Member</option>

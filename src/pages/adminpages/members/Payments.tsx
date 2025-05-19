@@ -19,6 +19,101 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import emailjs from '@emailjs/browser';
+emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
+
+const mockPayments: Payment[] = [
+  {
+    id: '1',
+    transaction_id: 'MPESA-123456',
+    amount: 5000,
+    currency: 'KES',
+    payment_method: 'mpesa',
+    status: 'pending',
+    member_id: 'mem-001',
+    application_id: 'app-001',
+    renewal_id: null,
+    member_name: 'John Doe',
+    member_email: 'lewismosage@gmail.com',
+    payment_type: 'application',
+    created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    verified_at: null,
+    verified_by: null,
+    notes: 'Waiting for confirmation from M-Pesa'
+  },
+  {
+    id: '2',
+    transaction_id: 'BANK-789012',
+    amount: 10000,
+    currency: 'KES',
+    payment_method: 'bank_transfer',
+    status: 'completed',
+    member_id: 'mem-002',
+    application_id: null,
+    renewal_id: 'ren-001',
+    member_name: 'Jane Smith',
+    member_email: 'lewismosage@gmail.com',
+    payment_type: 'renewal',
+    created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    verified_at: new Date(Date.now() - 86400000).toISOString(),
+    verified_by: 'admin-1',
+    notes: 'Verified with bank statement'
+  },
+  {
+    id: '3',
+    transaction_id: 'CARD-345678',
+    amount: 15000,
+    currency: 'KES',
+    payment_method: 'credit_card',
+    status: 'failed',
+    member_id: 'mem-003',
+    application_id: 'app-002',
+    renewal_id: null,
+    member_name: 'Robert Johnson',
+    member_email: 'lewismosage@gmail.com',
+    payment_type: 'upgrade',
+    created_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+    verified_at: new Date(Date.now() - 172800000).toISOString(),
+    verified_by: 'admin-2',
+    notes: 'Card declined - insufficient funds'
+  },
+  {
+    id: '4',
+    transaction_id: 'MPESA-901234',
+    amount: 7500,
+    currency: 'KES',
+    payment_method: 'mpesa',
+    status: 'refunded',
+    member_id: 'mem-004',
+    application_id: null,
+    renewal_id: 'ren-002',
+    member_name: 'Sarah Williams',
+    member_email: 'lewismosage@gmail.com',
+    payment_type: 'renewal',
+    created_at: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
+    verified_at: new Date(Date.now() - 259200000).toISOString(),
+    verified_by: 'admin-1',
+    notes: 'Refund processed due to duplicate payment'
+  },
+  {
+    id: '5',
+    transaction_id: 'MPESA-567890',
+    amount: 5000,
+    currency: 'KES',
+    payment_method: 'mpesa',
+    status: 'pending',
+    member_id: 'mem-005',
+    application_id: 'app-003',
+    renewal_id: null,
+    member_name: 'Michael Brown',
+    member_email: 'lewismosage@gmail.com',
+    payment_type: 'application',
+    created_at: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+    verified_at: null,
+    verified_by: null,
+    notes: 'Payment received but not yet confirmed'
+  }
+];
 
 interface Payment {
   id: string;
@@ -67,36 +162,44 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
   }, [statusFilter, typeFilter]);
 
   const fetchPayments = async () => {
-    setIsLoading(true);
-    try {
-      let query = supabase
-        .from('payments')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      if (typeFilter !== 'all') {
-        query = query.eq('payment_type', typeFilter);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setPayments(data as Payment[] || []);
-      setFilteredPayments(data as Payment[] || []);
-    } catch (error) {
-      console.error('Error fetching payments:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to load payments. Please try again.'
-      });
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    // Use mock data in development
+    if (process.env.NODE_ENV === 'development') {
+      setPayments(mockPayments);
+      setFilteredPayments(mockPayments);
+      return;
     }
-  };
+
+    // Original Supabase code for production
+    let query = supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
+
+    if (typeFilter !== 'all') {
+      query = query.eq('payment_type', typeFilter);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    setPayments(data as Payment[] || []);
+    setFilteredPayments(data as Payment[] || []);
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    setNotification({
+      type: 'error',
+      message: 'Failed to load payments. Please try again.'
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
     let result = [...payments];
@@ -158,37 +261,83 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
   };
 
   const updatePaymentStatus = async (id: string, status: 'completed' | 'failed' | 'refunded') => {
-    if (confirm(`Are you sure you want to mark this payment as ${status}?`)) {
-      setIsProcessing(true);
-      try {
-        const { error } = await supabase
-          .from('payments')
-          .update({ 
-            status,
-            verified_at: new Date().toISOString(),
-            verified_by: 'admin' // In real app, use actual admin ID
-          })
-          .eq('id', id);
-
-        if (error) throw error;
-
-        fetchPayments();
+  if (confirm(`Are you sure you want to mark this payment as ${status}?`)) {
+    setIsProcessing(true);
+    try {
+      // For mock data in development
+      if (process.env.NODE_ENV === 'development') {
+        const updatedPayments = payments.map(payment => {
+          if (payment.id === id) {
+            const updatedPayment = {
+              ...payment,
+              status,
+              verified_at: new Date().toISOString(),
+              verified_by: 'admin'
+            };
+            
+            // Send confirmation email if status is completed
+            if (status === 'completed') {
+              sendPaymentConfirmationEmail(updatedPayment);
+            }
+            
+            return updatedPayment;
+          }
+          return payment;
+        });
+        
+        setPayments(updatedPayments);
+        setFilteredPayments(updatedPayments);
+        
         setNotification({
           type: 'success',
           message: `Payment marked as ${status} successfully!`
         });
         setIsViewOpen(false);
-      } catch (error) {
-        console.error(`Error updating payment status:`, error);
-        setNotification({
-          type: 'error',
-          message: `Failed to update payment status. Please try again.`
-        });
-      } finally {
-        setIsProcessing(false);
+        return;
       }
+
+      // Original Supabase code for production
+      const { error } = await supabase
+        .from('payments')
+        .update({ 
+          status,
+          verified_at: new Date().toISOString(),
+          verified_by: 'admin'
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Send confirmation email if status is completed
+      if (status === 'completed') {
+        const { data } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (data) {
+          await sendPaymentConfirmationEmail(data as Payment);
+        }
+      }
+
+      fetchPayments();
+      setNotification({
+        type: 'success',
+        message: `Payment marked as ${status} successfully!`
+      });
+      setIsViewOpen(false);
+    } catch (error) {
+      console.error(`Error updating payment status:`, error);
+      setNotification({
+        type: 'error',
+        message: `Failed to update payment status. Please try again.`
+      });
+    } finally {
+      setIsProcessing(false);
     }
-  };
+  }
+};
 
   const exportPayments = async () => {
     try {
@@ -260,6 +409,95 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
         return <CreditCard className="h-4 w-4 text-gray-600" />;
     }
   };
+
+  const sendPaymentConfirmationEmail = async (payment: Payment) => {
+  try {
+    // Verify environment variables
+    if (!import.meta.env.VITE_EMAILJS_SERVICE_ID || 
+        !import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 
+        !import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
+      console.error('EmailJS configuration is missing');
+      return false;
+    }
+
+    const templateParams = {
+      from_name: 'EACNA Payments',
+      reply_to: 'no-reply@eacna.org',
+      to_name: payment.member_name,
+      to_email: payment.member_email,
+      subject: 'Your Payment Has Been Verified',
+      message: getPaymentConfirmationTemplate(payment),
+    };
+
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+      templateParams,
+      import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+    );
+
+    return true;
+  } catch (error) {
+    console.error('Error sending payment confirmation email:', error);
+    return false;
+  }
+};
+
+const getPaymentConfirmationTemplate = (payment: Payment) => {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2d3748;">Payment Verified</h1>
+      </div>
+      
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px;">
+        <p>Dear ${payment.member_name},</p>
+        
+        <p>We're pleased to inform you that your payment has been successfully verified by our team.</p>
+        
+        <div style="margin: 20px 0;">
+          <div style="display: flex; margin-bottom: 10px;">
+            <span style="font-weight: bold; width: 150px;">Transaction ID:</span>
+            <span>${payment.transaction_id}</span>
+          </div>
+          <div style="display: flex; margin-bottom: 10px;">
+            <span style="font-weight: bold; width: 150px;">Amount:</span>
+            <span>${payment.currency} ${payment.amount.toLocaleString()}</span>
+          </div>
+          <div style="display: flex; margin-bottom: 10px;">
+            <span style="font-weight: bold; width: 150px;">Payment Method:</span>
+            <span>${payment.payment_method.replace('_', ' ')}</span>
+          </div>
+          <div style="display: flex; margin-bottom: 10px;">
+            <span style="font-weight: bold; width: 150px;">Payment Date:</span>
+            <span>${formatDate(payment.created_at)}</span>
+          </div>
+          <div style="display: flex; margin-bottom: 10px;">
+            <span style="font-weight: bold; width: 150px;">Verification Date:</span>
+            <span>${new Date().toLocaleDateString()}</span>
+          </div>
+        </div>
+        
+        <p>You can now enjoy all the benefits of your EACNA membership. If you have any questions, please don't hesitate to contact us.</p>
+        
+        <p style="margin-top: 30px;">Best regards,<br>The EACNA Team</p>
+      </div>
+      
+      <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
+        <p>© ${new Date().getFullYear()} EACNA. All rights reserved.</p>
+        <p>This email was sent to ${payment.member_email}.</p>
+        <p>EACNA Headquarters5th Ngong Avenue Avenue Suites 6th Floor, Suite 8 Nairobi, Kenya</p>
+
+        <div class="social-links">
+        <a href="https://facebook.com/eacna">Facebook</a>
+        <a href="https://twitter.com/eacna">Twitter</a>
+        <a href="https://linkedin.com/company/eacna">LinkedIn</a>
+        <a href="https://instagram.com/eacna">Instagram</a>
+      </div>
+      </div>
+    </div>
+  `;
+};
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -359,16 +597,6 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
                   <th 
                     scope="col" 
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort('transaction_id')}
-                  >
-                    <div className="flex items-center">
-                      <span>Transaction ID</span>
-                      {getSortIcon('transaction_id')}
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                     onClick={() => requestSort('member_name')}
                   >
                     <div className="flex items-center">
@@ -434,9 +662,6 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPayments.map(payment => (
                   <tr key={payment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                      {payment.transaction_id}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{payment.member_name}</div>
                       <div className="text-sm text-gray-500">{payment.member_email}</div>
@@ -514,7 +739,7 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">
-                Payment Details - {selectedPayment.transaction_id}
+                Payment Details
               </h3>
               <button 
                 onClick={() => setIsViewOpen(false)} 
@@ -555,7 +780,6 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
                   </div>
                 </div>
               </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-2">Transaction Dates</h4>
@@ -576,12 +800,12 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-2">Related Records</h4>
                   <div className="space-y-2">
-                    {selectedPayment.application_id && (
-                      <div>
-                        <p className="text-xs text-gray-500">Application ID</p>
-                        <p className="text-sm font-mono">{selectedPayment.application_id}</p>
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-xs text-gray-500">Transaction ID</p>
+                      <p className="text-sm font-mono font-semibold text-primary-600">
+                        {selectedPayment.transaction_id}
+                      </p>
+                    </div>
                     {selectedPayment.renewal_id && (
                       <div>
                         <p className="text-xs text-gray-500">Renewal ID</p>
@@ -612,7 +836,6 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
                 >
                   Close
                 </Button>
-                
                 {selectedPayment.status === 'pending' && (
                   <>
                     <Button 

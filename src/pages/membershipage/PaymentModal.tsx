@@ -458,7 +458,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         </div>
         
         <p className="text-sm text-gray-500 mb-6">
-          A confirmation email has been sent to {email}. If you have any questions, please contact support.
+          A confirmation email will be sent to {email} once payment has been approved. If you have any questions, please contact support.
         </p>
         
         <button 

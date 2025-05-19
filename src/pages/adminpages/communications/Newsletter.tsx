@@ -268,9 +268,9 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
         const { error: updateError } = await supabase
           .from('newsletters')
           .update({
-            status: 'sending', // Make sure this matches your constraint
+            status: 'sending',
             recipient_count: activeSubscribers.length,
-            updated_at: new Date().toISOString() // Add this if you have this column
+            updated_at: new Date().toISOString()
           })
           .eq('id', newsletter.id);
 
@@ -284,11 +284,11 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
             batch.map(subscriber => {
               const templateParams = {
                 from_name: newsletter.sender_name || 'EACNA',
-                subject: newsletter.title,
-                message: newsletter.content,
                 reply_to: 'no-reply@eacna.org',
                 to_name: subscriber.name || 'Subscriber',
-                to_email: subscriber.email
+                to_email: subscriber.email,
+                subject: newsletter.title,
+                message: getNewsletterTemplate(newsletter, subscriber.name || 'Subscriber')
               };
 
               return emailjs.send(
@@ -342,6 +342,47 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
       }
     }
   });
+};
+
+const getNewsletterTemplate = (newsletter: Newsletter, subscriberName: string) => {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2d3748;">${newsletter.title}</h1>
+        <p style="color: #4a5568;">
+          From: ${newsletter.sender_name || 'EACNA Team'} • ${new Date().toLocaleDateString()}
+        </p>
+      </div>
+      
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px;">
+        <p>Dear ${subscriberName},</p>
+        
+        <div style="margin: 20px 0;">
+          ${newsletter.content}
+        </div>
+        
+        <p style="margin-top: 30px;">Best regards,<br>The EACNA Team</p>
+      </div>
+
+      
+      <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
+        <p>© ${new Date().getFullYear()} EACNA. All rights reserved.</p>
+        <p>You're receiving this email because you subscribed to our newsletter.</p>
+        <p style="margin-top: 10px;">
+          <a href="#" style="color: #4299e1; text-decoration: none;">Unsubscribe</a> • 
+          <a href="#" style="color: #4299e1; text-decoration: none; margin-left: 10px;">Update preferences</a> • 
+          <a href="#" style="color: #4299e1; text-decoration: none; margin-left: 10px;">View in browser</a>
+        </p>
+
+        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
+        <a href="https://facebook.com/eacna">Facebook</a>
+        <a href="https://twitter.com/eacna">Twitter</a>
+        <a href="https://linkedin.com/company/eacna">LinkedIn</a>
+        <a href="https://instagram.com/eacna">Instagram</a>
+      </div>
+      </div>
+    </div>
+  `;
 };
 
   
@@ -663,49 +704,11 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
             </div>
             <div className="p-6">
               <div className="bg-gray-50 p-8 rounded-lg shadow-inner">
-                <div className="max-w-2xl mx-auto">
-                  <div className="mb-6 text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-3">{selectedNewsletter.title}</h1>
-                    <p className="text-gray-600">
-                      From: {selectedNewsletter.sender_name || 'EACNA Team'} • {new Date().toLocaleDateString()}
-                    </p>
-                  </div>
-                  
-                  <div className="prose max-w-none">
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        img: ({node, ...props}) => (
-                          <img className="rounded-lg my-4 mx-auto" {...props} />
-                        ),
-                        a: ({node, ...props}) => (
-                          <a className="text-primary-600 hover:text-primary-500" {...props} />
-                        ),
-                        p: ({node, ...props}) => (
-                          <p className="mb-4" {...props} />
-                        ),
-                        h1: ({node, ...props}) => (
-                          <h1 className="text-xl font-bold mt-6 mb-4" {...props} />
-                        ),
-                        h2: ({node, ...props}) => (
-                          <h2 className="text-lg font-bold mt-5 mb-3" {...props} />
-                        )
-                      }}
-                    >
-                      {selectedNewsletter.content}
-                    </ReactMarkdown>
-                  </div>
-                  
-                  <div className="mt-8 pt-6 border-t border-gray-200 text-center text-gray-500 text-sm">
-                    <p>© 2025 EACNA. All rights reserved.</p>
-                    <p className="mt-2">You're receiving this email because you subscribed to our newsletter.</p>
-                    <p className="mt-1">
-                      <a href="#" className="text-primary-600 hover:underline">Unsubscribe</a> • 
-                      <a href="#" className="text-primary-600 hover:underline ml-2">Update preferences</a> • 
-                      <a href="#" className="text-primary-600 hover:underline ml-2">View in browser</a>
-                    </p>
-                  </div>
-                </div>
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: getNewsletterTemplate(selectedNewsletter, "Subscriber")
+                  }}
+                />
               </div>
               
               <div className="flex justify-end space-x-3 mt-6">
