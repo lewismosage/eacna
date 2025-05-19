@@ -594,7 +594,7 @@ const MemberPortal = () => {
               <ul className="space-y-2">
                 <li>
                   <Link 
-                    to="/resources/guidelines" 
+                    to="/resources#clinical-resources"  
                     className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
                   >
                     <BookOpen className="w-4 h-4" />
@@ -602,8 +602,8 @@ const MemberPortal = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link 
-                    to="/training/pet-courses" 
+                  <Link
+                    to="/training#pet-courses" 
                     className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
                   >
                     <Calendar className="w-4 h-4" />
@@ -612,7 +612,7 @@ const MemberPortal = () => {
                 </li>
                 <li>
                   <Link 
-                    to="/membership/renew" 
+                    to="/renew-membership" 
                     className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
                   >
                     <Award className="w-4 h-4" />

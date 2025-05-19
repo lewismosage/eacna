@@ -1,4 +1,5 @@
 import React from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Book, Link as LinkIcon, Download, ExternalLink, Play } from 'lucide-react';
@@ -15,6 +16,15 @@ const ResourcesPage = () => {
       transition: { duration: 0.6 }
     }
   };
+useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [location]);
 
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -196,7 +206,8 @@ const ResourcesPage = () => {
       </Section>
       
       {/* Clinical Resources */}
-      <Section background="light">
+      <div id="clinical-resources">
+       <Section background="light">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">Clinical Resources</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
@@ -231,6 +242,7 @@ const ResourcesPage = () => {
           <Button variant="secondary">View All Resources</Button>
         </div>
       </Section>
+    </div>
       
       {/* Educational Videos */}
       <Section>

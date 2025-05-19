@@ -1,5 +1,6 @@
 // src/pages/TrainingPage.tsx
 import React from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, FileText, Download } from 'lucide-react';
 import Section from '../../components/common/Section';
@@ -16,6 +17,16 @@ const TrainingPage = () => {
       transition: { duration: 0.6 }
     }
   };
+
+useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [location]);
 
   // PET Course descriptions for accordion
   const petCourses = [
@@ -169,34 +180,36 @@ const TrainingPage = () => {
       </Section>
       
       {/* PET Courses Details */}
-      <Section background="light" id="pet-courses">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">PET Courses</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Each PET course is designed to build upon the previous one, providing a comprehensive education in 
-            pediatric epilepsy management.
-          </p>
-        </div>
-        
-        <div className="max-w-3xl mx-auto">
-          <Accordion items={petCourses} />
-        </div>
-        
-        <div className="mt-12 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-xl font-semibold mb-4 text-primary-800">Course Format</h3>
-          <p className="text-gray-700 mb-4">
-            Each PET course has interactive large and small group sessions. There are many opportunities within 
-            each course to consider difficult cases, share 'experience in the real world', and debate 'the evidence'. 
-            The size of small groups is limited to 8 attendees, to ensure everyone is able to contribute and gain the 
-            most from the learning experience.
-          </p>
-          <p className="text-gray-700">
-            Each course has standardised course materials that are taught to the same high standard worldwide by a 
-            trained local faculty of experienced paediatric neurologists and paediatricians with an expertise in 
-            epilepsy. A course handbook is provided to attendees.
-          </p>
-        </div>
-      </Section>
+      <div id="pet-courses" >
+        <Section background="light">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">PET Courses</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Each PET course is designed to build upon the previous one, providing a comprehensive education in 
+              pediatric epilepsy management.
+            </p>
+          </div>
+          
+          <div className="max-w-3xl mx-auto">
+            <Accordion items={petCourses} />
+          </div>
+          
+          <div className="mt-12 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h3 className="text-xl font-semibold mb-4 text-primary-800">Course Format</h3>
+            <p className="text-gray-700 mb-4">
+              Each PET course has interactive large and small group sessions. There are many opportunities within 
+              each course to consider difficult cases, share 'experience in the real world', and debate 'the evidence'. 
+              The size of small groups is limited to 8 attendees, to ensure everyone is able to contribute and gain the 
+              most from the learning experience.
+            </p>
+            <p className="text-gray-700">
+              Each course has standardised course materials that are taught to the same high standard worldwide by a 
+              trained local faculty of experienced paediatric neurologists and paediatricians with an expertise in 
+              epilepsy. A course handbook is provided to attendees.
+            </p>
+          </div>
+        </Section>
+      </div>
       
       {/* Imported Events Section */}
       <EventsSection />
