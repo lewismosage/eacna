@@ -17,49 +17,60 @@ const Footer = () => {
   const [error, setError] = useState('');
 
   const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!name || !email) {
-      setError('Please fill in all fields');
+  if (!name || !email) {
+    setError('Please fill in all fields');
+    return;
+  }
+
+  setIsSubmitting(true);
+  setError('');
+
+  try {
+    // First check if email already exists
+    const { data: existingSubscribers, error: lookupError } = await supabase
+      .from('subscribers')
+      .select('email')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (lookupError) throw lookupError;
+    
+    if (existingSubscribers) {
+      setError('You have already subscribed with this email address. Thank you for your interest!');
       return;
     }
 
-    setIsSubmitting(true);
-    setError('');
+    // If not, proceed with subscription
+    const { data, error: insertError } = await supabase
+      .from('subscribers')
+      .insert([
+        {
+          name,
+          email,
+          subscribed_at: new Date().toISOString()
+        }
+      ])
+      .select();
 
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from('subscribers')
-        .insert([
-          {
-            name,
-            email,
-            subscribed_at: new Date().toISOString()
-          }
-        ])
-        .select();
+    if (insertError) throw insertError;
 
-      if (supabaseError) throw supabaseError;
+    setIsSuccess(true);
+    setName('');
+    setEmail('');
 
-      setIsSuccess(true);
-      setName('');
-      setEmail('');
+    // Reset success message after 3 seconds
+    setTimeout(() => {
+      setIsSuccess(false);
+    }, 3000);
 
-      // Reset success message after 3 seconds
-      setTimeout(() => {
-        setIsSuccess(false);
-      }, 3000);
-
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('duplicate key value')) {
-        setError('This email is already subscribed.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to subscribe. Please try again.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  } catch (err) {
+    setError('Failed to complete your subscription. Please try again later.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <footer className="bg-primary-900 text-white pt-16 pb-8">

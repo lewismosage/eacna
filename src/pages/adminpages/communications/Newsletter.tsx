@@ -89,23 +89,23 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
   };
 
   const fetchSubscribers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('subscribers')
-        .select('id, email, name, subscribed_at, is_active')
-        .eq('is_active', true)
-        .order('subscribed_at', { ascending: false });
-      
-      if (error) throw error;
-      setSubscribers(data as Subscriber[] || []);
-    } catch (error) {
-      console.error('Error fetching subscribers:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to fetch subscribers'
-      });
-    }
-  };
+  try {
+    const { data, error } = await supabase
+      .from('subscribers')
+      .select('id, email, name, subscribed_at, is_active')
+      .eq('is_active', true) 
+      .order('subscribed_at', { ascending: false });
+    
+    if (error) throw error;
+    setSubscribers(data as Subscriber[] || []);
+  } catch (error) {
+    console.error('Error fetching subscribers:', error);
+    setNotification({
+      type: 'error',
+      message: 'Failed to fetch subscribers'
+    });
+  }
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

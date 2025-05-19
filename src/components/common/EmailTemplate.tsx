@@ -92,12 +92,7 @@ export const EmailTemplate: React.FC<EmailTemplateProps> = ({
         
         {type === 'newsletter' && (
           <div style={{ marginBottom: '15px' }}>
-            {footerLinks.unsubscribe && (
-              <a href={footerLinks.unsubscribe} style={{ margin: '0 10px', color: '#1a6fef', textDecoration: 'none' }}>Unsubscribe</a>
-            )}
-            {footerLinks.preferences && (
-              <a href={footerLinks.preferences} style={{ margin: '0 10px', color: '#1a6fef', textDecoration: 'none' }}>Email Preferences</a>
-            )}
+            <a href="/unsubscribe" style={{ margin: '0 10px', color: '#1a6fef', textDecoration: 'none' }}>Unsubscribe</a>
             {footerLinks.viewInBrowser && (
               <a href={footerLinks.viewInBrowser} style={{ margin: '0 10px', color: '#1a6fef', textDecoration: 'none' }}>View in Browser</a>
             )}

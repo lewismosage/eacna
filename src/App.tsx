@@ -65,6 +65,7 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Route protection
 import ProtectedRoute from './components/protectedroute/ProtectedRoute';
+import UnsubscribePage from './pages/UnsubscribePage';
 
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -178,6 +179,8 @@ function App() {
             <Route path="publications/published" element={<PublishedArticles supabase={supabase} />} />
             <Route path="events/abstracts" element={<AbtractSubmissions />} /> 
           </Route>
+
+          <Route path="unsubscribe" element={<UnsubscribePage />} />
         </Route>
       </Routes>
 
