@@ -1,6 +1,6 @@
 // src/pages/ConferenceArchives.tsx
 import React, { useState, useEffect } from 'react';
-import { Calendar, BookOpen, MapPin, Users, Search, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Calendar, BookOpen, MapPin, Users, Download, Search, ArrowLeft, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
@@ -58,6 +58,7 @@ const ConferenceArchives = () => {
               { title: "Neuroimaging in Pediatric Epilepsy", presenter: "Dr. Sarah Musoke", link: "/presentations/2023/musoke-neuroimaging.pdf" },
               { title: "Neurodevelopmental Outcomes in Children with Sickle Cell Disease", presenter: "Dr. Emmanuel Tusiime", link: "/presentations/2023/tusiime-sickle-cell.pdf" }
             ],
+            photoGallery: "/gallery/2023"
           },
           {
             id: 2,
@@ -80,6 +81,7 @@ const ConferenceArchives = () => {
               { title: "Epilepsy Management Guidelines for East Africa", presenter: "Dr. Thomas Ngwiri", link: "/presentations/2022/ngwiri-epilepsy-guidelines.pdf" },
               { title: "Telemedicine in Pediatric Neurology", presenter: "Dr. Rebecca Ouma", link: "/presentations/2022/ouma-telemedicine.pdf" }
             ],
+            photoGallery: "/gallery/2022"
           },
           {
             id: 3,
@@ -102,6 +104,7 @@ const ConferenceArchives = () => {
               { title: "Epilepsy Training Programs: Current Status and Future Directions", presenter: "Dr. James Mwangi", link: "/presentations/2021/mwangi-training.pdf" },
               { title: "EEG Services in East Africa: Challenges and Opportunities", presenter: "Prof. Elizabeth Odera", link: "/presentations/2021/odera-eeg-services.pdf" }
             ],
+            photoGallery: "/gallery/2021"
           }
         ];
         
@@ -263,13 +266,19 @@ const ConferenceArchives = () => {
                         )}
                         
                         <div className="flex flex-wrap gap-3 mt-4">
-                          
+                          {conference.proceedings && (
+                            <a href={conference.proceedings}>
+                              <Button size="sm">
+                                <Download className="mr-1 h-4 w-4" /> Proceedings
+                              </Button>
+                            </a>
+                          )}
                           {conference.photoGallery && (
-                            <Link to={`/gallery/${conference.year}`}>
-                            <Button size="sm" variant="outline">
-                              Photo Gallery
-                            </Button>
-                          </Link>
+                            <a href={conference.photoGallery}>
+                              <Button size="sm" variant="outline">
+                                Photo Gallery
+                              </Button>
+                            </a>
                           )}
                         </div>
                       </div>

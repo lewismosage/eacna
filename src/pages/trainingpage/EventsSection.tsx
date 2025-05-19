@@ -69,8 +69,8 @@ const EventsSection = () => {
                   </div>
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-primary-800">{event.title}</h3>
-                <Button variant="text" className="mt-2" to="/event-details">
-                  View Details <ArrowRight className="ml-1 h-4 w-4"/>
+                <Button variant="text" className="mt-2">
+                  View Details <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
               </CardContent>
             </Card>
@@ -78,7 +78,7 @@ const EventsSection = () => {
         </div>
         
         <div className="mt-12 text-center">
-          <Button variant="outline" to="/all-events">
+          <Button variant="outline">
             View All Events
           </Button>
         </div>
@@ -125,7 +125,7 @@ const EventsSection = () => {
                 </div>
               </li>
             </ul>
-            <Button variant="outline" to="/conference-archives">
+            <Button variant="outline">
               View All Conference Archives
             </Button>
           </div>
@@ -170,7 +170,7 @@ const EventsSection = () => {
                 </div>
               </li>
             </ul>
-            <Button variant="outline" to="/webinars">
+            <Button variant="outline">
               View All Webinars
             </Button>
           </div>

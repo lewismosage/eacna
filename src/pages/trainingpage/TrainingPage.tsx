@@ -1,12 +1,11 @@
 // src/pages/TrainingPage.tsx
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, ArrowRight, BookOpen, FileText, Download } from 'lucide-react';
+import { Calendar, FileText, Download } from 'lucide-react';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
 import Accordion from '../../components/common/Accordion';
-import Card, { CardContent } from '../../components/common/Card';
-import EventsSection from './EventsSection';
+import EventsSection from '../../pages/trainingpage/EventsSection';
 
 const TrainingPage = () => {
   const fadeIn = {
@@ -195,14 +194,6 @@ const TrainingPage = () => {
             Each course has standardised course materials that are taught to the same high standard worldwide by a 
             trained local faculty of experienced paediatric neurologists and paediatricians with an expertise in 
             epilepsy. A course handbook is provided to attendees.
-          </p>
-          <br></br>
-          <p className="text-gray-700">
-          PET is evidence based, refers to internationally recognized guidelines, and provide a consensus view for pediatricians. Content is internationally peer reviewed. 
-          Course materials are updated every 3-years. PET1 was last updated in March 2023 and PET2/3 was last updated in November 2023. 
-          It is recommended that the courses are completed in sequence (as each course presumes prior knowledge from the previous one) and are repeated every 5 years. 
-          Alternative to repeating the course every 5 years, the newly developed PET4ward course has been introduced to follow on from PET123 for those wishing to be kept up to date with new and breaking topics in pediatric epilepsy. 
-          Anyone wishing to attend the PET4ward course must have attended the PET123 courses.
           </p>
         </div>
       </Section>

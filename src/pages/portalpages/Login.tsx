@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import axios, { AxiosError } from "axios";
 
 const Login = () => {
   const [email, setEmail] = useState("");
