@@ -6,6 +6,8 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../../components/common/Card';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import AlertModal from '../../../components/common/AlertModal';
+import emailjs from '@emailjs/browser';
+emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
 interface NewsletterContentProps {
   supabase: SupabaseClient;
@@ -17,10 +19,11 @@ interface Newsletter {
   content: string;
   sent_at: string | null;
   created_at: string;
-  status: 'draft' | 'sent' | 'scheduled';
+  status: 'draft' | 'sent' | 'scheduled' | 'sending'; 
   schedule_date: string | null;
   sender_name: string;
   recipient_count?: number;
+  updated_at?: string;
 }
 
 interface Subscriber {
@@ -182,7 +185,7 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
       title: newsletter.title,
       content: newsletter.content,
       sender_name: newsletter.sender_name || '',
-      status: newsletter.status || 'draft',
+      status: (['draft', 'sent', 'scheduled'].includes(newsletter.status) ? newsletter.status : 'draft') as 'draft' | 'sent' | 'scheduled',
       schedule_date: newsletter.schedule_date || ''
     });
     setIsFormOpen(true);
@@ -227,136 +230,121 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
   };
 
   const sendNewsletter = async (newsletter: Newsletter) => {
-    if (subscribers.length === 0) {
-      setNotification({
-        type: 'error',
-        message: 'No subscribers found. Cannot send newsletter.'
-      });
-      return;
-    }
-
-    setAlert({
-      open: true,
-      title: 'Send Newsletter',
-      message: `Are you sure you want to send this newsletter to ${subscribers.filter(s => s.is_active).length} subscribers?`,
-      confirmText: 'Send',
-      cancelText: 'Cancel',
-      onConfirm: async () => {
-        setAlert({ ...alert, open: false });
-        setIsSending(true);
-
-        try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-          if (sessionError || !session) {
-            throw new Error("Authentication required");
-          }
-
-          const response = await fetch(
-            'https://grpsuzgqxpbdfpdvenqq.supabase.co/functions/v1/send-newsletter',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({
-                newsletter_id: newsletter.id,
-                test_mode: false
-              }),
-            }
-          );
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.error || 'Failed to send newsletter');
-          }
-
-          fetchNewsletters();
-          setNotification({
-            type: 'success',
-            message: `Newsletter sent to ${subscribers.filter(s => s.is_active).length} subscribers!`
-          });
-        } catch (error) {
-          console.error('Error sending newsletter:', error);
-          setNotification({
-            type: 'error',
-            message: error instanceof Error ? error.message : 'Failed to send newsletter. Please try again.'
-          });
-        } finally {
-          setIsSending(false);
-        }
-      }
+  if (subscribers.length === 0) {
+    setNotification({
+      type: 'error',
+      message: 'No subscribers found. Cannot send newsletter.'
     });
-  };
-  
-  const testSendNewsletter = async (newsletter: Newsletter) => {
-    let testEmail = '';
-    setAlert({
-      open: true,
-      title: 'Send Test Newsletter',
-      message: 'Enter test email address:',
-      confirmText: 'Send Test',
-      cancelText: 'Cancel',
-      onConfirm: async () => {
-        setAlert({ ...alert, open: false });
-        if (!testEmail) return;
-
-        setIsSending(true);
-
-        try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError || !session) {
-            throw new Error("Authentication required");
-          }
-  
-          const response = await fetch(
-            'https://grpsuzgqxpbdfpdvenqq.supabase.co/functions/v1/send-newsletter',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({
-                newsletter_id: newsletter.id,
-                test_mode: true,
-                test_email: testEmail
-              }),
-            }
-          );
-          
-          const result = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(result.error || 'Failed to send test email');
-          }
-          
-          setNotification({
-            type: 'success',
-            message: `Test email sent to ${testEmail}`
-          });
-        } catch (error) {
-          console.error('Error sending test newsletter:', error);
-          setNotification({
-            type: 'error',
-            message: error instanceof Error ? error.message : 'Failed to send test email. Please try again.'
-          });
-        } finally {
-          setIsSending(false);
-        }
-      }
-    });
-
-    // Prompt for email using AlertModal input (if your AlertModal supports input)
-    // If not, you can use a custom modal or a separate input field.
-    // For now, fallback to prompt if AlertModal does not support input:
-    testEmail = prompt("Enter test email address:", "test@example.com") || '';
-    if (!testEmail) return;
+    return;
   }
 
+  // Verify environment variables
+  if (!import.meta.env.VITE_EMAILJS_SERVICE_ID || 
+      !import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 
+      !import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
+    setNotification({
+      type: 'error',
+      message: 'EmailJS configuration is missing. Please check your environment variables.'
+    });
+    return;
+  }
+
+  setAlert({
+    open: true,
+    title: 'Send Newsletter',
+    message: `Are you sure you want to send this newsletter to ${subscribers.filter(s => s.is_active).length} subscribers?`,
+    confirmText: 'Send',
+    cancelText: 'Cancel',
+    onConfirm: async () => {
+      setAlert(prev => ({ ...prev, open: false }));
+      setIsSending(true);
+
+      try {
+        const activeSubscribers = subscribers.filter(s => s.is_active);
+        const BATCH_SIZE = 10;
+        const DELAY_MS = 1000;
+
+        // First update - set status to 'sending'
+        const { error: updateError } = await supabase
+          .from('newsletters')
+          .update({
+            status: 'sending', // Make sure this matches your constraint
+            recipient_count: activeSubscribers.length,
+            updated_at: new Date().toISOString() // Add this if you have this column
+          })
+          .eq('id', newsletter.id);
+
+        if (updateError) throw updateError;
+
+        // Send emails in batches
+        for (let i = 0; i < activeSubscribers.length; i += BATCH_SIZE) {
+          const batch = activeSubscribers.slice(i, i + BATCH_SIZE);
+
+          await Promise.all(
+            batch.map(subscriber => {
+              const templateParams = {
+                from_name: newsletter.sender_name || 'EACNA',
+                subject: newsletter.title,
+                message: newsletter.content,
+                reply_to: 'no-reply@eacna.org',
+                to_name: subscriber.name || 'Subscriber',
+                to_email: subscriber.email
+              };
+
+              return emailjs.send(
+                import.meta.env.VITE_EMAILJS_SERVICE_ID,
+                import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+                templateParams,
+                import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+              );
+            })
+          );
+
+          if (i + BATCH_SIZE < activeSubscribers.length) {
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+          }
+        }
+
+        // Final update - set status to 'sent'
+        const { error: finalUpdateError } = await supabase
+          .from('newsletters')
+          .update({
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', newsletter.id);
+
+        if (finalUpdateError) throw finalUpdateError;
+
+        fetchNewsletters();
+        setNotification({
+          type: 'success',
+          message: `Newsletter sent to ${activeSubscribers.length} subscribers!`
+        });
+      } catch (error) {
+        console.error('Error sending newsletter:', error);
+        setNotification({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Failed to send newsletter. Please try again.'
+        });
+
+        // Revert status on error
+        await supabase
+          .from('newsletters')
+          .update({ 
+            status: 'draft',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', newsletter.id);
+      } finally {
+        setIsSending(false);
+      }
+    }
+  });
+};
+
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -517,7 +505,7 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
                 {selectedNewsletter ? 'Edit Newsletter' : 'Create New Newsletter'}
               </h3>
               <button onClick={() => setIsFormOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-5 h-5" />
+                <X className="w-4 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6">
@@ -631,27 +619,17 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
               
               <div className="flex justify-end space-x-3">
                 {selectedNewsletter?.status === 'draft' && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => testSendNewsletter(selectedNewsletter)}
-                      disabled={isSending}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
-                    >
-                      <Send className="w-4 h-4 mr-2" /> Send Test
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData({...formData, status: 'sent'});
-                        handleSubmit(new Event('submit') as any);
-                      }}
-                      disabled={isSending}
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
-                    >
-                      <Send className="w-4 h-4 mr-2" /> Send to All
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({...formData, status: 'sent'});
+                      handleSubmit(new Event('submit') as any);
+                    }}
+                    disabled={isSending}
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
+                  >
+                    <Send className="w-4 h-4 mr-2" /> Send to All
+                  </button>
                 )}
                 <button
                   type="button"
@@ -680,7 +658,7 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
                 Newsletter Preview
               </h3>
               <button onClick={() => setIsPreviewOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-5 h-5" />
+                <X className="w-4 h-5" />
               </button>
             </div>
             <div className="p-6">
@@ -740,24 +718,14 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
                 >
                   <Edit className="w-4 h-4 mr-2" /> Edit Newsletter
                 </button>
-                
                 {selectedNewsletter.status === 'draft' && (
-                  <>
-                    <button
-                      onClick={() => testSendNewsletter(selectedNewsletter)}
-                      disabled={isSending}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
-                    >
-                      <Send className="w-4 h-4 mr-2" /> Send Test
-                    </button>
-                    <button
-                      onClick={() => sendNewsletter(selectedNewsletter)}
-                      disabled={isSending}
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
-                    >
-                      <Send className="w-4 h-4 mr-2" /> {isSending ? 'Sending...' : 'Send to All'}
-                    </button>
-                  </>
+                  <button
+                    onClick={() => sendNewsletter(selectedNewsletter)}
+                    disabled={isSending}
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
+                  >
+                    <Send className="w-4 h-4 mr-2" /> {isSending ? 'Sending...' : 'Send to All'}
+                  </button>
                 )}
               </div>
             </div>
