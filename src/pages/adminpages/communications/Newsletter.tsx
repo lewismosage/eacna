@@ -6,6 +6,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../../components/common/Card';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import AlertModal from '../../../components/common/AlertModal';
+import { getEmailTemplateHTML } from '../../../components/common/EmailTemplate';
 import emailjs from '@emailjs/browser';
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
@@ -345,46 +346,18 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
 };
 
 const getNewsletterTemplate = (newsletter: Newsletter, subscriberName: string) => {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2d3748;">${newsletter.title}</h1>
-        <p style="color: #4a5568;">
-          From: ${newsletter.sender_name || 'EACNA Team'} • ${new Date().toLocaleDateString()}
-        </p>
-      </div>
-      
-      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px;">
-        <p>Dear ${subscriberName},</p>
-        
-        <div style="margin: 20px 0;">
-          ${newsletter.content}
-        </div>
-        
-        <p style="margin-top: 30px;">Best regards,<br>The EACNA Team</p>
-      </div>
-
-      
-      <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
-        <p>© ${new Date().getFullYear()} EACNA. All rights reserved.</p>
-        <p>You're receiving this email because you subscribed to our newsletter.</p>
-        <p style="margin-top: 10px;">
-          <a href="#" style="color: #4299e1; text-decoration: none;">Unsubscribe</a> • 
-          <a href="#" style="color: #4299e1; text-decoration: none; margin-left: 10px;">Update preferences</a> • 
-          <a href="#" style="color: #4299e1; text-decoration: none; margin-left: 10px;">View in browser</a>
-        </p>
-
-        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
-        <a href="https://facebook.com/eacna">Facebook</a>
-        <a href="https://twitter.com/eacna">Twitter</a>
-        <a href="https://linkedin.com/company/eacna">LinkedIn</a>
-        <a href="https://instagram.com/eacna">Instagram</a>
-      </div>
-      </div>
-    </div>
-  `;
+  return getEmailTemplateHTML({
+    title: newsletter.title,
+    recipientName: subscriberName,
+    content: newsletter.content,
+    type: 'newsletter',
+    footerLinks: {
+      unsubscribe: '#unsubscribe',
+      preferences: '#preferences',
+      viewInBrowser: '#view-in-browser'
+    }
+  });
 };
-
   
   return (
     <div className="space-y-6">

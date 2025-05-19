@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Mail, Phone, Send, Save, Clock, AlertCircle, CheckCircle, Eye } from 'lucide-react';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { getEmailTemplateHTML } from '../../../components/common/EmailTemplate';
 import emailjs from '@emailjs/browser';
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
@@ -68,29 +69,12 @@ function AlertModal({ isOpen, onClose, title, message, type = 'info' }: AlertMod
 }
 
 const getEmailTemplate = (recipientName: string, subject: string, message: string) => {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2d3748;">${subject}</h1>
-      </div>
-      
-      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px;">
-        <p>Dear ${recipientName},</p>
-        
-        <div style="margin: 20px 0; line-height: 1.6;">
-          ${message.replace(/\n/g, '<br>')}
-        </div>
-        
-        <p style="margin-top: 30px;">Best regards,<br>The EACNA Team</p>
-      </div>
-      
-      <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
-        <p>© ${new Date().getFullYear()} EACNA. All rights reserved.</p>
-        <p>This email was sent to you as part of our member communication.</p>
-        <p>EACNA Headquarters, 5th Ngong Avenue Avenue Suites, 6th Floor, Suite 8 Nairobi, Kenya</p>
-      </div>
-    </div>
-  `;
+  return getEmailTemplateHTML({
+    title: subject,
+    recipientName: recipientName,
+    content: message,
+    type: 'contact'
+  });
 };
 
 const getSMSTemplate = (message: string) => {

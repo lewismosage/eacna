@@ -19,6 +19,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { getEmailTemplateHTML } from '../../../components/common/EmailTemplate';
 import emailjs from '@emailjs/browser';
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
@@ -444,59 +445,37 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
 };
 
 const getPaymentConfirmationTemplate = (payment: Payment) => {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2d3748;">Payment Verified</h1>
+  const content = `
+    <p>We're pleased to inform you that your payment has been successfully verified by our team.</p>
+    
+    <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+      <div style="display: flex; margin-bottom: 8px;">
+        <span style="font-weight: bold; width: 150px;">Transaction ID:</span>
+        <span>${payment.transaction_id}</span>
       </div>
-      
-      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px;">
-        <p>Dear ${payment.member_name},</p>
-        
-        <p>We're pleased to inform you that your payment has been successfully verified by our team.</p>
-        
-        <div style="margin: 20px 0;">
-          <div style="display: flex; margin-bottom: 10px;">
-            <span style="font-weight: bold; width: 150px;">Transaction ID:</span>
-            <span>${payment.transaction_id}</span>
-          </div>
-          <div style="display: flex; margin-bottom: 10px;">
-            <span style="font-weight: bold; width: 150px;">Amount:</span>
-            <span>${payment.currency} ${payment.amount.toLocaleString()}</span>
-          </div>
-          <div style="display: flex; margin-bottom: 10px;">
-            <span style="font-weight: bold; width: 150px;">Payment Method:</span>
-            <span>${payment.payment_method.replace('_', ' ')}</span>
-          </div>
-          <div style="display: flex; margin-bottom: 10px;">
-            <span style="font-weight: bold; width: 150px;">Payment Date:</span>
-            <span>${formatDate(payment.created_at)}</span>
-          </div>
-          <div style="display: flex; margin-bottom: 10px;">
-            <span style="font-weight: bold; width: 150px;">Verification Date:</span>
-            <span>${new Date().toLocaleDateString()}</span>
-          </div>
-        </div>
-        
-        <p>You can now enjoy all the benefits of your EACNA membership. If you have any questions, please don't hesitate to contact us.</p>
-        
-        <p style="margin-top: 30px;">Best regards,<br>The EACNA Team</p>
+      <div style="display: flex; margin-bottom: 8px;">
+        <span style="font-weight: bold; width: 150px;">Amount:</span>
+        <span>${payment.currency} ${payment.amount.toLocaleString()}</span>
       </div>
-      
-      <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #777;">
-        <p>© ${new Date().getFullYear()} EACNA. All rights reserved.</p>
-        <p>This email was sent to ${payment.member_email}.</p>
-        <p>EACNA Headquarters5th Ngong Avenue Avenue Suites 6th Floor, Suite 8 Nairobi, Kenya</p>
-
-        <div class="social-links">
-        <a href="https://facebook.com/eacna">Facebook</a>
-        <a href="https://twitter.com/eacna">Twitter</a>
-        <a href="https://linkedin.com/company/eacna">LinkedIn</a>
-        <a href="https://instagram.com/eacna">Instagram</a>
+      <div style="display: flex; margin-bottom: 8px;">
+        <span style="font-weight: bold; width: 150px;">Payment Method:</span>
+        <span>${payment.payment_method.replace('_', ' ')}</span>
       </div>
+      <div style="display: flex;">
+        <span style="font-weight: bold; width: 150px;">Payment Date:</span>
+        <span>${new Date(payment.created_at).toLocaleDateString()}</span>
       </div>
     </div>
+    
+    <p>You can now enjoy all the benefits of your EACNA membership. If you have any questions, please don't hesitate to contact us.</p>
   `;
+
+  return getEmailTemplateHTML({
+    title: 'Payment Confirmation',
+    recipientName: payment.member_name,
+    content: content,
+    type: 'payment'
+  });
 };
 
   return (
