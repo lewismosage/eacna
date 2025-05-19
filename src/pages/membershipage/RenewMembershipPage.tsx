@@ -548,7 +548,7 @@ export default function MembershipRenewalPage() {
         HOME
       </button>
     </div>
-  );
+  ); 
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Award, Clock, CreditCard, Calendar, BadgeCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import CertificateSection from './CertificateSection'; 
 
@@ -126,6 +127,7 @@ interface MembershipOptionsProps {
 
 const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
   const [selectedTier, setSelectedTier] = useState<MembershipTierKey | null>(null);
+  const navigate = useNavigate();
 
   // Get current membership tier key and rank
   const currentTierKey = getCurrentMembershipTierKey(currentMembership.type);
@@ -190,7 +192,10 @@ const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
             
             <div className="mt-4 flex justify-between items-center">
               <span className="font-semibold">KSH{currentMembership.renewalFee}</span>
-              <button className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors">
+              <button
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                onClick={() => navigate('/portal/membership/membership-renewal')}
+              >
                 Renew Now
               </button>
             </div>
@@ -268,7 +273,10 @@ const MembershipOptions = ({ currentMembership }: MembershipOptionsProps) => {
                         Invitations Only
                       </button>
                     ) : (
-                      <button className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                      <button
+                        className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                        onClick={() => navigate('/portal/membership/membership-upgrade')}
+                      >
                         {showAsUpgrade ? `Upgrade to ${selectedTier.split(' ')[0]}` : `Change to ${selectedTier.split(' ')[0]}`}
                       </button>
                     )}

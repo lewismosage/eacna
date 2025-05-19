@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { SupabaseClient } from '@supabase/supabase-js';
 import Card from '../../../components/common/Card';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import AlertModal from '../../../components/common/AlertModal';
 
 interface NewsletterContentProps {
   supabase: SupabaseClient;
@@ -50,6 +51,15 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
     status: 'draft' as 'draft' | 'sent' | 'scheduled',
     schedule_date: ''
   });
+
+  const [alert, setAlert] = useState<{
+    open: boolean;
+    title?: string;
+    message: string;
+    onConfirm?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({ open: false, message: '' });
 
   useEffect(() => {
     fetchNewsletters();
@@ -184,28 +194,36 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
   };
 
   const deleteNewsletter = async (id: string) => {
-    if (confirm('Are you sure you want to delete this newsletter?')) {
-      try {
-        const { error } = await supabase
-          .from('newsletters')
-          .delete()
-          .eq('id', id);
-        
-        if (error) throw error;
-        
-        fetchNewsletters();
-        setNotification({
-          type: 'success',
-          message: 'Newsletter deleted successfully!'
-        });
-      } catch (error) {
-        console.error('Error deleting newsletter:', error);
-        setNotification({
-          type: 'error',
-          message: 'Failed to delete newsletter. Please try again.'
-        });
+    setAlert({
+      open: true,
+      title: 'Delete Newsletter',
+      message: 'Are you sure you want to delete this newsletter?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setAlert({ ...alert, open: false });
+        try {
+          const { error } = await supabase
+            .from('newsletters')
+            .delete()
+            .eq('id', id);
+
+          if (error) throw error;
+
+          fetchNewsletters();
+          setNotification({
+            type: 'success',
+            message: 'Newsletter deleted successfully!'
+          });
+        } catch (error) {
+          console.error('Error deleting newsletter:', error);
+          setNotification({
+            type: 'error',
+            message: 'Failed to delete newsletter. Please try again.'
+          });
+        }
       }
-    }
+    });
   };
 
   const sendNewsletter = async (newsletter: Newsletter) => {
@@ -216,103 +234,127 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
       });
       return;
     }
-  
-    if (confirm(`Are you sure you want to send this newsletter to ${subscribers.filter(s => s.is_active).length} subscribers?`)) {
-      setIsSending(true);
-      
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session) {
-          throw new Error("Authentication required");
-        }
 
-        const response = await fetch(
-          'https://grpsuzgqxpbdfpdvenqq.supabase.co/functions/v1/send-newsletter',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({
-              newsletter_id: newsletter.id,
-              test_mode: false
-            }),
+    setAlert({
+      open: true,
+      title: 'Send Newsletter',
+      message: `Are you sure you want to send this newsletter to ${subscribers.filter(s => s.is_active).length} subscribers?`,
+      confirmText: 'Send',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setAlert({ ...alert, open: false });
+        setIsSending(true);
+
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+          if (sessionError || !session) {
+            throw new Error("Authentication required");
           }
-        );
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to send newsletter');
+
+          const response = await fetch(
+            'https://grpsuzgqxpbdfpdvenqq.supabase.co/functions/v1/send-newsletter',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                newsletter_id: newsletter.id,
+                test_mode: false
+              }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to send newsletter');
+          }
+
+          fetchNewsletters();
+          setNotification({
+            type: 'success',
+            message: `Newsletter sent to ${subscribers.filter(s => s.is_active).length} subscribers!`
+          });
+        } catch (error) {
+          console.error('Error sending newsletter:', error);
+          setNotification({
+            type: 'error',
+            message: error instanceof Error ? error.message : 'Failed to send newsletter. Please try again.'
+          });
+        } finally {
+          setIsSending(false);
         }
-        
-        fetchNewsletters();
-        setNotification({
-          type: 'success',
-          message: `Newsletter sent to ${subscribers.filter(s => s.is_active).length} subscribers!`
-        });
-      } catch (error) {
-        console.error('Error sending newsletter:', error);
-        setNotification({
-          type: 'error',
-          message: error instanceof Error ? error.message : 'Failed to send newsletter. Please try again.'
-        });
-      } finally {
-        setIsSending(false);
       }
-    }
+    });
   };
   
   const testSendNewsletter = async (newsletter: Newsletter) => {
-    const testEmail = prompt("Enter test email address:", "test@example.com");
-    if (!testEmail) return;
+    let testEmail = '';
+    setAlert({
+      open: true,
+      title: 'Send Test Newsletter',
+      message: 'Enter test email address:',
+      confirmText: 'Send Test',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setAlert({ ...alert, open: false });
+        if (!testEmail) return;
+
+        setIsSending(true);
+
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError || !session) {
+            throw new Error("Authentication required");
+          }
   
-    setIsSending(true);
-    
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        throw new Error("Authentication required");
-      }
-  
-      const response = await fetch(
-        'https://grpsuzgqxpbdfpdvenqq.supabase.co/functions/v1/send-newsletter',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            newsletter_id: newsletter.id,
-            test_mode: true,
-            test_email: testEmail
-          }),
+          const response = await fetch(
+            'https://grpsuzgqxpbdfpdvenqq.supabase.co/functions/v1/send-newsletter',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                newsletter_id: newsletter.id,
+                test_mode: true,
+                test_email: testEmail
+              }),
+            }
+          );
+          
+          const result = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to send test email');
+          }
+          
+          setNotification({
+            type: 'success',
+            message: `Test email sent to ${testEmail}`
+          });
+        } catch (error) {
+          console.error('Error sending test newsletter:', error);
+          setNotification({
+            type: 'error',
+            message: error instanceof Error ? error.message : 'Failed to send test email. Please try again.'
+          });
+        } finally {
+          setIsSending(false);
         }
-      );
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to send test email');
       }
-      
-      setNotification({
-        type: 'success',
-        message: `Test email sent to ${testEmail}`
-      });
-    } catch (error) {
-      console.error('Error sending test newsletter:', error);
-      setNotification({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Failed to send test email. Please try again.'
-      });
-    } finally {
-      setIsSending(false);
-    }
+    });
+
+    // Prompt for email using AlertModal input (if your AlertModal supports input)
+    // If not, you can use a custom modal or a separate input field.
+    // For now, fallback to prompt if AlertModal does not support input:
+    testEmail = prompt("Enter test email address:", "test@example.com") || '';
+    if (!testEmail) return;
   }
 
   return (
@@ -722,6 +764,17 @@ export default function NewsletterContent({ supabase }: NewsletterContentProps) 
           </div>
         </div>
       )}
+
+      {/* AlertModal for confirmations */}
+      <AlertModal
+        isOpen={alert.open}
+        title={alert.title ?? 'Alert'}
+        message={alert.message}
+        confirmText={alert.confirmText}
+        cancelText={alert.cancelText}
+        onConfirm={alert.onConfirm}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
     </div>
   );
 }

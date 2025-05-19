@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -38,6 +38,8 @@ import WritePublicationPage from './pages/portalpages/WritePublicationPage';
 import Notifications from './pages/portalpages/Notifications';
 import ViewProfile from './pages/portalpages/ViewProfile';
 import MembershipStatus from './pages/portalpages/MembershipStatus';
+import MembershipRenewal from './pages/portalpages/MembershipRenewal';
+import MembershipUpgrade from './pages/portalpages/MembershipUpgrade';
 
 // Admin Pages
 import AdminLogin from './pages/adminpages/AdminLogin';
@@ -69,9 +71,24 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+
+const mockMembership = {
+  type: "Associate Member",
+  membershipId: "EACNA-2024-KE-1289",
+  expiryDate: "May 14, 2025",
+  renewalFee: 150,
+  benefits: [
+    "Access to online resources and clinical guidelines",
+    "Discounted rates for conferences and training",
+    "Eligibility to participate in research collaborations",
+    "Networking opportunities with professionals across East Africa"
+  ]
+};
+
 function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading] = useState(false); 
+  const navigate = useNavigate();
 
 
   return (
@@ -116,8 +133,26 @@ function App() {
             <Route path="portal/publications" element={<WritePublicationPage />} />
             <Route path="portal/notifications" element={<Notifications />} />
             <Route path="member-portal" element={<MemberPortal />} />
-            <Route path="/portal/profile" element={<ViewProfile />} />
+            <Route path="/portal/profile" element={<ViewProfile />} /> 
             <Route path="/portal/membership" element={<MembershipStatus />} />
+            <Route 
+              path="/portal/membership/membership-upgrade" 
+              element={
+                <MembershipUpgrade 
+                  currentMembership={mockMembership}
+                  onClose={() => navigate('/portal/membership')}
+                />
+              } 
+            />
+            <Route 
+              path="/portal/membership/membership-renewal"  
+              element={
+                <MembershipRenewal 
+                  currentMembership={mockMembership} 
+                  onClose={() => navigate('/portal/membership')} 
+                />
+              } 
+            />
           </Route>
         </Route>
         
