@@ -266,13 +266,6 @@ const ConferenceArchives = () => {
                         )}
                         
                         <div className="flex flex-wrap gap-3 mt-4">
-                          {conference.proceedings && (
-                            <a href={conference.proceedings}>
-                              <Button size="sm">
-                                <Download className="mr-1 h-4 w-4" /> Proceedings
-                              </Button>
-                            </a>
-                          )}
                           {conference.photoGallery && (
                             <a href={conference.photoGallery}>
                               <Button size="sm" variant="outline">
