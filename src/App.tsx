@@ -115,7 +115,7 @@ function App() {
           <Route path="renew-membership" element={<RenewMembershipPage />} />
           <Route path="join-directory" element={<JoinDirectory />} />
           <Route path="events" element={<EventsSection />} />
-          <Route path="event-details" element={<EventDetails />} />
+          <Route path="event/:id" element={<EventDetails />} />
           <Route path="all-events" element={<AllEvents />} />
           <Route path="conference-archives" element={<ConferenceArchives />} />
           <Route path="webinars" element={<AllWebinars />} />

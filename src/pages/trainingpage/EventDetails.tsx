@@ -1,130 +1,97 @@
-// src/pages/EventDetails.tsx
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Calendar, MapPin, Clock, ArrowLeft, Share2, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, MapPin, Clock, Users, Tag, ArrowLeft, Check, AlertCircle, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import AlertModal from '../../components/common/AlertModal';
 
-// Define the event interface
-interface Event {
-  id: number;
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface TrainingEvent {
+  id: string;
   title: string;
   date: string;
   location: string;
-  image: string;
-  description?: string;
-  startTime?: string;
-  endTime?: string;
-  agenda?: {
+  description: string;
+  image_url: string;
+  tags: string[];
+  start_time: string;
+  end_time: string;
+  agenda: {
     time: string;
     activity: string;
   }[];
-  speakers?: {
+  speakers: {
     name: string;
     title: string;
-    image?: string;
+    image_url?: string;
   }[];
-  organizers?: string[];
-  registrationLink?: string;
-  isFull?: boolean;
+  organizers: string[];
+  registration_link: string;
+  is_full: boolean;
+  status: 'draft' | 'published' | 'completed';
+}
+
+interface RegistrationForm {
+  name: string;
+  email: string;
+  phone: string;
+  organization: string;
+  position: string;
+  special_requirements: string;
 }
 
 const EventDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<Event | null>(null);
+  const navigate = useNavigate();
+  const [event, setEvent] = useState<TrainingEvent | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState<boolean>(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState<boolean>(false);
+  const [showRegistrationForm, setShowRegistrationForm] = useState<boolean>(false);
+  const [formData, setFormData] = useState<RegistrationForm>({
+    name: '',
+    email: '',
+    phone: '',
+    organization: '',
+    position: '',
+    special_requirements: ''
+  });
+  const [alert, setAlert] = useState<{
+    open: boolean;
+    title?: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({ open: false, message: '' });
 
   useEffect(() => {
-    // In a real application, this would be an API call
-    // For now, we'll mock the event data
     const fetchEvent = async () => {
+      setLoading(true);
       try {
-        // Simulating API delay
-        await new Promise(resolve => setTimeout(resolve, 300));
+        const { data, error } = await supabase
+          .from('training_events')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
         
-        // Mock events database
-        const eventsData: Event[] = [
-          {
-            id: 1,
-            title: "PET1 Training in Nairobi",
-            date: "September 15-16, 2024",
-            location: "Gertrude's Children's Hospital, Nairobi",
-            image: "https://images.pexels.com/photos/3184296/pexels-photo-3184296.jpeg?auto=compress&cs=tinysrgb&w=600",
-            description: "The Pediatric Epilepsy Training (PET1) course is designed for healthcare professionals involved in the care of children with epilepsy. This comprehensive two-day training program covers diagnosis, investigations, treatment options, and management strategies for pediatric epilepsy.",
-            startTime: "8:00 AM",
-            endTime: "5:00 PM",
-            agenda: [
-              { time: "8:00 - 8:30", activity: "Registration & Morning Coffee" },
-              { time: "8:30 - 10:30", activity: "Introduction to Pediatric Epilepsy" },
-              { time: "10:30 - 10:45", activity: "Coffee Break" },
-              { time: "10:45 - 12:30", activity: "Seizure Types and Classifications" },
-              { time: "12:30 - 13:30", activity: "Lunch" },
-              { time: "13:30 - 15:30", activity: "Treatment Approaches & Case Studies" },
-              { time: "15:30 - 15:45", activity: "Coffee Break" },
-              { time: "15:45 - 17:00", activity: "Practical Session & Q&A" }
-            ],
-            speakers: [
-              { name: "Dr. Sarah Kimani", title: "Pediatric Neurologist, EACNA President" },
-              { name: "Dr. James Mwangi", title: "Head of Neurology, Gertrude's Children's Hospital" },
-              { name: "Prof. Elizabeth Odera", title: "Consultant Pediatric Neurologist" }
-            ],
-            organizers: ["East African Child Neurology Association", "Gertrude's Children's Hospital"],
-            registrationLink: "/register/pet1-nairobi",
-            isFull: false
-          },
-          {
-            id: 2,
-            title: "Annual EACNA Conference",
-            date: "October 10-12, 2024",
-            location: "Serena Hotel, Kampala, Uganda",
-            image: "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600",
-            description: "The Annual EACNA Conference brings together professionals from across East Africa and beyond to share the latest research and best practices in pediatric neurology. This year's theme is 'Advancing Pediatric Neurology Care in Resource-Limited Settings'.",
-            startTime: "9:00 AM",
-            endTime: "6:00 PM",
-            agenda: [
-              { time: "Day 1", activity: "Pre-conference Workshops" },
-              { time: "Day 2", activity: "Opening Ceremony, Keynote Address, Scientific Sessions" },
-              { time: "Day 3", activity: "Scientific Sessions, Panel Discussions, Closing Ceremony" }
-            ],
-            speakers: [
-              { name: "Prof. David Kariuki", title: "Keynote Speaker, University of Nairobi" },
-              { name: "Dr. Florence Musubika", title: "EACNA Vice President" },
-              { name: "Dr. Emmanuel Tusiime", title: "Head of Pediatrics, Mulago Hospital" }
-            ],
-            organizers: ["East African Child Neurology Association", "Uganda Pediatric Association"],
-            registrationLink: "/register/eacna-conference-2024",
-            isFull: false
-          },
-          {
-            id: 3,
-            title: "Pediatric Epilepsy Webinar",
-            date: "November 5, 2024",
-            location: "Virtual Event",
-            image: "https://images.pexels.com/photos/8199190/pexels-photo-8199190.jpeg?auto=compress&cs=tinysrgb&w=600",
-            description: "This virtual webinar will focus on current approaches to pediatric epilepsy diagnosis and management. It is designed for pediatricians, neurologists, and other healthcare professionals interested in pediatric neurology.",
-            startTime: "2:00 PM",
-            endTime: "4:30 PM",
-            agenda: [
-              { time: "2:00 - 2:15", activity: "Welcome and Introduction" },
-              { time: "2:15 - 3:00", activity: "Updates in Pediatric Epilepsy Diagnosis" },
-              { time: "3:00 - 3:45", activity: "Management Approaches in Resource-Limited Settings" },
-              { time: "3:45 - 4:30", activity: "Q&A and Discussion" }
-            ],
-            speakers: [
-              { name: "Dr. Rebecca Ouma", title: "Pediatric Neurologist, Kenyatta National Hospital" },
-              { name: "Dr. Thomas Ngwiri", title: "Pediatric Neurology Fellow" }
-            ],
-            organizers: ["East African Child Neurology Association"],
-            registrationLink: "/register/epilepsy-webinar",
-            isFull: false
-          }
-        ];
-        
-        const foundEvent = eventsData.find(e => e.id === parseInt(id || '0'));
-        setEvent(foundEvent || null);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching event details:", error);
+        if (!data) {
+          throw new Error('Event not found');
+        }
+
+        setEvent(data as TrainingEvent);
+      } catch (err) {
+        console.error("Error fetching event:", err);
+        setError('Failed to load event details');
+      } finally {
         setLoading(false);
       }
     };
@@ -132,11 +99,87 @@ const EventDetails = () => {
     fetchEvent();
   }, [id]);
 
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'MMMM d, yyyy');
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleRegisterClick = () => {
+    if (event?.is_full) return;
+    setShowRegistrationForm(true);
+  };
+
+  const handleRegistrationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!event) return;
+
+    // Basic validation
+    if (!formData.name || !formData.email) {
+      setAlert({
+        open: true,
+        title: 'Missing Information',
+        message: 'Please provide at least your name and email address.',
+      });
+      return;
+    }
+
+    setIsRegistering(true);
+
+    try {
+      // Save registration to database
+      const { error } = await supabase
+        .from('event_registrations')
+        .insert([{
+          event_id: event.id,
+          event_title: event.title,
+          ...formData,
+          registered_at: new Date().toISOString()
+        }]);
+
+      if (error) throw error;
+
+      setRegistrationSuccess(true);
+      setShowRegistrationForm(false);
+      
+      // Optionally send confirmation email
+      // await sendConfirmationEmail(formData.email, event.title);
+      
+    } catch (err) {
+      console.error("Error submitting registration:", err);
+      setAlert({
+        open: true,
+        title: 'Registration Failed',
+        message: 'There was an error processing your registration. Please try again later.',
+      });
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   if (loading) {
     return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
       <Section>
-        <div className="flex justify-center items-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+        <div className="bg-red-50 text-red-700 p-4 rounded-md">
+          {error}
+        </div>
+        <div className="mt-4">
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Events
+          </Button>
         </div>
       </Section>
     );
@@ -145,162 +188,358 @@ const EventDetails = () => {
   if (!event) {
     return (
       <Section>
-        <div className="text-center py-16">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Event Not Found</h2>
-          <p className="text-gray-600 mb-8">The event you are looking for does not exist or has been removed.</p>
-          <Link to="/events">
-            <Button>
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">Event not found.</p>
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => navigate(-1)}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Events
             </Button>
-          </Link>
+          </div>
         </div>
       </Section>
     );
   }
 
   return (
-    <>
-      {/* Hero Section with Event Image */}
-      <div className="relative h-64 md:h-96 w-full">
-        <div className="absolute inset-0 bg-black/50 z-10"></div>
-        <img 
-          src={event.image} 
-          alt={event.title} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 flex items-center z-20">
-          <div className="container mx-auto px-4">
-            <Link to="/events" className="inline-flex items-center text-white hover:text-primary-200 mb-4">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Events
-            </Link>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">{event.title}</h1>
+    <Section>
+      {/* Back button */}
+      <div className="mb-6">
+        <Button variant="text" onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Events
+        </Button>
+      </div>
+
+      {/* Registration success message */}
+      {registrationSuccess && (
+        <div className="bg-green-50 text-green-700 p-4 rounded-md mb-6 flex items-start">
+          <Check className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+          <div>
+            <h3 className="font-medium">Registration Successful!</h3>
+            <p className="text-sm">
+              Thank you for registering for "{event.title}". A confirmation has been sent to {formData.email}.
+            </p>
+          </div>
+          <button 
+            onClick={() => setRegistrationSuccess(false)}
+            className="ml-auto text-green-700 hover:text-green-900"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Event header with image */}
+      <div className="relative mb-8 rounded-lg overflow-hidden">
+        <div className="h-64 w-full bg-gray-200">
+          <img 
+            src={event.image_url || 'https://via.placeholder.com/1200x400?text=No+Image'} 
+            alt={event.title} 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+          <h1 className="text-3xl font-bold text-white">{event.title}</h1>
+          <div className="flex items-center text-white/90 mt-2">
+            <Calendar className="h-5 w-5 mr-1" />
+            <span>{formatEventDate(event.date)}</span>
+            <span className="mx-2">•</span>
+            <Clock className="h-5 w-5 mr-1" />
+            <span>{event.start_time} - {event.end_time}</span>
           </div>
         </div>
       </div>
 
-      {/* Event Details */}
-      <Section>
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow-card p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4 text-primary-800">About This Event</h2>
-              <p className="text-gray-700">{event.description}</p>
-              
-              {event.organizers && event.organizers.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="font-semibold text-gray-800 mb-2">Organized by:</h3>
-                  <p className="text-gray-700">{event.organizers.join(', ')}</p>
-                </div>
-              )}
-            </div>
-
-            {event.agenda && event.agenda.length > 0 && (
-              <div className="bg-white rounded-lg shadow-card p-6 mb-8">
-                <h2 className="text-xl font-bold mb-4 text-primary-800">Agenda</h2>
-                <ul className="space-y-4">
-                  {event.agenda.map((item, index) => (
-                    <li key={index} className="border-l-2 border-primary-500 pl-4 py-1">
-                      <span className="font-semibold text-primary-700">{item.time}</span>
-                      <p className="text-gray-700">{item.activity}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {event.speakers && event.speakers.length > 0 && (
-              <div className="bg-white rounded-lg shadow-card p-6">
-                <h2 className="text-xl font-bold mb-4 text-primary-800">Speakers</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {event.speakers.map((speaker, index) => (
-                    <div key={index} className="flex items-start">
-                      <div className="bg-gray-200 rounded-full h-12 w-12 flex items-center justify-center mr-3">
-                        {speaker.image ? (
-                          <img src={speaker.image} alt={speaker.name} className="h-12 w-12 rounded-full object-cover" />
-                        ) : (
-                          <span className="text-lg font-bold text-gray-500">{speaker.name.charAt(0)}</span>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800">{speaker.name}</h3>
-                        <p className="text-gray-600 text-sm">{speaker.title}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main content */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Event status badge */}
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              event.status === 'published' 
+                ? 'bg-green-100 text-green-800' 
+                : event.status === 'completed'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              {event.status}
+            </span>
+            {event.is_full && (
+              <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                Event Full
+              </span>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="md:col-span-1">
-            <div className="bg-white rounded-lg shadow-card p-6 mb-6">
-              <h2 className="text-lg font-bold mb-4 text-primary-800">Event Details</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <Calendar className="h-5 w-5 text-primary-600 mt-1 mr-3" />
-                  <div>
-                    <h3 className="font-semibold text-gray-800">Date</h3>
-                    <p className="text-gray-600">{event.date}</p>
-                  </div>
-                </div>
-                
-                {event.startTime && (
-                  <div className="flex items-start">
-                    <Clock className="h-5 w-5 text-primary-600 mt-1 mr-3" />
+          {/* Event description */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Event</h2>
+            <div className="prose max-w-none text-gray-700">
+              {event.description.split('\n').map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+
+          {/* Event agenda */}
+          {event.agenda?.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Agenda</h2>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Activity</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {event.agenda.map((item, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{item.time}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">{item.activity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Speakers */}
+          {event.speakers?.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Speakers</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {event.speakers.map((speaker, index) => (
+                  <div key={index} className="flex items-start p-4 border border-gray-200 rounded-lg">
+                    <div className="flex-shrink-0 h-16 w-16 rounded-full bg-gray-200 overflow-hidden mr-4">
+                      {speaker.image_url ? (
+                        <img src={speaker.image_url} alt={speaker.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-gray-400">
+                          <Users className="h-8 w-8" />
+                        </div>
+                      )}
+                    </div>
                     <div>
-                      <h3 className="font-semibold text-gray-800">Time</h3>
-                      <p className="text-gray-600">{event.startTime} - {event.endTime}</p>
+                      <h3 className="text-lg font-medium text-gray-900">{speaker.name}</h3>
+                      <p className="text-gray-600">{speaker.title}</p>
                     </div>
                   </div>
-                )}
-                
-                <div className="flex items-start">
-                  <MapPin className="h-5 w-5 text-primary-600 mt-1 mr-3" />
-                  <div>
-                    <h3 className="font-semibold text-gray-800">Location</h3>
-                    <p className="text-gray-600">{event.location}</p>
-                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Event details card */}
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Event Details</h2>
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <Calendar className="h-5 w-5 text-primary-600 mr-3 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Date</h3>
+                  <p className="text-gray-900">{formatEventDate(event.date)}</p>
                 </div>
               </div>
               
-              {event.registrationLink && (
-                <div className="mt-6">
-                  <Link to={event.registrationLink}>
-                    <Button 
-                      className="w-full" 
-                      disabled={event.isFull}
-                    >
-                      {event.isFull ? 'Registration Full' : 'Register Now'}
-                    </Button>
-                  </Link>
-                  
-                  {event.isFull && (
-                    <p className="text-sm text-red-600 mt-2">
-                      This event is currently full. Please check back later for openings.
-                    </p>
-                  )}
+              <div className="flex items-start">
+                <Clock className="h-5 w-5 text-primary-600 mr-3 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Time</h3>
+                  <p className="text-gray-900">{event.start_time} - {event.end_time}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start">
+                <MapPin className="h-5 w-5 text-primary-600 mr-3 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Location</h3>
+                  <p className="text-gray-900">{event.location}</p>
+                </div>
+              </div>
+              
+              {event.organizers?.length > 0 && (
+                <div className="flex items-start">
+                  <Users className="h-5 w-5 text-primary-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Organized By</h3>
+                    <p className="text-gray-900">{event.organizers.join(', ')}</p>
+                  </div>
+                </div>
+              )}
+              
+              {event.tags?.length > 0 && (
+                <div className="flex items-start">
+                  <Tag className="h-5 w-5 text-primary-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Tags</h3>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {event.tags.map((tag, index) => (
+                        <span key={index} className="px-2 py-1 bg-gray-200 text-xs rounded-full text-gray-800">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-            
-            <div className="bg-white rounded-lg shadow-card p-6">
-              <h2 className="text-lg font-bold mb-4 text-primary-800">Share This Event</h2>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Share2 className="h-4 w-4 mr-1" /> Share
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Download className="h-4 w-4 mr-1" /> Calendar
-                </Button>
+          </div>
+
+          {/* Registration card */}
+          <div className="border border-gray-200 rounded-lg p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Registration</h2>
+            {event.is_full ? (
+              <div className="bg-red-50 text-red-700 p-4 rounded-md flex items-start">
+                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p>This event is currently full. Please check back later for cancellations or future events.</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {!showRegistrationForm ? (
+                  <div className="space-y-4">
+                    <p className="text-gray-700">Register now to secure your spot at this event.</p>
+                    <Button 
+                      onClick={handleRegisterClick}
+                      className="w-full"
+                    >
+                      Register Now
+                    </Button>
+                    {event.registration_link && (
+                      <p className="text-sm text-gray-500 text-center">
+                        Or register through our <a href={event.registration_link} className="text-primary-600 hover:underline">external registration page</a>.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <form onSubmit={handleRegistrationSubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">
+                        Organization
+                      </label>
+                      <input
+                        type="text"
+                        id="organization"
+                        name="organization"
+                        value={formData.organization}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
+                        Position/Role
+                      </label>
+                      <input
+                        type="text"
+                        id="position"
+                        name="position"
+                        value={formData.position}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="special_requirements" className="block text-sm font-medium text-gray-700 mb-1">
+                        Special Requirements
+                      </label>
+                      <textarea
+                        id="special_requirements"
+                        name="special_requirements"
+                        rows={3}
+                        value={formData.special_requirements}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Dietary restrictions, accessibility needs, etc."
+                      />
+                    </div>
+                    
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowRegistrationForm(false)}
+                        className="w-full"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isRegistering}
+                        className="w-full"
+                      >
+                        {isRegistering ? 'Registering...' : 'Submit Registration'}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </>
+            )}
           </div>
         </div>
-      </Section>
-    </>
+      </div>
+
+      {/* Alert modal */}
+      <AlertModal
+        isOpen={alert.open}
+        title={alert.title ?? 'Alert'}
+        message={alert.message}
+        onConfirm={() => setAlert({ ...alert, open: false })}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
+    </Section>
   );
 };
 

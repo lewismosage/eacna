@@ -1,43 +1,83 @@
 // src/pages/EventsSection.tsx
-import React from 'react';
-import { Calendar, ArrowRight, BookOpen } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, ArrowRight, BookOpen, MapPin, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
 import Card, { CardContent } from '../../components/common/Card';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-interface Event {
-  id: number;
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface TrainingEvent {
+  id: string;
   title: string;
   date: string;
   location: string;
-  image: string;
+  description: string;
+  image_url: string;
+  start_time: string;
+  end_time: string;
+  status: 'draft' | 'published' | 'completed';
 }
 
 const EventsSection = () => {
-  // Upcoming Events data now defined here
-  const upcomingEvents: Event[] = [
-    {
-      id: 1,
-      title: "PET1 Training in Nairobi",
-      date: "September 15-16, 2024",
-      location: "Gertrude's Children's Hospital, Nairobi",
-      image: "https://images.pexels.com/photos/3184296/pexels-photo-3184296.jpeg?auto=compress&cs=tinysrgb&w=600"
-    },
-    {
-      id: 2,
-      title: "Annual EACNA Conference",
-      date: "October 10-12, 2024",
-      location: "Serena Hotel, Kampala, Uganda",
-      image: "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600"
-    },
-    {
-      id: 3,
-      title: "Pediatric Epilepsy Webinar",
-      date: "November 5, 2024",
-      location: "Virtual Event",
-      image: "https://images.pexels.com/photos/8199190/pexels-photo-8199190.jpeg?auto=compress&cs=tinysrgb&w=600"
+  const [events, setEvents] = useState<TrainingEvent[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('training_events')
+        .select('*')
+        .eq('status', 'published')
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      setEvents(data as TrainingEvent[] || []);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setError('Failed to load training events');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'MMMM d, yyyy');
+  };
+
+  const formatTimeRange = (start: string, end: string) => {
+    if (!start || !end) return '';
+    return `${start} - ${end}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 text-red-700 p-4 rounded-md">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -50,32 +90,41 @@ const EventsSection = () => {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {upcomingEvents.map(event => (
-            <Card key={event.id} className="overflow-hidden">
-              <div className="h-48 overflow-hidden">
-                <img 
-                  src={event.image} 
-                  alt={event.title} 
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                />
-              </div>
-              <CardContent>
-                <div className="flex items-start mb-3">
-                  <Calendar className="h-5 w-5 text-primary-600 mt-1 mr-2" />
-                  <div>
-                    <span className="text-primary-600 font-semibold">{event.date}</span>
-                    <p className="text-gray-600 text-sm">{event.location}</p>
-                  </div>
+        {events.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No upcoming events at the moment. Please check back later.</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {events.map(event => (
+              <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <div className="h-48 overflow-hidden">
+                  <img 
+                    src={event.image_url || 'https://via.placeholder.com/400x200?text=No+Image'} 
+                    alt={event.title} 
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                  />
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-primary-800">{event.title}</h3>
-                <Button variant="text" className="mt-2" to="/event-details">
-                  View Details <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <CardContent>
+                  <div className="flex items-start mb-3">
+                    <Calendar className="h-5 w-5 text-primary-600 mt-1 mr-2" />
+                    <div>
+                      <span className="text-primary-600 font-semibold">{formatEventDate(event.date)}</span>
+                      <p className="text-gray-600 text-sm flex items-start">
+                        <MapPin className="w-4 h-4 mr-1 mt-0.5" />
+                        {event.location}
+                      </p>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 text-primary-800">{event.title}</h3>
+                  <Button variant="text" className="mt-2" to={`/event/${event.id}`}>
+                    View Details <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
         
         <div className="mt-12 text-center">
           <Button variant="outline" to="/all-events">
