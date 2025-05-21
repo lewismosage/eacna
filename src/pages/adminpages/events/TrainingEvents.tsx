@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Calendar, MapPin, Search, Clock, Users, FileText, Image, Tag, X, Check, AlertCircle, Send } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, MapPin, Search, Clock, Users, FileText, ImageIcon, Tag, X, Check, AlertCircle, Send, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import AlertModal from '../../../components/common/AlertModal';
 import Card from '../../../components/common/Card';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 interface TrainingEvent {
   id: string;
@@ -11,10 +12,10 @@ interface TrainingEvent {
   date: string;
   location: string;
   description: string;
-  image: string;
+  image_url: string;
   tags: string[];
-  startTime: string;
-  endTime: string;
+  start_time: string;
+  end_time: string;
   agenda: {
     time: string;
     activity: string;
@@ -22,17 +23,21 @@ interface TrainingEvent {
   speakers: {
     name: string;
     title: string;
-    image?: string;
+    image_url?: string;
   }[];
   organizers: string[];
-  registrationLink: string;
-  isFull: boolean;
+  registration_link: string;
+  is_full: boolean;
   status: 'draft' | 'published' | 'completed';
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const TrainingEvents = () => {
+interface TrainingEventsProps {
+  supabase: SupabaseClient;
+}
+
+const TrainingEvents: React.FC<TrainingEventsProps> = ({ supabase }) => {
   const [events, setEvents] = useState<TrainingEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -52,20 +57,20 @@ const TrainingEvents = () => {
     cancelText?: string;
   }>({ open: false, message: '' });
 
-  const [formData, setFormData] = useState<Omit<TrainingEvent, 'id' | 'createdAt' | 'updatedAt'>>({
+  const [formData, setFormData] = useState<Omit<TrainingEvent, 'id' | 'created_at' | 'updated_at'>>({
     title: '',
     date: '',
     location: '',
     description: '',
-    image: '',
+    image_url: '',
     tags: [],
-    startTime: '',
-    endTime: '',
+    start_time: '',
+    end_time: '',
     agenda: [],
     speakers: [],
     organizers: [],
-    registrationLink: '',
-    isFull: false,
+    registration_link: '',
+    is_full: false,
     status: 'draft'
   });
 
@@ -75,11 +80,15 @@ const TrainingEvents = () => {
     time: '',
     activity: ''
   });
-  const [newSpeaker, setNewSpeaker] = useState<{ name: string; title: string; image?: string }>({
+  const [newSpeaker, setNewSpeaker] = useState<{ name: string; title: string; image_url?: string }>({
     name: '',
     title: '',
-    image: ''
+    image_url: ''
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -88,77 +97,20 @@ const TrainingEvents = () => {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { data, error } = await supabase
+        .from('training_events')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      // Mock data for training events
-      const mockEvents: TrainingEvent[] = [
-        {
-          id: '1',
-          title: "PET1 Training in Nairobi",
-          date: "2024-09-15",
-          location: "Gertrude's Children's Hospital, Nairobi",
-          description: "The Pediatric Epilepsy Training (PET1) course is designed for healthcare professionals involved in the care of children with epilepsy.",
-          image: "https://images.pexels.com/photos/3184296/pexels-photo-3184296.jpeg",
-          tags: ["epilepsy", "pediatric neurology", "training"],
-          startTime: "08:00",
-          endTime: "17:00",
-          agenda: [
-            { time: "8:00 - 8:30", activity: "Registration & Morning Coffee" },
-            { time: "8:30 - 10:30", activity: "Introduction to Pediatric Epilepsy" },
-            { time: "10:30 - 10:45", activity: "Coffee Break" },
-            { time: "10:45 - 12:30", activity: "Seizure Types and Classifications" },
-            { time: "12:30 - 13:30", activity: "Lunch" },
-            { time: "13:30 - 15:30", activity: "Treatment Approaches & Case Studies" },
-            { time: "15:30 - 15:45", activity: "Coffee Break" },
-            { time: "15:45 - 17:00", activity: "Practical Session & Q&A" }
-          ],
-          speakers: [
-            { name: "Dr. Sarah Kimani", title: "Pediatric Neurologist, EACNA President" },
-            { name: "Dr. James Mwangi", title: "Head of Neurology, Gertrude's Children's Hospital" }
-          ],
-          organizers: ["East African Child Neurology Association", "Gertrude's Children's Hospital"],
-          registrationLink: "/register/pet1-nairobi",
-          isFull: false,
-          status: 'published',
-          createdAt: "2024-01-15T10:30:00Z",
-          updatedAt: "2024-01-15T10:30:00Z"
-        },
-        {
-          id: '2',
-          title: "PET2 Advanced Epilepsy Training",
-          date: "2025-01-20",
-          location: "Muhimbili University, Dar es Salaam",
-          description: "Advanced epilepsy training for healthcare professionals with prior experience.",
-          image: "https://images.pexels.com/photos/6129500/pexels-photo-6129500.jpeg",
-          tags: ["epilepsy", "advanced", "training"],
-          startTime: "08:30",
-          endTime: "17:30",
-          agenda: [
-            { time: "Day 1", activity: "Advanced Diagnostics" },
-            { time: "Day 2", activity: "Treatment Modalities" },
-            { time: "Day 3", activity: "Case Studies & Practical Sessions" }
-          ],
-          speakers: [
-            { name: "Prof. David Kariuki", title: "Keynote Speaker, University of Nairobi" }
-          ],
-          organizers: ["East African Child Neurology Association"],
-          registrationLink: "/register/pet2-dar",
-          isFull: false,
-          status: 'draft',
-          createdAt: "2024-02-10T14:15:00Z",
-          updatedAt: "2024-02-10T14:15:00Z"
-        }
-      ];
-      
-      setEvents(mockEvents);
-      setLoading(false);
+      if (error) throw error;
+      setEvents(data as TrainingEvent[] || []);
     } catch (error) {
       console.error("Error fetching events:", error);
       setNotification({
         type: 'error',
         message: 'Failed to load training events'
       });
+    } finally {
       setLoading(false);
     }
   };
@@ -181,12 +133,49 @@ const TrainingEvents = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setFormData(prev => ({ ...prev, image: result }));
+        setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return null;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      // Generate unique filename
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `public/training-images/${fileName}`;
+      
+      // Upload with public ACL
+      const { data, error } = await supabase.storage
+        .from('training-assets')
+        .upload(filePath, imageFile, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: imageFile.type
+        });
+      
+      if (error) throw error;
+  
+      // Get permanent public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('training-assets')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return null;
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -247,7 +236,7 @@ const TrainingEvents = () => {
         ...prev,
         speakers: [...prev.speakers, { ...newSpeaker }]
       }));
-      setNewSpeaker({ name: '', title: '', image: '' });
+      setNewSpeaker({ name: '', title: '', image_url: '' });
     }
   };
 
@@ -266,35 +255,40 @@ const TrainingEvents = () => {
         date: event.date,
         location: event.location,
         description: event.description,
-        image: event.image,
+        image_url: event.image_url,
         tags: event.tags,
-        startTime: event.startTime,
-        endTime: event.endTime,
+        start_time: event.start_time,
+        end_time: event.end_time,
         agenda: event.agenda,
         speakers: event.speakers,
         organizers: event.organizers,
-        registrationLink: event.registrationLink,
-        isFull: event.isFull,
+        registration_link: event.registration_link,
+        is_full: event.is_full,
         status: event.status
       });
+      if (event.image_url) {
+        setImagePreview(event.image_url);
+      }
     } else {
       setFormData({
         title: '',
         date: '',
         location: '',
         description: '',
-        image: '',
+        image_url: '',
         tags: [],
-        startTime: '',
-        endTime: '',
+        start_time: '',
+        end_time: '',
         agenda: [],
         speakers: [],
         organizers: [],
-        registrationLink: '',
-        isFull: false,
+        registration_link: '',
+        is_full: false,
         status: 'draft'
       });
+      setImagePreview('');
     }
+    setImageFile(null);
     setIsFormOpen(true);
   };
 
@@ -311,37 +305,53 @@ const TrainingEvents = () => {
         return;
       }
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Upload image if there's a new one
+      let imageUrl = formData.image_url;
+      if (imageFile) {
+        const uploadedImageUrl = await uploadImage();
+        if (uploadedImageUrl) {
+          imageUrl = uploadedImageUrl;
+        }
+      }
       
-      const now = new Date().toISOString();
+      const eventData = {
+        ...formData,
+        image_url: imageUrl,
+        updated_at: new Date().toISOString()
+      };
       
       if (selectedEvent) {
         // Update existing event
-        setEvents(prev => prev.map(e => 
-          e.id === selectedEvent.id ? 
-          { ...e, ...formData, updatedAt: now } : 
-          e
-        ));
+        const { error } = await supabase
+          .from('training_events')
+          .update(eventData)
+          .eq('id', selectedEvent.id);
+        
+        if (error) throw error;
+        
         setNotification({
           type: 'success',
           message: 'Training event updated successfully'
         });
       } else {
         // Create new event
-        const newEvent: TrainingEvent = {
-          ...formData,
-          id: Math.random().toString(36).substring(2, 9),
-          createdAt: now,
-          updatedAt: now
-        };
-        setEvents(prev => [newEvent, ...prev]);
+        const { data, error } = await supabase
+          .from('training_events')
+          .insert([{
+            ...eventData,
+            created_at: new Date().toISOString()
+          }])
+          .select();
+        
+        if (error) throw error;
+        
         setNotification({
           type: 'success',
           message: 'Training event created successfully'
         });
       }
       
+      fetchEvents();
       setIsFormOpen(false);
     } catch (error) {
       console.error('Error saving event:', error);
@@ -359,30 +369,70 @@ const TrainingEvents = () => {
       message: 'Are you sure you want to delete this training event?',
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      onConfirm: () => {
-        setEvents(prev => prev.filter(e => e.id !== id));
-        setNotification({
-          type: 'success',
-          message: 'Training event deleted successfully'
-        });
-        setAlert({ ...alert, open: false });
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('training_events')
+            .delete()
+            .eq('id', id);
+          
+          if (error) throw error;
+          
+          setEvents(prev => prev.filter(e => e.id !== id));
+          setNotification({
+            type: 'success',
+            message: 'Training event deleted successfully'
+          });
+        } catch (error) {
+          console.error('Error deleting event:', error);
+          setNotification({
+            type: 'error',
+            message: 'Failed to delete training event'
+          });
+        } finally {
+          setAlert({ ...alert, open: false });
+        }
       }
     });
   };
 
-  const publishEvent = (id: string) => {
-    setEvents(prev => prev.map(e => 
-      e.id === id ? { ...e, status: 'published' } : e
-    ));
-    setNotification({
-      type: 'success',
-      message: 'Training event published successfully'
-    });
+  const publishEvent = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('training_events')
+        .update({ status: 'published', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setEvents(prev => prev.map(e => 
+        e.id === id ? { ...e, status: 'published' } : e
+      ));
+      setNotification({
+        type: 'success',
+        message: 'Training event published successfully'
+      });
+    } catch (error) {
+      console.error('Error publishing event:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to publish training event'
+      });
+    }
   };
 
   const formatEventDate = (dateString: string) => {
     const date = new Date(dateString);
     return format(date, 'MMM d, yyyy');
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setFormData(prev => ({
+      ...prev,
+      image_url: ''
+    }));
   };
 
   return (
@@ -468,7 +518,7 @@ const TrainingEvents = () => {
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0 rounded overflow-hidden bg-gray-100">
                           <img 
-                            src={event.image} 
+                            src={event.image_url} 
                             alt={event.title} 
                             className="h-10 w-10 object-cover"
                           />
@@ -476,7 +526,7 @@ const TrainingEvents = () => {
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{event.title}</div>
                           <div className="text-sm text-gray-500">
-                            {event.startTime} - {event.endTime}
+                            {event.start_time} - {event.end_time}
                           </div>
                         </div>
                       </div>
@@ -503,14 +553,14 @@ const TrainingEvents = () => {
                       }`}>
                         {event.status}
                       </span>
-                      {event.isFull && (
+                      {event.is_full && (
                         <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                           Full
                         </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatEventDate(event.createdAt)}
+                      {formatEventDate(event.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
@@ -644,8 +694,8 @@ const TrainingEvents = () => {
                   <input
                     type="time"
                     id="startTime"
-                    name="startTime"
-                    value={formData.startTime}
+                    name="start_time"
+                    value={formData.start_time}
                     onChange={handleInputChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -659,8 +709,8 @@ const TrainingEvents = () => {
                   <input
                     type="time"
                     id="endTime"
-                    name="endTime"
-                    value={formData.endTime}
+                    name="end_time"
+                    value={formData.end_time}
                     onChange={handleInputChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -695,8 +745,8 @@ const TrainingEvents = () => {
                   <input
                     type="text"
                     id="registrationLink"
-                    name="registrationLink"
-                    value={formData.registrationLink}
+                    name="registration_link"
+                    value={formData.registration_link}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="/register/pet1-nairobi"
@@ -709,8 +759,8 @@ const TrainingEvents = () => {
                     <input
                       type="checkbox"
                       id="isFull"
-                      name="isFull"
-                      checked={formData.isFull}
+                      name="is_full"
+                      checked={formData.is_full}
                       onChange={handleCheckboxChange}
                       className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                     />
@@ -724,26 +774,64 @@ const TrainingEvents = () => {
                 <div className="col-span-2">
                   <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
                     <div className="flex items-center gap-1">
-                      <Image className="w-4 h-4" />
+                      <ImageIcon className="w-4 h-4" />
                       <span>Training Image</span>
                     </div>
                   </label>
-                  <input
-                    type="file"
-                    id="image"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  />
-                  {formData.image && (
-                    <div className="mt-2">
-                      <img 
-                        src={formData.image} 
-                        alt="Training preview" 
-                        className="h-48 w-full object-cover rounded-md"
-                      />
-                    </div>
-                  )}
+                  <div className="mt-2 flex flex-col space-y-2">
+                    {imagePreview ? (
+                      <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                        <img 
+                          src={imagePreview} 
+                          alt="Training preview" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <input
+                          type="file"
+                          id="image-upload"
+                          onChange={handleImageChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="image-upload"
+                          className="cursor-pointer flex flex-col items-center justify-center"
+                        >
+                          <Upload className="w-10 h-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500">
+                            Click to upload or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            PNG, JPG, GIF up to 10MB
+                          </p>
+                        </label>
+                      </div>
+                    )}
+                    {isUploading && (
+                      <div className="w-full">
+                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                          <span>Uploading...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className="bg-blue-600 h-2.5 rounded-full" 
+                            style={{ width: `${uploadProgress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1006,7 +1094,7 @@ const TrainingEvents = () => {
               <div className="relative mb-8">
                 <div className="h-48 w-full bg-gray-200 rounded-lg overflow-hidden">
                   <img 
-                    src={selectedEvent.image || 'https://via.placeholder.com/800x300?text=No+Image'} 
+                    src={selectedEvent.image_url || 'https://via.placeholder.com/800x300?text=No+Image'} 
                     alt={selectedEvent.title} 
                     className="w-full h-full object-cover"
                   />
@@ -1057,8 +1145,8 @@ const TrainingEvents = () => {
                         {selectedEvent.speakers.map((speaker, index) => (
                           <div key={index} className="bg-gray-50 p-4 rounded-md flex items-start">
                             <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 mr-3">
-                              {speaker.image ? (
-                                <img src={speaker.image} alt={speaker.name} className="h-12 w-12 rounded-full object-cover" />
+                              {speaker.image_url ? (
+                                <img src={speaker.image_url} alt={speaker.name} className="h-12 w-12 rounded-full object-cover" />
                               ) : (
                                 <Users className="h-6 w-6" />
                               )}
@@ -1089,7 +1177,7 @@ const TrainingEvents = () => {
                         <Clock className="h-5 w-5 text-primary-600 mr-2 mt-0.5" />
                         <div>
                           <p className="font-medium text-gray-900">Time</p>
-                          <p className="text-gray-600">{selectedEvent.startTime} - {selectedEvent.endTime}</p>
+                          <p className="text-gray-600">{selectedEvent.start_time} - {selectedEvent.end_time}</p>
                         </div>
                       </div>
                       <div className="flex items-start">
@@ -1127,19 +1215,19 @@ const TrainingEvents = () => {
                   <div className="p-4 border border-gray-200 rounded-md">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Registration</h3>
                     <p className="text-gray-700 mb-4">
-                      {selectedEvent.isFull 
+                      {selectedEvent.is_full 
                         ? "This training is currently full." 
                         : "Register for this training event to secure your spot."}
                     </p>
                     <button 
                       className={`w-full py-2 px-4 rounded-md ${
-                        selectedEvent.isFull 
+                        selectedEvent.is_full 
                           ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
                           : 'bg-primary-600 text-white hover:bg-primary-700'
                       }`}
-                      disabled={selectedEvent.isFull}
+                      disabled={selectedEvent.is_full}
                     >
-                      {selectedEvent.isFull ? "Registration Closed" : "Register Now"}
+                      {selectedEvent.is_full ? "Registration Closed" : "Register Now"}
                     </button>
                   </div>
                 </div>
