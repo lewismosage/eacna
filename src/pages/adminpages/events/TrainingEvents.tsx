@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Calendar, MapPin, Search, Clock, Users, FileText, Image, Tag, X, Check, AlertCircle, Send } from 'lucide-react';
 import { format } from 'date-fns';
-import { SupabaseClient } from '@supabase/supabase-js';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import AlertModal from '../../../components/common/AlertModal';
 import Card from '../../../components/common/Card';
@@ -14,8 +13,8 @@ interface TrainingEvent {
   description: string;
   image: string;
   tags: string[];
-  start_time: string;
-  end_time: string;
+  startTime: string;
+  endTime: string;
   agenda: {
     time: string;
     activity: string;
@@ -26,35 +25,14 @@ interface TrainingEvent {
     image?: string;
   }[];
   organizers: string[];
-  registration_link: string;
-  is_full: boolean;
+  registrationLink: string;
+  isFull: boolean;
   status: 'draft' | 'published' | 'completed';
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface AdminTrainingEventsProps {
-  supabase: SupabaseClient;
-}
-
-const ImageWithFallback = ({ src, alt, className }: { src: string, alt: string, className: string }) => {
-  const [imgSrc, setImgSrc] = useState(src || '/default-training-image.jpg');
-  return (
-    <img
-      src={imgSrc}
-      alt={alt}
-      className={className}
-      onError={() => {
-        if (imgSrc !== '/default-training-image.jpg') {
-          setImgSrc('/default-training-image.jpg');
-        }
-      }}
-      loading="lazy"
-    />
-  );
-};
-
-const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
+const TrainingEvents = () => {
   const [events, setEvents] = useState<TrainingEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -74,20 +52,20 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
     cancelText?: string;
   }>({ open: false, message: '' });
 
-  const [formData, setFormData] = useState<Omit<TrainingEvent, 'id' | 'created_at' | 'updated_at'>>({
+  const [formData, setFormData] = useState<Omit<TrainingEvent, 'id' | 'createdAt' | 'updatedAt'>>({
     title: '',
     date: '',
     location: '',
     description: '',
     image: '',
     tags: [],
-    start_time: '',
-    end_time: '',
+    startTime: '',
+    endTime: '',
     agenda: [],
     speakers: [],
     organizers: [],
-    registration_link: '',
-    is_full: false,
+    registrationLink: '',
+    isFull: false,
     status: 'draft'
   });
 
@@ -105,46 +83,88 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
 
   useEffect(() => {
     fetchEvents();
-    // eslint-disable-next-line
   }, []);
 
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('training_events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      if (!data) {
-        setEvents([]);
-      } else {
-        setEvents(
-          data.map(event => ({
-            ...event,
-            image: event.image?.startsWith('http')
-              ? event.image
-              : event.image
-                ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/training-events/${event.image}`
-                : ''
-          }))
-        );
-      }
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Mock data for training events
+      const mockEvents: TrainingEvent[] = [
+        {
+          id: '1',
+          title: "PET1 Training in Nairobi",
+          date: "2024-09-15",
+          location: "Gertrude's Children's Hospital, Nairobi",
+          description: "The Pediatric Epilepsy Training (PET1) course is designed for healthcare professionals involved in the care of children with epilepsy.",
+          image: "https://images.pexels.com/photos/3184296/pexels-photo-3184296.jpeg",
+          tags: ["epilepsy", "pediatric neurology", "training"],
+          startTime: "08:00",
+          endTime: "17:00",
+          agenda: [
+            { time: "8:00 - 8:30", activity: "Registration & Morning Coffee" },
+            { time: "8:30 - 10:30", activity: "Introduction to Pediatric Epilepsy" },
+            { time: "10:30 - 10:45", activity: "Coffee Break" },
+            { time: "10:45 - 12:30", activity: "Seizure Types and Classifications" },
+            { time: "12:30 - 13:30", activity: "Lunch" },
+            { time: "13:30 - 15:30", activity: "Treatment Approaches & Case Studies" },
+            { time: "15:30 - 15:45", activity: "Coffee Break" },
+            { time: "15:45 - 17:00", activity: "Practical Session & Q&A" }
+          ],
+          speakers: [
+            { name: "Dr. Sarah Kimani", title: "Pediatric Neurologist, EACNA President" },
+            { name: "Dr. James Mwangi", title: "Head of Neurology, Gertrude's Children's Hospital" }
+          ],
+          organizers: ["East African Child Neurology Association", "Gertrude's Children's Hospital"],
+          registrationLink: "/register/pet1-nairobi",
+          isFull: false,
+          status: 'published',
+          createdAt: "2024-01-15T10:30:00Z",
+          updatedAt: "2024-01-15T10:30:00Z"
+        },
+        {
+          id: '2',
+          title: "PET2 Advanced Epilepsy Training",
+          date: "2025-01-20",
+          location: "Muhimbili University, Dar es Salaam",
+          description: "Advanced epilepsy training for healthcare professionals with prior experience.",
+          image: "https://images.pexels.com/photos/6129500/pexels-photo-6129500.jpeg",
+          tags: ["epilepsy", "advanced", "training"],
+          startTime: "08:30",
+          endTime: "17:30",
+          agenda: [
+            { time: "Day 1", activity: "Advanced Diagnostics" },
+            { time: "Day 2", activity: "Treatment Modalities" },
+            { time: "Day 3", activity: "Case Studies & Practical Sessions" }
+          ],
+          speakers: [
+            { name: "Prof. David Kariuki", title: "Keynote Speaker, University of Nairobi" }
+          ],
+          organizers: ["East African Child Neurology Association"],
+          registrationLink: "/register/pet2-dar",
+          isFull: false,
+          status: 'draft',
+          createdAt: "2024-02-10T14:15:00Z",
+          updatedAt: "2024-02-10T14:15:00Z"
+        }
+      ];
+      
+      setEvents(mockEvents);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching events:", error);
       setNotification({
         type: 'error',
-        message: 'Failed to load training events. Please try again later.'
+        message: 'Failed to load training events'
       });
-    } finally {
       setLoading(false);
     }
   };
 
-  const filteredEvents = events.filter(event =>
-    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredEvents = events.filter(event => 
+    event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
     event.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -158,46 +178,15 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
     setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
-  // Updated handleImageChange to use manual public URL construction and cache control
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = fileName;
-
-      // 1. First check if bucket exists (optional)
-      const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.some(b => b.name === 'training-events')) {
-        throw new Error('Bucket not found - please create it first');
-      }
-
-      // 2. Upload the file
-      const { error: uploadError } = await supabase.storage
-        .from('training-events') // Make sure this matches your bucket name exactly
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type
-        });
-
-      if (uploadError) throw uploadError;
-
-      // 3. Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('training-events')
-        .getPublicUrl(filePath);
-
-      setFormData(prev => ({ ...prev, image: publicUrl }));
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      setNotification({
-        type: 'error',
-        message: error.message || 'Failed to upload image. Please try again.'
-      });
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setFormData(prev => ({ ...prev, image: result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -279,13 +268,13 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
         description: event.description,
         image: event.image,
         tags: event.tags,
-        start_time: event.start_time,
-        end_time: event.end_time,
+        startTime: event.startTime,
+        endTime: event.endTime,
         agenda: event.agenda,
         speakers: event.speakers,
         organizers: event.organizers,
-        registration_link: event.registration_link,
-        is_full: event.is_full,
+        registrationLink: event.registrationLink,
+        isFull: event.isFull,
         status: event.status
       });
     } else {
@@ -296,13 +285,13 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
         description: '',
         image: '',
         tags: [],
-        start_time: '',
-        end_time: '',
+        startTime: '',
+        endTime: '',
         agenda: [],
         speakers: [],
         organizers: [],
-        registration_link: '',
-        is_full: false,
+        registrationLink: '',
+        isFull: false,
         status: 'draft'
       });
     }
@@ -311,8 +300,9 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     try {
+      // Validate required fields
       if (!formData.title || !formData.date || !formData.location || !formData.description) {
         setNotification({
           type: 'error',
@@ -321,44 +311,37 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
         return;
       }
 
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       const now = new Date().toISOString();
-      const eventData = {
-        ...formData,
-        updated_at: now
-      };
-
+      
       if (selectedEvent) {
         // Update existing event
-        const { error } = await supabase
-          .from('training_events')
-          .update(eventData)
-          .eq('id', selectedEvent.id);
-
-        if (error) throw error;
-
+        setEvents(prev => prev.map(e => 
+          e.id === selectedEvent.id ? 
+          { ...e, ...formData, updatedAt: now } : 
+          e
+        ));
         setNotification({
           type: 'success',
           message: 'Training event updated successfully'
         });
       } else {
         // Create new event
-        const { error } = await supabase
-          .from('training_events')
-          .insert([{
-            ...eventData,
-            created_at: now
-          }])
-          .select();
-
-        if (error) throw error;
-
+        const newEvent: TrainingEvent = {
+          ...formData,
+          id: Math.random().toString(36).substring(2, 9),
+          createdAt: now,
+          updatedAt: now
+        };
+        setEvents(prev => [newEvent, ...prev]);
         setNotification({
           type: 'success',
           message: 'Training event created successfully'
         });
       }
-
-      fetchEvents();
+      
       setIsFormOpen(false);
     } catch (error) {
       console.error('Error saving event:', error);
@@ -369,62 +352,32 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
     }
   };
 
-  const confirmDelete = async (id: string) => {
+  const confirmDelete = (id: string) => {
     setAlert({
       open: true,
       title: 'Delete Training Event',
       message: 'Are you sure you want to delete this training event?',
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      onConfirm: async () => {
-        try {
-          const { error } = await supabase
-            .from('training_events')
-            .delete()
-            .eq('id', id);
-
-          if (error) throw error;
-
-          setEvents(prev => prev.filter(e => e.id !== id));
-          setNotification({
-            type: 'success',
-            message: 'Training event deleted successfully'
-          });
-        } catch (error) {
-          console.error('Error deleting event:', error);
-          setNotification({
-            type: 'error',
-            message: 'Failed to delete training event'
-          });
-        }
+      onConfirm: () => {
+        setEvents(prev => prev.filter(e => e.id !== id));
+        setNotification({
+          type: 'success',
+          message: 'Training event deleted successfully'
+        });
         setAlert({ ...alert, open: false });
       }
     });
   };
 
-  const publishEvent = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('training_events')
-        .update({ status: 'published', updated_at: new Date().toISOString() })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setEvents(prev => prev.map(e =>
-        e.id === id ? { ...e, status: 'published' } : e
-      ));
-      setNotification({
-        type: 'success',
-        message: 'Training event published successfully'
-      });
-    } catch (error) {
-      console.error('Error publishing event:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to publish training event'
-      });
-    }
+  const publishEvent = (id: string) => {
+    setEvents(prev => prev.map(e => 
+      e.id === id ? { ...e, status: 'published' } : e
+    ));
+    setNotification({
+      type: 'success',
+      message: 'Training event published successfully'
+    });
   };
 
   const formatEventDate = (dateString: string) => {
@@ -441,7 +394,7 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
             Manage all training events for healthcare professionals
           </p>
         </div>
-        <button
+        <button 
           onClick={() => openEditForm(null)}
           className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md flex items-center"
         >
@@ -451,8 +404,8 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
 
       {notification && (
         <div className={`p-4 rounded-md flex items-start justify-between ${
-          notification.type === 'success'
-            ? 'bg-green-50 text-green-700 border border-green-200'
+          notification.type === 'success' 
+            ? 'bg-green-50 text-green-700 border border-green-200' 
             : notification.type === 'error'
               ? 'bg-red-50 text-red-700 border border-red-200'
               : 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -467,7 +420,7 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
             )}
             <p>{notification.message}</p>
           </div>
-          <button
+          <button 
             onClick={() => setNotification(null)}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -514,16 +467,16 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-                          <ImageWithFallback
-                            src={event.image}
-                            alt={event.title}
+                          <img 
+                            src={event.image} 
+                            alt={event.title} 
                             className="h-10 w-10 object-cover"
                           />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{event.title}</div>
                           <div className="text-sm text-gray-500">
-                            {event.start_time} - {event.end_time}
+                            {event.startTime} - {event.endTime}
                           </div>
                         </div>
                       </div>
@@ -542,27 +495,27 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        event.status === 'published'
-                          ? 'bg-green-100 text-green-800'
+                        event.status === 'published' 
+                          ? 'bg-green-100 text-green-800' 
                           : event.status === 'completed'
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {event.status}
                       </span>
-                      {event.is_full && (
+                      {event.isFull && (
                         <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                           Full
                         </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatEventDate(event.created_at)}
+                      {formatEventDate(event.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         {event.status === 'draft' && (
-                          <button
+                          <button 
                             onClick={() => publishEvent(event.id)}
                             className="text-green-600 hover:text-green-800"
                             title="Publish Training"
@@ -570,7 +523,7 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                             <Send className="w-5 h-5" />
                           </button>
                         )}
-                        <button
+                        <button 
                           onClick={() => {
                             setSelectedEvent(event);
                             setIsPreviewOpen(true);
@@ -580,14 +533,14 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                         >
                           <FileText className="w-5 h-5" />
                         </button>
-                        <button
+                        <button 
                           onClick={() => openEditForm(event)}
                           className="text-yellow-600 hover:text-yellow-800"
                           title="Edit Training"
                         >
                           <Edit className="w-5 h-5" />
                         </button>
-                        <button
+                        <button 
                           onClick={() => confirmDelete(event.id)}
                           className="text-red-600 hover:text-red-800"
                           title="Delete Training"
@@ -604,7 +557,7 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
         ) : (
           <div className="text-center p-8">
             <p className="text-gray-500">
-              {searchTerm
+              {searchTerm 
                 ? "No training events match your search. Try a different search term."
                 : "No training events found. Create your first training event!"}
             </p>
@@ -621,7 +574,7 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                 {selectedEvent ? 'Edit Training Event' : 'Create New Training Event'}
               </h3>
               <button onClick={() => setIsFormOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-5 h-5" />
+                <X className="w-4 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -691,8 +644,8 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                   <input
                     type="time"
                     id="startTime"
-                    name="start_time"
-                    value={formData.start_time}
+                    name="startTime"
+                    value={formData.startTime}
                     onChange={handleInputChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -706,8 +659,8 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                   <input
                     type="time"
                     id="endTime"
-                    name="end_time"
-                    value={formData.end_time}
+                    name="endTime"
+                    value={formData.endTime}
                     onChange={handleInputChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -742,8 +695,8 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                   <input
                     type="text"
                     id="registrationLink"
-                    name="registration_link"
-                    value={formData.registration_link}
+                    name="registrationLink"
+                    value={formData.registrationLink}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="/register/pet1-nairobi"
@@ -756,8 +709,8 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                     <input
                       type="checkbox"
                       id="isFull"
-                      name="is_full"
-                      checked={formData.is_full}
+                      name="isFull"
+                      checked={formData.isFull}
                       onChange={handleCheckboxChange}
                       className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                     />
@@ -784,15 +737,10 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                   />
                   {formData.image && (
                     <div className="mt-2">
-                      <img
-                        src={formData.image}
-                        alt="Training preview"
+                      <img 
+                        src={formData.image} 
+                        alt="Training preview" 
                         className="h-48 w-full object-cover rounded-md"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/default-training-image.jpg';
-                          target.onerror = null;
-                        }}
                       />
                     </div>
                   )}
@@ -829,13 +777,13 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {formData.tags.map((tag, index) => (
-                    <div
-                      key={index}
+                    <div 
+                      key={index} 
                       className="flex items-center bg-gray-100 px-3 py-1 rounded-full text-sm"
                     >
                       {tag}
-                      <button
-                        type="button"
+                      <button 
+                        type="button" 
                         onClick={() => removeTag(tag)}
                         className="ml-1 text-gray-500 hover:text-red-500"
                       >
@@ -876,8 +824,8 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                         <span className="mx-2">-</span>
                         <span>{item.activity}</span>
                       </div>
-                      <button
-                        type="button"
+                      <button 
+                        type="button" 
                         onClick={() => removeAgendaItem(index)}
                         className="text-gray-500 hover:text-red-500"
                       >
@@ -925,16 +873,16 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                 </label>
                 <div className="space-y-4 mb-4">
                   {formData.speakers.map((speaker, index) => (
-                    <div
-                      key={index}
+                    <div 
+                      key={index} 
                       className="flex items-start justify-between border-b border-gray-200 pb-4"
                     >
                       <div>
                         <div className="font-medium">{speaker.name}</div>
                         <div className="text-gray-600">{speaker.title}</div>
                       </div>
-                      <button
-                        type="button"
+                      <button 
+                        type="button" 
                         onClick={() => removeSpeaker(index)}
                         className="text-gray-500 hover:text-red-500 mt-1"
                       >
@@ -987,13 +935,13 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {formData.organizers.map((organizer, index) => (
-                    <div
-                      key={index}
+                    <div 
+                      key={index} 
                       className="flex items-center bg-gray-100 px-3 py-1 rounded-full text-sm"
                     >
                       {organizer}
-                      <button
-                        type="button"
+                      <button 
+                        type="button" 
                         onClick={() => removeOrganizer(organizer)}
                         className="ml-1 text-gray-500 hover:text-red-500"
                       >
@@ -1057,15 +1005,10 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
               {/* Header with image */}
               <div className="relative mb-8">
                 <div className="h-48 w-full bg-gray-200 rounded-lg overflow-hidden">
-                  <img
-                    src={selectedEvent.image || 'https://via.placeholder.com/800x300?text=No+Image'}
-                    alt={selectedEvent.title}
+                  <img 
+                    src={selectedEvent.image || 'https://via.placeholder.com/800x300?text=No+Image'} 
+                    alt={selectedEvent.title} 
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://via.placeholder.com/800x300?text=No+Image';
-                      target.onerror = null;
-                    }}
                   />
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
@@ -1146,7 +1089,7 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                         <Clock className="h-5 w-5 text-primary-600 mr-2 mt-0.5" />
                         <div>
                           <p className="font-medium text-gray-900">Time</p>
-                          <p className="text-gray-600">{selectedEvent.start_time} - {selectedEvent.end_time}</p>
+                          <p className="text-gray-600">{selectedEvent.startTime} - {selectedEvent.endTime}</p>
                         </div>
                       </div>
                       <div className="flex items-start">
@@ -1184,19 +1127,19 @@ const TrainingEvents: React.FC<AdminTrainingEventsProps> = ({ supabase }) => {
                   <div className="p-4 border border-gray-200 rounded-md">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Registration</h3>
                     <p className="text-gray-700 mb-4">
-                      {selectedEvent.is_full
-                        ? "This training is currently full."
+                      {selectedEvent.isFull 
+                        ? "This training is currently full." 
                         : "Register for this training event to secure your spot."}
                     </p>
-                    <button
+                    <button 
                       className={`w-full py-2 px-4 rounded-md ${
-                        selectedEvent.is_full
-                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                        selectedEvent.isFull 
+                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
                           : 'bg-primary-600 text-white hover:bg-primary-700'
                       }`}
-                      disabled={selectedEvent.is_full}
+                      disabled={selectedEvent.isFull}
                     >
-                      {selectedEvent.is_full ? "Registration Closed" : "Register Now"}
+                      {selectedEvent.isFull ? "Registration Closed" : "Register Now"}
                     </button>
                   </div>
                 </div>
