@@ -114,52 +114,56 @@ const WebinarDetails = () => {
   };
 
   const handleRegistrationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (!webinar) return;
+
+  // Basic validation
+  if (!formData.name || !formData.email) {
+    setAlert({
+      open: true,
+      title: 'Missing Information',
+      message: 'Please provide at least your name and email address.',
+    });
+    return;
+  }
+
+  setIsRegistering(true);
+
+  try {
+    const { data, error } = await supabase
+      .from('webinar_registrations')
+      .insert([{
+        webinar_id: webinar.id,
+        webinar_title: webinar.title,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        organization: formData.organization,
+        position: formData.position,
+        status: 'registered'
+      }])
+      .select();
+
+    if (error) throw error;
+
+    setRegistrationSuccess(true);
+    setShowRegistrationForm(false);
     
-    if (!webinar) return;
-
-    // Basic validation
-    if (!formData.name || !formData.email) {
-      setAlert({
-        open: true,
-        title: 'Missing Information',
-        message: 'Please provide at least your name and email address.',
-      });
-      return;
-    }
-
-    setIsRegistering(true);
-
-    try {
-      // Save registration to database
-      const { error } = await supabase
-        .from('webinar_registrations')
-        .insert([{
-          webinar_id: webinar.id,
-          webinar_title: webinar.title,
-          ...formData,
-          registered_at: new Date().toISOString()
-        }]);
-
-      if (error) throw error;
-
-      setRegistrationSuccess(true);
-      setShowRegistrationForm(false);
-      
-      // Optionally send confirmation email
-      // await sendConfirmationEmail(formData.email, webinar.title);
-      
-    } catch (err) {
-      console.error("Error submitting registration:", err);
-      setAlert({
-        open: true,
-        title: 'Registration Failed',
-        message: 'There was an error processing your registration. Please try again later.',
-      });
-    } finally {
-      setIsRegistering(false);
-    }
-  };
+    // Optionally send confirmation email
+    // await sendConfirmationEmail(formData.email, webinar.title);
+    
+  } catch (err) {
+    console.error("Error submitting registration:", err);
+    setAlert({
+      open: true,
+      title: 'Registration Failed',
+      message: 'There was an error processing your registration. Please try again later.',
+    });
+  } finally {
+    setIsRegistering(false);
+  }
+};
 
   if (loading) {
     return (

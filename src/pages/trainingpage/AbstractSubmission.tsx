@@ -4,6 +4,11 @@ import { motion } from 'framer-motion';
 import { FileText, Upload, User, Mail, Phone, Building, Calendar } from 'lucide-react';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const AbstractSubmissionPage = () => {
   const fadeIn = {
@@ -87,32 +92,72 @@ const AbstractSubmissionPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (validateForm()) {
-      setIsSubmitting(true);
-      
-      // Simulate API call
-      setTimeout(() => {
-        console.log('Form submitted:', formData);
-        setIsSubmitting(false);
-        setSubmitSuccess(true);
-        // Reset form
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          institution: '',
-          country: '',
-          abstractTitle: '',
-          abstractText: '',
-          presentationPreference: 'oral',
-          file: null,
-          agreeTerms: false
-        });
-      }, 2000);
+
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      let filePath = null;
+
+      // Upload file if exists
+      if (formData.file) {
+        const fileExt = formData.file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        filePath = `abstracts/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('abstract_files')
+          .upload(filePath, formData.file);
+
+        if (uploadError) throw uploadError;
+      }
+
+      // Insert abstract submission
+      const { data, error } = await supabase
+        .from('abstract_submissions')
+        .insert([{
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          institution: formData.institution,
+          country: formData.country,
+          abstract_title: formData.abstractTitle,
+          abstract_text: formData.abstractText,
+          presentation_preference: formData.presentationPreference,
+          file_path: filePath,
+          status: 'pending'
+        }])
+        .select();
+
+      if (error) throw error;
+
+      setSubmitSuccess(true);
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        institution: '',
+        country: '',
+        abstractTitle: '',
+        abstractText: '',
+        presentationPreference: 'oral',
+        file: null,
+        agreeTerms: false
+      });
+
+    } catch (err) {
+      console.error("Error submitting abstract:", err);
+      setErrors({
+        submit: 'Failed to submit abstract. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -178,7 +223,7 @@ const AbstractSubmissionPage = () => {
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.firstName ? 'border-red-500' : 'border-gray-300'}`}
+                            className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                           />
                           {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
                         </div>
@@ -193,7 +238,7 @@ const AbstractSubmissionPage = () => {
                             name="lastName"
                             value={formData.lastName}
                             onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.lastName ? 'border-red-500' : 'border-gray-300'}`}
+                            className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                           />
                           {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
                         </div>
@@ -208,7 +253,7 @@ const AbstractSubmissionPage = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+                            className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                           />
                           {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                         </div>
@@ -223,7 +268,7 @@ const AbstractSubmissionPage = () => {
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                           />
                         </div>
                       </div>
@@ -246,7 +291,7 @@ const AbstractSubmissionPage = () => {
                             name="institution"
                             value={formData.institution}
                             onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.institution ? 'border-red-500' : 'border-gray-300'}`}
+                            className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                           />
                           {errors.institution && <p className="mt-1 text-sm text-red-600">{errors.institution}</p>}
                         </div>
@@ -261,7 +306,7 @@ const AbstractSubmissionPage = () => {
                             name="country"
                             value={formData.country}
                             onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.country ? 'border-red-500' : 'border-gray-300'}`}
+                            className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                           />
                           {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
                         </div>
@@ -286,7 +331,7 @@ const AbstractSubmissionPage = () => {
                           name="abstractTitle"
                           value={formData.abstractTitle}
                           onChange={handleChange}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.abstractTitle ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                         />
                         {errors.abstractTitle && <p className="mt-1 text-sm text-red-600">{errors.abstractTitle}</p>}
                       </div>
@@ -300,7 +345,7 @@ const AbstractSubmissionPage = () => {
                           name="presentationPreference"
                           value={formData.presentationPreference}
                           onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                         >
                           <option value="oral">Oral Presentation</option>
                           <option value="poster">Poster Presentation</option>
@@ -319,7 +364,7 @@ const AbstractSubmissionPage = () => {
                           value={formData.abstractText}
                           onChange={handleChange}
                           rows={8}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.abstractText ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`appearance-none block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                         ></textarea>
                         {errors.abstractText && <p className="mt-1 text-sm text-red-600">{errors.abstractText}</p>}
                         <p className="mt-1 text-sm text-gray-500">

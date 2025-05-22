@@ -1,218 +1,711 @@
-// components/admin/AbstractSettings.tsx
-import { useState, useEffect } from 'react';
-import { Save, Calendar, FileText, Download, Check } from 'lucide-react';
-import Card, { CardContent } from '../../../components/common/Card';
+// src/pages/admin/SubmissionsDashboard.tsx
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Calendar, Video, User, Mail, Phone, Building, Search, Download, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import Section from '../../../components/common/Section';
 import Button from '../../../components/common/Button';
-import Input from '../../../components/common/Input';
-import Textarea from '../../../components/common/Textarea';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import AlertModal from '../../../components/common/AlertModal';
+import { format } from 'date-fns';
 
-// Form data structure
-interface AbstractSettingsData {
-  submissionLink: string;
-  guidelines: string;
-  submissionDeadline: string;
-  acceptanceNotification: string;
-  earlyRegistrationDeadline: string;
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface AbstractSubmission {
+  id: string;
+  created_at: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  institution: string;
+  country: string;
+  abstractTitle: string;
+  abstractText: string;
+  presentationPreference: 'oral' | 'poster' | 'no-preference';
+  file_url: string | null;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
-const AbstractSubmissions = () => {
-  // State for form data
-  const [formData, setFormData] = useState<AbstractSettingsData>({
-    submissionLink: '',
-    guidelines: '',
-    submissionDeadline: '',
-    acceptanceNotification: '',
-    earlyRegistrationDeadline: ''
-  });
-  
-  // UI states
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
-  
-  // Mock data - in a real application, this would come from an API
+interface EventRegistration {
+  id: string;
+  created_at: string;
+  event_id: string;
+  event_title: string;
+  name: string;
+  email: string;
+  phone: string;
+  organization: string;
+  position: string;
+  special_requirements: string;
+  status: 'registered' | 'attended' | 'cancelled';
+}
+
+interface WebinarRegistration {
+  id: string;
+  created_at: string;
+  webinar_id: string;
+  webinar_title: string;
+  name: string;
+  email: string;
+  phone: string;
+  organization: string;
+  position: string;
+  status: 'registered' | 'attended' | 'cancelled';
+}
+
+type SubmissionTab = 'abstracts' | 'events' | 'webinars';
+
+const SubmissionsDashboard = () => {
+  const [activeTab, setActiveTab] = useState<SubmissionTab>('abstracts');
+  const [abstracts, setAbstracts] = useState<AbstractSubmission[]>([]);
+  const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>([]);
+  const [webinarRegistrations, setWebinarRegistrations] = useState<WebinarRegistration[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [expandedSubmission, setExpandedSubmission] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{
+    open: boolean;
+    title?: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({ open: false, message: '' });
+
+  // Fetch all data when component mounts or tab changes
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockData: AbstractSettingsData = {
-        submissionLink: 'https://forms.google.com/example-abstract-submission',
-        guidelines: 'Please submit your abstract in English, not exceeding 300 words. Include background, methods, results, and conclusion sections. All submissions will be peer-reviewed.',
-        submissionDeadline: '2024-08-15',
-        acceptanceNotification: '2024-09-01',
-        earlyRegistrationDeadline: '2024-09-15'
-      };
-      
-      setFormData(mockData);
-      setLoading(false);
-    }, 1000);
-  }, []);
-  
-  // Handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        if (activeTab === 'abstracts') {
+          const { data, error } = await supabase
+            .from('abstract_submissions')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setAbstracts(data as AbstractSubmission[]);
+        } else if (activeTab === 'events') {
+          const { data, error } = await supabase
+            .from('event_registrations')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setEventRegistrations(data as EventRegistration[]);
+        } else if (activeTab === 'webinars') {
+          const { data, error } = await supabase
+            .from('webinar_registrations')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setWebinarRegistrations(data as WebinarRegistration[]);
+        }
+      } catch (err) {
+        console.error("Error fetching submissions:", err);
+        setError('Failed to load submissions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [activeTab]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
   };
-  
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Data saved:', formData);
-      setSaving(false);
-      setSuccess(true);
-      
-      // Hide success message after 3 seconds
-      setTimeout(() => setSuccess(false), 3000);
-    }, 1000);
+
+  const filteredAbstracts = abstracts.filter(abstract => 
+  (abstract.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (abstract.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (abstract.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (abstract.abstractTitle?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+);
+
+const filteredEventRegistrations = eventRegistrations.filter(registration => 
+  (registration.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (registration.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (registration.event_title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+);
+
+const filteredWebinarRegistrations = webinarRegistrations.filter(registration => 
+  (registration.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (registration.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (registration.webinar_title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+);
+
+  const toggleExpandSubmission = (id: string) => {
+    setExpandedSubmission(expandedSubmission === id ? null : id);
   };
-  
+
+  const handleStatusChange = async (type: SubmissionTab, id: string, newStatus: string) => {
+    try {
+      let tableName = '';
+      if (type === 'abstracts') tableName = 'abstract_submissions';
+      if (type === 'events') tableName = 'event_registrations';
+      if (type === 'webinars') tableName = 'webinar_registrations';
+
+      const { error } = await supabase
+        .from(tableName)
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      if (type === 'abstracts') {
+        setAbstracts(abstracts.map(abstract => 
+          abstract.id === id ? { ...abstract, status: newStatus as any } : abstract
+        ));
+      } else if (type === 'events') {
+        setEventRegistrations(eventRegistrations.map(reg => 
+          reg.id === id ? { ...reg, status: newStatus as any } : reg
+        ));
+      } else if (type === 'webinars') {
+        setWebinarRegistrations(webinarRegistrations.map(reg => 
+          reg.id === id ? { ...reg, status: newStatus as any } : reg
+        ));
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+      setAlert({
+        open: true,
+        title: 'Update Failed',
+        message: 'There was an error updating the submission status.',
+      });
+    }
+  };
+
+  const handleDeleteSubmission = async (type: SubmissionTab, id: string) => {
+    setAlert({
+      open: true,
+      title: 'Confirm Deletion',
+      message: 'Are you sure you want to delete this submission? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          let tableName = '';
+          if (type === 'abstracts') tableName = 'abstract_submissions';
+          if (type === 'events') tableName = 'event_registrations';
+          if (type === 'webinars') tableName = 'webinar_registrations';
+
+          const { error } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Update local state
+          if (type === 'abstracts') {
+            setAbstracts(abstracts.filter(abstract => abstract.id !== id));
+          } else if (type === 'events') {
+            setEventRegistrations(eventRegistrations.filter(reg => reg.id !== id));
+          } else if (type === 'webinars') {
+            setWebinarRegistrations(webinarRegistrations.filter(reg => reg.id !== id));
+          }
+        } catch (err) {
+          console.error("Error deleting submission:", err);
+          setAlert({
+            open: true,
+            title: 'Deletion Failed',
+            message: 'There was an error deleting the submission.',
+          });
+        }
+      }
+    });
+  };
+
+  const downloadSubmissions = async (type: SubmissionTab) => {
+    try {
+      let data: any[] = [];
+      let filename = '';
+      
+      if (type === 'abstracts') {
+        data = abstracts;
+        filename = 'abstract_submissions.csv';
+      } else if (type === 'events') {
+        data = eventRegistrations;
+        filename = 'event_registrations.csv';
+      } else if (type === 'webinars') {
+        data = webinarRegistrations;
+        filename = 'webinar_registrations.csv';
+      }
+
+      // Convert data to CSV
+      const headers = Object.keys(data[0] || {});
+      const csvRows = [];
+      
+      // Add headers
+      csvRows.push(headers.join(','));
+      
+      // Add data rows
+      for (const row of data) {
+        const values = headers.map(header => {
+          const escaped = ('' + row[header as keyof typeof row]).replace(/"/g, '\\"');
+          return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+      }
+      
+      // Download CSV file
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Error downloading submissions:", err);
+      setAlert({
+        open: true,
+        title: 'Download Failed',
+        message: 'There was an error downloading the submissions.',
+      });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+      case 'attended':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+      case 'registered':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'rejected':
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Section>
+        <div className="bg-red-50 text-red-700 p-4 rounded-md">
+          {error}
+        </div>
+      </Section>
+    );
+  }
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-primary-800 mb-6">Abstract Submission Settings</h1>
-      
-      <Card className="mb-8">
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Submission Link */}
-                <div>
-                  <label htmlFor="submissionLink" className="block text-sm font-medium text-gray-700 mb-1">
-                    Abstract Submission Link
-                  </label>
-                  <Input
-                    type="url"
-                    id="submissionLink"
-                    name="submissionLink"
-                    value={formData.submissionLink}
-                    onChange={handleChange}
-                    placeholder="https://forms.google.com/..."
-                    required
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    The URL where users will submit their abstracts (Google Forms, etc.)
-                  </p>
-                </div>
-                
-                {/* Guidelines */}
-                <div>
-                <label htmlFor="guidelines" className="block text-sm font-medium text-gray-700 mb-1">
-                    Submission Guidelines
-                </label>
-                <textarea
-                    id="guidelines"
-                    name="guidelines"
-                    value={formData.guidelines}
-                    onChange={handleChange}
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 min-h-[150px]"
-                    required
-                />
-                <p className="mt-1 text-sm text-gray-500">
-                    Detailed instructions for abstract submission (format, word limit, etc.)
-                </p>
-                </div>
-                
-                {/* Key Dates Section */}
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Key Dates</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Submission Deadline */}
-                    <div>
-                      <label htmlFor="submissionDeadline" className="block text-sm font-medium text-gray-700 mb-1">
-                        Submission Deadline
-                      </label>
-                      <Input
-                        type="date"
-                        id="submissionDeadline"
-                        name="submissionDeadline"
-                        value={formData.submissionDeadline}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    
-                    {/* Acceptance Notification */}
-                    <div>
-                      <label htmlFor="acceptanceNotification" className="block text-sm font-medium text-gray-700 mb-1">
-                        Notification of Acceptance
-                      </label>
-                      <Input
-                        type="date"
-                        id="acceptanceNotification"
-                        name="acceptanceNotification"
-                        value={formData.acceptanceNotification}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    
-                    {/* Early Registration Deadline */}
-                    <div>
-                      <label htmlFor="earlyRegistrationDeadline" className="block text-sm font-medium text-gray-700 mb-1">
-                        Early Registration Deadline
-                      </label>
-                      <Input
-                        type="date"
-                        id="earlyRegistrationDeadline"
-                        name="earlyRegistrationDeadline"
-                        value={formData.earlyRegistrationDeadline}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Save Button */}
-                <div className="flex justify-end pt-6 border-t border-gray-200">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={saving}
+    <Section>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Submissions Dashboard</h1>
+        <p className="text-gray-600">View and manage all abstract submissions and event registrations</p>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('abstracts')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'abstracts' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            <FileText className="inline mr-2 h-4 w-4" />
+            Abstract Submissions ({abstracts.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('events')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'events' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            <Calendar className="inline mr-2 h-4 w-4" />
+            Event Registrations ({eventRegistrations.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('webinars')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'webinars' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            <Video className="inline mr-2 h-4 w-4" />
+            Webinar Registrations ({webinarRegistrations.length})
+          </button>
+        </nav>
+      </div>
+
+      {/* Search and Actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div className="relative w-full sm:w-64">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search submissions..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => downloadSubmissions(activeTab)}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export as CSV
+        </Button>
+      </div>
+
+      {/* Abstracts Tab Content */}
+      {activeTab === 'abstracts' && (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {filteredAbstracts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No abstract submissions found.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {filteredAbstracts.map((abstract) => (
+                <li key={abstract.id} className="hover:bg-gray-50">
+                  <div 
+                    className="px-4 py-4 sm:px-6 cursor-pointer"
+                    onClick={() => toggleExpandSubmission(abstract.id)}
                   >
-                    {saving ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-5 w-5 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </div>
-                
-                {/* Success message */}
-                {success && (
-                  <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center">
-                    <Check className="h-5 w-5 mr-2" />
-                    Settings saved successfully!
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <p className="text-sm font-medium text-primary-600 truncate">
+                          {abstract.abstractTitle}
+                        </p>
+                        <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(abstract.status)}`}>
+                          {abstract.status}
+                        </span>
+                      </div>
+                      <div className="ml-2 flex-shrink-0 flex">
+                        {expandedSubmission === abstract.id ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 sm:flex sm:justify-between">
+                      <div className="sm:flex">
+                        <p className="flex items-center text-sm text-gray-500">
+                          <User className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                          {abstract.firstName} {abstract.lastName}
+                        </p>
+                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                          <Mail className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                          {abstract.email}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                        <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                        <p>
+                          Submitted on {format(new Date(abstract.created_at), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+                  {expandedSubmission === abstract.id && (
+                    <div className="px-4 py-4 sm:px-6 border-t border-gray-200 bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Author Information</h3>
+                          <div className="mt-1 text-sm text-gray-900 space-y-1">
+                            <p><strong>Name:</strong> {abstract.firstName} {abstract.lastName}</p>
+                            <p><strong>Email:</strong> {abstract.email}</p>
+                            <p><strong>Phone:</strong> {abstract.phone || 'Not provided'}</p>
+                            <p><strong>Institution:</strong> {abstract.institution}</p>
+                            <p><strong>Country:</strong> {abstract.country}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Abstract Details</h3>
+                          <div className="mt-1 text-sm text-gray-900 space-y-1">
+                            <p><strong>Title:</strong> {abstract.abstractTitle}</p>
+                            <p><strong>Presentation Preference:</strong> {abstract.presentationPreference}</p>
+                            <p><strong>Status:</strong> 
+                              <select
+                                value={abstract.status}
+                                onChange={(e) => handleStatusChange('abstracts', abstract.id, e.target.value)}
+                                className={`ml-2 rounded-md ${getStatusColor(abstract.status)} px-2 py-1 text-xs font-medium`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                              </select>
+                            </p>
+                            {abstract.file_url && (
+                              <p>
+                                <strong>File:</strong> 
+                                <a 
+                                  href={abstract.file_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="ml-2 text-primary-600 hover:underline"
+                                >
+                                  Download
+                                </a>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <h3 className="text-sm font-medium text-gray-500">Abstract Text</h3>
+                        <div className="mt-1 text-sm text-gray-900 bg-white p-3 rounded border border-gray-200">
+                          {abstract.abstractText}
+                        </div>
+                      </div>
+                      <div className="mt-4 flex justify-end space-x-3">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteSubmission('abstracts', abstract.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Event Registrations Tab Content */}
+      {activeTab === 'events' && (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {filteredEventRegistrations.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No event registrations found.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {filteredEventRegistrations.map((registration) => (
+                <li key={registration.id} className="hover:bg-gray-50">
+                  <div 
+                    className="px-4 py-4 sm:px-6 cursor-pointer"
+                    onClick={() => toggleExpandSubmission(registration.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <p className="text-sm font-medium text-primary-600 truncate">
+                          {registration.name}
+                        </p>
+                        <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(registration.status)}`}>
+                          {registration.status}
+                        </span>
+                      </div>
+                      <div className="ml-2 flex-shrink-0 flex">
+                        {expandedSubmission === registration.id ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 sm:flex sm:justify-between">
+                      <div className="sm:flex">
+                        <p className="flex items-center text-sm text-gray-500">
+                          <Mail className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                          {registration.email}
+                        </p>
+                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                          <Building className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                          {registration.organization || 'Not provided'}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                        <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                        <p>
+                          Registered for <span className="font-medium">{registration.event_title}</span> on {format(new Date(registration.created_at), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {expandedSubmission === registration.id && (
+                    <div className="px-4 py-4 sm:px-6 border-t border-gray-200 bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Contact Information</h3>
+                          <div className="mt-1 text-sm text-gray-900 space-y-1">
+                            <p><strong>Name:</strong> {registration.name}</p>
+                            <p><strong>Email:</strong> {registration.email}</p>
+                            <p><strong>Phone:</strong> {registration.phone || 'Not provided'}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Organization Details</h3>
+                          <div className="mt-1 text-sm text-gray-900 space-y-1">
+                            <p><strong>Organization:</strong> {registration.organization || 'Not provided'}</p>
+                            <p><strong>Position:</strong> {registration.position || 'Not provided'}</p>
+                            <p><strong>Status:</strong> 
+                              <select
+                                value={registration.status}
+                                onChange={(e) => handleStatusChange('events', registration.id, e.target.value)}
+                                className={`ml-2 rounded-md ${getStatusColor(registration.status)} px-2 py-1 text-xs font-medium`}
+                              >
+                                <option value="registered">Registered</option>
+                                <option value="attended">Attended</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      {registration.special_requirements && (
+                        <div className="mt-4">
+                          <h3 className="text-sm font-medium text-gray-500">Special Requirements</h3>
+                          <div className="mt-1 text-sm text-gray-900 bg-white p-3 rounded border border-gray-200">
+                            {registration.special_requirements}
+                          </div>
+                        </div>
+                      )}
+                      <div className="mt-4 flex justify-end space-x-3">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteSubmission('events', registration.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Webinar Registrations Tab Content */}
+      {activeTab === 'webinars' && (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {filteredWebinarRegistrations.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No webinar registrations found.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {filteredWebinarRegistrations.map((registration) => (
+                <li key={registration.id} className="hover:bg-gray-50">
+                  <div 
+                    className="px-4 py-4 sm:px-6 cursor-pointer"
+                    onClick={() => toggleExpandSubmission(registration.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <p className="text-sm font-medium text-primary-600 truncate">
+                          {registration.name}
+                        </p>
+                        <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(registration.status)}`}>
+                          {registration.status}
+                        </span>
+                      </div>
+                      <div className="ml-2 flex-shrink-0 flex">
+                        {expandedSubmission === registration.id ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 sm:flex sm:justify-between">
+                      <div className="sm:flex">
+                        <p className="flex items-center text-sm text-gray-500">
+                          <Mail className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                          {registration.email}
+                        </p>
+                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                          <Building className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                          {registration.organization || 'Not provided'}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                        <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                        <p>
+                          Registered for <span className="font-medium">{registration.webinar_title}</span> on {format(new Date(registration.created_at), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {expandedSubmission === registration.id && (
+                    <div className="px-4 py-4 sm:px-6 border-t border-gray-200 bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Contact Information</h3>
+                          <div className="mt-1 text-sm text-gray-900 space-y-1">
+                            <p><strong>Name:</strong> {registration.name}</p>
+                            <p><strong>Email:</strong> {registration.email}</p>
+                            <p><strong>Phone:</strong> {registration.phone || 'Not provided'}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Organization Details</h3>
+                          <div className="mt-1 text-sm text-gray-900 space-y-1">
+                            <p><strong>Organization:</strong> {registration.organization || 'Not provided'}</p>
+                            <p><strong>Position:</strong> {registration.position || 'Not provided'}</p>
+                            <p><strong>Status:</strong> 
+                              <select
+                                value={registration.status}
+                                onChange={(e) => handleStatusChange('webinars', registration.id, e.target.value)}
+                                className={`ml-2 rounded-md ${getStatusColor(registration.status)} px-2 py-1 text-xs font-medium`}
+                              >
+                                <option value="registered">Registered</option>
+                                <option value="attended">Attended</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex justify-end space-x-3">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteSubmission('webinars', registration.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Alert modal */}
+      <AlertModal
+        isOpen={alert.open}
+        title={alert.title || 'Alert'}
+        message={alert.message}
+        onConfirm={() => {
+          if (alert.onConfirm) alert.onConfirm();
+          setAlert({ ...alert, open: false });
+        }}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
+    </Section>
   );
 };
 
-export default AbstractSubmissions;
+export default SubmissionsDashboard;
