@@ -92,7 +92,13 @@ const EventsSection = () => {
         
         {events.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No upcoming events at the moment. Please check back later.</p>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+              <Calendar className="h-8 w-8 text-gray-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">No Events Found</h2>
+            <p className="text-gray-600 max-w-md mx-auto mb-6">
+              There are no upcoming events at the moment. Please check back later.
+            </p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

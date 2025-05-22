@@ -2,127 +2,96 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight, Search, Filter, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
 import Card, { CardContent } from '../../components/common/Card';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-interface Event {
-  id: number;
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface TrainingEvent {
+  id: string;
   title: string;
   date: string;
   location: string;
-  image: string;
+  description: string;
+  image_url: string;
+  start_time: string;
+  end_time: string;
+  status: 'draft' | 'published' | 'completed';
   category?: string;
-  tags?: string[];
   type?: 'conference' | 'workshop' | 'webinar' | 'training';
 }
 
 const AllEvents = () => {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<TrainingEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
 
   useEffect(() => {
-    // In a real application, this would be an API call
-    const fetchEvents = async () => {
-      try {
-        // Simulating API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Mock events data
-        const eventsData: Event[] = [
-          {
-            id: 1,
-            title: "PET1 Training in Nairobi",
-            date: "September 15-16, 2024",
-            location: "Gertrude's Children's Hospital, Nairobi",
-            image: "https://images.pexels.com/photos/3184296/pexels-photo-3184296.jpeg?auto=compress&cs=tinysrgb&w=600",
-            category: "Training",
-            tags: ["epilepsy", "pediatric neurology", "training"],
-            type: "training"
-          },
-          {
-            id: 2,
-            title: "Annual EACNA Conference",
-            date: "October 10-12, 2024",
-            location: "Serena Hotel, Kampala, Uganda",
-            image: "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600",
-            category: "Conference",
-            tags: ["conference", "annual meeting", "research"],
-            type: "conference"
-          },
-          {
-            id: 3,
-            title: "Pediatric Epilepsy Webinar",
-            date: "November 5, 2024",
-            location: "Virtual Event",
-            image: "https://images.pexels.com/photos/8199190/pexels-photo-8199190.jpeg?auto=compress&cs=tinysrgb&w=600",
-            category: "Webinar",
-            tags: ["epilepsy", "online", "CME"],
-            type: "webinar"
-          },
-          {
-            id: 4,
-            title: "Neuroimaging Workshop",
-            date: "December 3-4, 2024",
-            location: "Aga Khan University Hospital, Nairobi",
-            image: "https://images.pexels.com/photos/4226119/pexels-photo-4226119.jpeg?auto=compress&cs=tinysrgb&w=600",
-            category: "Workshop",
-            tags: ["neuroimaging", "MRI", "practical skills"],
-            type: "workshop"
-          },
-          {
-            id: 5,
-            title: "PET2 Advanced Epilepsy Training",
-            date: "January 20-22, 2025",
-            location: "Muhimbili University, Dar es Salaam",
-            image: "https://images.pexels.com/photos/6129500/pexels-photo-6129500.jpeg?auto=compress&cs=tinysrgb&w=600",
-            category: "Training",
-            tags: ["epilepsy", "advanced", "training"],
-            type: "training"
-          },
-          {
-            id: 6,
-            title: "Neurodevelopmental Disorders Webinar",
-            date: "February 15, 2025",
-            location: "Virtual Event",
-            image: "https://images.pexels.com/photos/5053731/pexels-photo-5053731.jpeg?auto=compress&cs=tinysrgb&w=600",
-            category: "Webinar",
-            tags: ["neurodevelopment", "autism", "ADHD"],
-            type: "webinar"
-          }
-        ];
-        
-        setEvents(eventsData);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching events:", error);
-        setLoading(false);
-      }
-    };
-
     fetchEvents();
   }, []);
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('training_events')
+        .select('*')
+        .eq('status', 'published')
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      setEvents(data as TrainingEvent[] || []);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'MMMM d, yyyy');
+  };
+
+  const formatTimeRange = (start: string, end: string) => {
+    if (!start || !end) return '';
+    return `${start} - ${end}`;
+  };
 
   // Filter events based on search term and filters
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          event.location.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = selectedCategory === 'all' || event.category?.toLowerCase() === selectedCategory.toLowerCase();
+    const matchesCategory = selectedCategory === 'all' || 
+                          (event.category && event.category.toLowerCase() === selectedCategory.toLowerCase());
     
-    const matchesType = selectedType === 'all' || event.type === selectedType;
+    const matchesType = selectedType === 'all' || 
+                       (event.type && event.type === selectedType);
     
     return matchesSearch && matchesCategory && matchesType;
   });
 
-  // Categories for filter
-  const categories = ['all', ...Array.from(new Set(events.map(event => event.category?.toLowerCase() || '')))];
+  // Categories for filter (extracted from existing events)
+  const categories = ['all', ...Array.from(new Set(events
+    .map(event => event.category?.toLowerCase())
+    .filter(cat => cat !== undefined && cat !== null) as string[]
+  ))];
   
-  // Event types for filter
-  const eventTypes = ['all', 'conference', 'workshop', 'webinar', 'training'];
+  // Event types for filter (extracted from existing events)
+  const eventTypes = ['all', ...Array.from(new Set(events
+    .map(event => event.type)
+    .filter(type => type !== undefined && type !== null) as string[]
+  ))];
 
   return (
     <>
@@ -151,55 +120,59 @@ const AllEvents = () => {
               />
             </div>
             
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter className="h-5 w-5 text-gray-400" />
+            {categories.length > 1 && (
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Filter className="h-5 w-5 text-gray-400" />
+                </div>
+                <select
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="all">All Categories</option>
+                  {categories.filter(cat => cat !== 'all').map((category, index) => (
+                    <option key={index} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                <option value="all">All Categories</option>
-                {categories.filter(cat => cat !== 'all').map((category, index) => (
-                  <option key={index} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            )}
             
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <CalendarIcon className="h-5 w-5 text-gray-400" />
+            {eventTypes.length > 1 && (
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <select
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none"
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                >
+                  <option value="all">All Event Types</option>
+                  {eventTypes.filter(type => type !== 'all').map((type, index) => (
+                    <option key={index} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-              >
-                <option value="all">All Event Types</option>
-                {eventTypes.filter(type => type !== 'all').map((type, index) => (
-                  <option key={index} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            )}
           </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+            <LoadingSpinner />
           </div>
         ) : filteredEvents.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map(event => (
-              <Card key={event.id} className="overflow-hidden">
+              <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
                 <div className="h-48 overflow-hidden">
                   <img 
-                    src={event.image} 
+                    src={event.image_url || 'https://via.placeholder.com/400x200?text=No+Image'} 
                     alt={event.title} 
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />
@@ -208,7 +181,7 @@ const AllEvents = () => {
                   <div className="flex items-start mb-3">
                     <Calendar className="h-5 w-5 text-primary-600 mt-1 mr-2" />
                     <div>
-                      <span className="text-primary-600 font-semibold">{event.date}</span>
+                      <span className="text-primary-600 font-semibold">{formatEventDate(event.date)}</span>
                       <p className="text-gray-600 text-sm">{event.location}</p>
                     </div>
                   </div>
@@ -218,7 +191,7 @@ const AllEvents = () => {
                       {event.category}
                     </span>
                   )}
-                  <Link to={`/events/${event.id}`}>
+                  <Link to={`/event/${event.id}`}>
                     <Button variant="text" className="mt-2">
                       View Details <ArrowRight className="ml-1 h-4 w-4" />
                     </Button>
@@ -236,7 +209,7 @@ const AllEvents = () => {
             <p className="text-gray-600 max-w-md mx-auto mb-6">
               {searchTerm || selectedCategory !== 'all' || selectedType !== 'all' 
                 ? "No events match your current search criteria. Please try adjusting your filters."
-                : "There are no upcoming events at the moment. Please check back later for new events."}
+                : "There are no upcoming events at the moment. Please check back later."}
             </p>
             {(searchTerm || selectedCategory !== 'all' || selectedType !== 'all') && (
               <Button 
@@ -250,50 +223,6 @@ const AllEvents = () => {
                 Clear Filters
               </Button>
             )}
-          </div>
-        )}
-
-        {/* Pagination - for when you have many events */}
-        {filteredEvents.length > 0 && (
-          <div className="flex justify-center mt-12">
-            <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <a
-                href="#"
-                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span className="sr-only">Previous</span>
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </a>
-              <a
-                href="#"
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600 hover:bg-primary-100"
-              >
-                1
-              </a>
-              <a
-                href="#"
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                2
-              </a>
-              <a
-                href="#"
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                3
-              </a>
-              <a
-                href="#"
-                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span className="sr-only">Next</span>
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            </nav>
           </div>
         )}
       </Section>
