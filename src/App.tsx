@@ -172,7 +172,7 @@ function App() {
             <Route path="members/directory" element={<Directory />} />
             <Route path="events/meetings" element={<AnnualMeetings/>} />
             <Route path="events/training" element={<TrainingEvents supabase={supabase}/>} />
-            <Route path="events/webinars" element={<Webinars />} />
+            <Route path="events/webinars" element={<Webinars supabase={supabase}/>} />
             <Route path="specialists/applications" element={<Applications supabase={supabase} />} />
             <Route path="specialists/directory" element={<SpecialistsDirectory supabase={supabase} />} />
             <Route path="publications/review" element={<PublicationReview supabase={supabase} />} />
