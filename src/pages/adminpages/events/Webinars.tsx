@@ -40,7 +40,7 @@ interface WebinarsManagementProps {
   supabase: SupabaseClient;
 }
 
-const WebinarsManagement: React.FC<WebinarsManagementProps> = ({ supabase }) => {
+const Webinars: React.FC<WebinarsManagementProps> = ({ supabase }) => {
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -1037,19 +1037,7 @@ const WebinarsManagement: React.FC<WebinarsManagementProps> = ({ supabase }) => 
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
-              <div>
-                <label htmlFor="speakerImage" className="block text-sm font-medium text-gray-700 mb-1">
-                  Speaker Image URL (optional)
-                </label>
-                <input
-                  type="text"
-                  id="speakerImage"
-                  value={newSpeaker.image_url || ''}
-                  onChange={(e) => setNewSpeaker(prev => ({ ...prev, image_url: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="https://example.com/speaker.jpg"
-                />
-              </div>
+              
               <button
                 type="button"
                 onClick={addSpeaker}
@@ -1205,52 +1193,7 @@ const WebinarsManagement: React.FC<WebinarsManagementProps> = ({ supabase }) => 
                 </div>
               </div>
 
-              <div className="p-4 border border-gray-200 rounded-md">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Participation</h3>
-                {selectedWebinar.is_live ? (
-                  <>
-                    <p className="text-gray-700 mb-4">
-                      This webinar is currently live. Join now to participate.
-                    </p>
-                    <a 
-                      href={selectedWebinar.webinar_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="block w-full py-2 px-4 rounded-md bg-green-600 text-white hover:bg-green-700 text-center"
-                    >
-                      Join Live Webinar
-                    </a>
-                  </>
-                ) : selectedWebinar.has_recording ? (
-                  <>
-                    <p className="text-gray-700 mb-4">
-                      This webinar has concluded, but you can watch the recording.
-                    </p>
-                    <a 
-                      href={selectedWebinar.recording_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="block w-full py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-center"
-                    >
-                      Watch Recording
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-gray-700 mb-4">
-                      Register for this webinar to receive participation details.
-                    </p>
-                    <a 
-                      href={selectedWebinar.registration_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="block w-full py-2 px-4 rounded-md bg-primary-600 text-white hover:bg-primary-700 text-center"
-                    >
-                      Register Now
-                    </a>
-                  </>
-                )}
-              </div>
+              
             </div>
           </div>
         </div>
@@ -1273,4 +1216,4 @@ const WebinarsManagement: React.FC<WebinarsManagementProps> = ({ supabase }) => 
 );
 };
 
-export default WebinarsManagement;
+export default Webinars;

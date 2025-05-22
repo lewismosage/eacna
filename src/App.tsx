@@ -30,6 +30,7 @@ import TermsOfService from './pages/sitepolicies/TermsOfService';
 import CookiePolicy from './pages/sitepolicies/CookiePolicy';
 import AllPublicationsPage from './pages/resourcespage/AllPublicationsPage';
 import ReadPaperPage from './pages/resourcespage/ReadPaperPage';
+import WebinarDetails from './pages/trainingpage/WebinarDetails';
 
 // Member Portal Components
 import Login from './pages/portalpages/Login';
@@ -119,6 +120,7 @@ function App() {
           <Route path="all-events" element={<AllEvents />} />
           <Route path="conference-archives" element={<ConferenceArchives />} />
           <Route path="webinars" element={<AllWebinars />} />
+          <Route path="webinar/:id" element={<WebinarDetails />} />
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
           <Route path="terms-of-service" element={<TermsOfService />} />
           <Route path="cookie-policy" element={<CookiePolicy />} />

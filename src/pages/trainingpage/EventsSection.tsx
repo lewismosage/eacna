@@ -1,6 +1,6 @@
 // src/pages/EventsSection.tsx
 import React, { useState, useEffect } from 'react';
-import { Calendar, ArrowRight, BookOpen, MapPin, Clock } from 'lucide-react';
+import { Calendar, ArrowRight, BookOpen, MapPin, Clock, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import Section from '../../components/common/Section';
@@ -25,29 +25,56 @@ interface TrainingEvent {
   status: 'draft' | 'published' | 'completed';
 }
 
+interface Webinar {
+  id: string;
+  title: string;
+  date: string;
+  description: string;
+  image_url: string;
+  start_time: string;
+  end_time: string;
+  registration_link: string;
+  webinar_link: string;
+  recording_url: string;
+  is_live: boolean;
+  has_recording: boolean;
+  status: 'draft' | 'published' | 'completed';
+}
+
 const EventsSection = () => {
   const [events, setEvents] = useState<TrainingEvent[]>([]);
+  const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchEvents();
+    fetchData();
   }, []);
 
-  const fetchEvents = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch training events
+      const { data: eventsData, error: eventsError } = await supabase
         .from('training_events')
         .select('*')
         .eq('status', 'published')
         .order('date', { ascending: true });
 
-      if (error) throw error;
-      setEvents(data as TrainingEvent[] || []);
+      // Fetch webinars
+      const { data: webinarsData, error: webinarsError } = await supabase
+        .from('webinars')
+        .select('*')
+        .eq('status', 'published')
+        .order('date', { ascending: true });
+
+      if (eventsError || webinarsError) throw eventsError || webinarsError;
+
+      setEvents(eventsData as TrainingEvent[] || []);
+      setWebinars(webinarsData as Webinar[] || []);
     } catch (err) {
-      console.error("Error fetching events:", err);
-      setError('Failed to load training events');
+      console.error("Error fetching data:", err);
+      setError('Failed to load events data');
     } finally {
       setLoading(false);
     }
@@ -61,6 +88,28 @@ const EventsSection = () => {
   const formatTimeRange = (start: string, end: string) => {
     if (!start || !end) return '';
     return `${start} - ${end}`;
+  };
+
+  // Helper function to determine webinar status
+  const getWebinarStatus = (webinar: Webinar) => {
+    if (webinar.is_live) {
+      return {
+        label: 'Live',
+        className: 'bg-red-100 text-red-800'
+      };
+    }
+    
+    if (webinar.recording_url && webinar.recording_url.trim() !== '') {
+      return {
+        label: 'Recording Available',
+        className: 'bg-green-100 text-green-800'
+      };
+    }
+    
+    return {
+      label: 'Upcoming',
+      className: 'bg-primary-100 text-primary-800'
+    };
   };
 
   if (loading) {
@@ -79,6 +128,11 @@ const EventsSection = () => {
     );
   }
 
+  // Get first 3 events
+  const displayedEvents = events.slice(0, 3);
+  // Get first 3 webinars
+  const displayedWebinars = webinars.slice(0, 3);
+
   return (
     <>
       {/* Upcoming Events */}
@@ -90,7 +144,7 @@ const EventsSection = () => {
           </p>
         </div>
         
-        {events.length === 0 ? (
+        {displayedEvents.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <Calendar className="h-8 w-8 text-gray-500" />
@@ -102,7 +156,7 @@ const EventsSection = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {events.map(event => (
+            {displayedEvents.map(event => (
               <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
                 <div className="h-48 overflow-hidden">
                   <img 
@@ -132,11 +186,13 @@ const EventsSection = () => {
           </div>
         )}
         
-        <div className="mt-12 text-center">
-          <Button variant="outline" to="/all-events">
-            View All Events
-          </Button>
-        </div>
+        {events.length > 3 && (
+          <div className="mt-12 text-center">
+            <Button variant="outline" to="/all-events">
+              View All Events
+            </Button>
+          </div>
+        )}
       </Section>
       
       {/* Webinars & Annual Meetings */}
@@ -187,47 +243,51 @@ const EventsSection = () => {
           
           <div className="bg-white rounded-lg shadow-card p-6">
             <h3 className="text-xl font-bold mb-4 text-primary-800 flex items-center">
-              <Calendar className="h-5 w-5 mr-2" /> Webinars & Online Events
+              <Video className="h-5 w-5 mr-2" /> Webinars & Online Events
             </h3>
             <p className="text-gray-700 mb-4">
               Our monthly webinars feature presentations on various topics in pediatric neurology from 
               leading experts in the field.
             </p>
-            <ul className="space-y-4 mb-6">
-              <li className="flex items-start">
-                <span className="bg-primary-100 text-primary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1">Upcoming</span>
-                <div>
-                  <h4 className="font-semibold">Management of Status Epilepticus in Children</h4>
-                  <p className="text-gray-600 text-sm">July 15, 2024 | 2:00 PM EAT</p>
-                  <Button variant="text" size="sm" className="mt-1 p-0">
-                    Register Now
-                  </Button>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="bg-primary-100 text-primary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1">Upcoming</span>
-                <div>
-                  <h4 className="font-semibold">Neurodevelopmental Outcomes in Children with Epilepsy</h4>
-                  <p className="text-gray-600 text-sm">August 12, 2024 | 3:00 PM EAT</p>
-                  <Button variant="text" size="sm" className="mt-1 p-0">
-                    Register Now
-                  </Button>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1">Past</span>
-                <div>
-                  <h4 className="font-semibold">Advances in Pediatric Epilepsy Surgery</h4>
-                  <p className="text-gray-600 text-sm">June 20, 2024 | Recording Available</p>
-                  <Button variant="text" size="sm" className="mt-1 p-0">
-                    Watch Recording
-                  </Button>
-                </div>
-              </li>
-            </ul>
-            <Button variant="outline" to="/webinars">
-              View All Webinars
-            </Button>
+            
+            {displayedWebinars.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">No upcoming webinars at the moment. Please check back later.</p>
+              </div>
+            ) : (
+              <ul className="space-y-4 mb-6">
+                {displayedWebinars.map(webinar => {
+                  const status = getWebinarStatus(webinar);
+                  return (
+                    <li key={webinar.id} className="flex items-start">
+                      <span className={`${status.className} text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1`}>
+                        {status.label}
+                      </span>
+                      <div>
+                        <h4 className="font-semibold">{webinar.title}</h4>
+                        <p className="text-gray-600 text-sm">
+                          {formatEventDate(webinar.date)} | {formatTimeRange(webinar.start_time, webinar.end_time)}
+                        </p>
+                        <Button 
+                          variant="text" 
+                          size="sm" 
+                          className="mt-1 p-0"
+                          to={`/webinar/${webinar.id}`}
+                        >
+                          View Details <ArrowRight className="ml-1 h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            
+            {webinars.length > 3 && (
+              <Button variant="outline" to="/webinars">
+                View All Webinars
+              </Button>
+            )}
           </div>
         </div>
       </Section>
