@@ -228,7 +228,7 @@ useEffect(() => {
                   variant="accent" 
                   size="lg" 
                   className="text-primary-900" 
-                  href="#"
+                  href="abstract-submission"
                 >
                   Submit Your Abstract
                 </Button>
@@ -236,9 +236,9 @@ useEffect(() => {
                   variant="outline" 
                   size="lg"
                   className="border-white text-white hover:bg-white hover:text-primary-700"
-                  href="#"
+                  href="/abstract-guidelines"
                 >
-                  Download Guidelines <Download className="ml-2 h-5 w-5" />
+                  View Guidelines
                 </Button>
               </div>
             </div>

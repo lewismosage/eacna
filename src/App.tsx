@@ -31,6 +31,8 @@ import CookiePolicy from './pages/sitepolicies/CookiePolicy';
 import AllPublicationsPage from './pages/resourcespage/AllPublicationsPage';
 import ReadPaperPage from './pages/resourcespage/ReadPaperPage';
 import WebinarDetails from './pages/trainingpage/WebinarDetails';
+import AbstractSubmission  from './pages/trainingpage/AbstractSubmission';
+import AbstractGuidelines from './pages/trainingpage/AbstractGuidelines';
 
 // Member Portal Components
 import Login from './pages/portalpages/Login';
@@ -58,7 +60,7 @@ import SpecialistsDirectory from './pages/adminpages/Specialists/Directory';
 import AnnualMeetings from './pages/adminpages/events/AnnualMeetings';
 import TrainingEvents from './pages/adminpages/events/TrainingEvents';
 import Webinars from './pages/adminpages/events/Webinars';
-import AbtractSubmissions from './pages/adminpages/events/AbstractSubmissions';
+import AbtractSubmissions from './pages/adminpages/events/Submissions';
 
 // Modals
 import PaymentModal from './pages/membershipage/PaymentModal';
@@ -126,6 +128,8 @@ function App() {
           <Route path="cookie-policy" element={<CookiePolicy />} />
           <Route path="all-publications" element={<AllPublicationsPage />} />
           <Route path="read-publication/:id" element={<ReadPaperPage />} />
+          <Route path="abstract-submission" element={<AbstractSubmission />} />
+          <Route path="abstract-guidelines" element={<AbstractGuidelines />} />
           <Route path="*" element={<NotFoundPage />} />
 
           {/* Member Login */}

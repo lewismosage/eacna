@@ -37,7 +37,7 @@ const AdminLayout = () => {
         { name: 'Training Events', href: '/admin/events/training' },
         { name: 'Annual Meetings', href: '/admin/events/meetings' },
         { name: 'Webinars', href: '/admin/events/webinars' },
-        { name: 'Abstract Submissions', href: '/admin/events/abstracts' },
+        { name: 'Submissions', href: '/admin/events/abstracts' },
       ]
     },
     { 
