@@ -179,8 +179,8 @@ const AbstractSubmissionPage = () => {
                 Thank you for submitting your abstract. We've received your submission and will review it carefully.
               </p>
               <p className="text-green-700">
-                You will receive a confirmation email shortly. If you have any questions, please contact us at 
-                <a href="mailto:abstracts@eacna.org" className="font-semibold underline ml-1">abstracts@eacna.org</a>.
+                 If you have any questions, please contact us at 
+                <a href="mailto:info@eacna.co.ke" className="font-semibold underline ml-1">info@eacna.co.ke</a>.
               </p>
               <Button 
                 variant="primary" 
