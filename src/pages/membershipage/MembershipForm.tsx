@@ -628,11 +628,11 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                   {...register("membershipType", { required: true })}
                 >
                   <option value="">Select membership type</option>
-                  <option value="full">Full Member</option>
-                  <option value="associate">Associate Member</option>
-                  <option value="student">Student Member</option>
-                  <option value="institutional">Institutional Member</option>
-                  <option value="honorary">Honorary Member</option>
+                  <option value="Full Member">Full Member</option>
+                  <option value="Associate Member">Associate Member</option>
+                  <option value="Student Member">Student Member</option>
+                  <option value="Institutional Member">Institutional Member</option>
+                  <option value="Honorary Member">Honorary Member</option>
                 </select>
                 {errors.membershipType && (
                   <p className="mt-1 text-sm text-red-600">
