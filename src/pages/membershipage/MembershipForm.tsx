@@ -86,48 +86,56 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
-
+  
     try {
       // First, sign up the user with email and password
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-      });
-
-      if (authError) throw authError;
-
-      // Then insert the membership application
-      const { error } = await supabase.from("membership_applications").insert([
-        {
-          first_name: data.firstName,
-          middle_name: data.middleName,
-          last_name: data.lastName,
-          gender: data.gender,
-          nationality: data.nationality,
-          country_of_residence: data.countryOfResidence,
-          email: data.email,
-          phone: data.phone,
-          id_number: data.idNumber,
-          membership_type: data.membershipType,
-          current_profession: data.currentProfession,
-          institution: data.institution,
-          work_address: data.workAddress,
-          registration_number: data.registrationNumber,
-          highest_degree: data.highestDegree,
-          university: data.university,
-          certify_info: data.certifyInfo,
-          consent_data: data.consentData,
-          hashed_password: data.password,
-          status: "pending",
+        options: {
+          data: {
+            first_name: data.firstName,
+            last_name: data.lastName,
+          },
         },
-      ]);
-
+      });
+  
+      if (authError) throw authError;
+  
+      // Then call the stored procedure to create the application
+      const { data: result, error } = await supabase.rpc('create_membership_application', {
+        email: data.email,
+        password: data.password, // Still needed for the function signature
+        first_name: data.firstName,
+        middle_name: data.middleName,
+        last_name: data.lastName,
+        gender: data.gender,
+        nationality: data.nationality,
+        country_of_residence: data.countryOfResidence,
+        phone: data.phone,
+        id_number: data.idNumber,
+        membership_type: data.membershipType,
+        current_profession: data.currentProfession,
+        institution: data.institution,
+        work_address: data.workAddress,
+        registration_number: data.registrationNumber,
+        highest_degree: data.highestDegree,
+        university: data.university,
+        certify_info: data.certifyInfo,
+        consent_data: data.consentData
+      });
+  
       if (error) throw error;
-
+      if (!result?.success) throw new Error(result?.error || 'Unknown error');
+  
       nextStep();
     } catch (err) {
       console.error("Error submitting application:", err);
-      setSubmitError("Failed to submit application. Please try again.");
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Failed to submit application. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }

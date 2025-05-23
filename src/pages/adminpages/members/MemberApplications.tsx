@@ -13,27 +13,28 @@ import Card, { CardContent } from "../../../components/common/Card";
 import Button from "../../../components/common/Button";
 import { createClient } from "@supabase/supabase-js";
 
+// Application status types
+type ApplicationStatus = "pending" | "approved" | "rejected";
+
+// Initialize Supabase client (use your actual credentials)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Application status types
-// Application status types
-type ApplicationStatus = "pending" | "approved" | "rejected";
-
-// Application data structure based on your MembershipForm
+// Update your Application interface to match your database schema
 interface Application {
   id: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
-  membershipType: string;
+  membership_type: string;
   nationality: string;
-  currentProfession: string;
+  current_profession: string;
   institution: string;
-  submittedAt: string; // ISO date string
+  created_at: string; // Updated from submittedAt
   status: ApplicationStatus;
+  // Add other fields from your table as needed
 }
 
 const Applications = () => {
@@ -53,56 +54,33 @@ const Applications = () => {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Application | null;
     direction: "ascending" | "descending";
-  }>({ key: "submittedAt", direction: "descending" });
+  }>({ key: "created_at", direction: "descending" });
 
   // State for selected application to view details
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
 
-  // Mock data - in a real application, this would come from an API
+  const [filterLoading, setFilterLoading] = useState(false);
+
+  // Replace the mock data useEffect with real data fetching
   useEffect(() => {
     const fetchApplications = async () => {
       setLoading(true);
       try {
         const { data, error } = await supabase
           .from("membership_applications")
-          .select(
-            `
-            id,
-            first_name,
-            last_name,
-            email,
-            phone,
-            membership_type,
-            nationality,
-            current_profession,
-            institution,
-            created_at,
-            status
-          `
-          )
+          .select("*")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
 
-        setApplications(
-          data.map((app) => ({
-            id: app.id,
-            firstName: app.first_name,
-            lastName: app.last_name,
-            email: app.email,
-            phone: app.phone,
-            membershipType: app.membership_type,
-            nationality: app.nationality,
-            currentProfession: app.current_profession,
-            institution: app.institution,
-            submittedAt: app.created_at,
-            status: app.status,
-          }))
-        );
+        if (data) {
+          setApplications(data);
+          setFilteredApplications(data);
+        }
       } catch (err) {
         console.error("Error fetching applications:", err);
-        // Handle error
+        // Handle error (maybe show a toast notification)
       } finally {
         setLoading(false);
       }
@@ -113,46 +91,45 @@ const Applications = () => {
 
   // Apply filters and search
   useEffect(() => {
-    let result = [...applications];
+    const fetchFilteredApplications = async () => {
+      setFilterLoading(true); // Start loading state
+      try {
+        let query = supabase.from("membership_applications").select("*");
 
-    // Apply status filter
-    if (statusFilter !== "all") {
-      result = result.filter((app) => app.status === statusFilter);
-    }
-
-    // Apply membership type filter
-    if (membershipFilter !== "all") {
-      result = result.filter((app) => app.membershipType === membershipFilter);
-    }
-
-    // Apply search
-    if (searchTerm) {
-      const lowerCaseSearchTerm = searchTerm.toLowerCase();
-      result = result.filter(
-        (app) =>
-          app.firstName.toLowerCase().includes(lowerCaseSearchTerm) ||
-          app.lastName.toLowerCase().includes(lowerCaseSearchTerm) ||
-          app.email.toLowerCase().includes(lowerCaseSearchTerm) ||
-          app.institution.toLowerCase().includes(lowerCaseSearchTerm)
-      );
-    }
-
-    // Apply sorting
-    if (sortConfig.key !== null) {
-      result.sort((a, b) => {
-        const key = sortConfig.key as keyof Application;
-        if (a[key] < b[key]) {
-          return sortConfig.direction === "ascending" ? -1 : 1;
+        if (statusFilter !== "all") {
+          query = query.eq("status", statusFilter);
         }
-        if (a[key] > b[key]) {
-          return sortConfig.direction === "ascending" ? 1 : -1;
-        }
-        return 0;
-      });
-    }
 
-    setFilteredApplications(result);
-  }, [applications, searchTerm, statusFilter, membershipFilter, sortConfig]);
+        if (membershipFilter !== "all") {
+          query = query.eq("membership_type", membershipFilter);
+        }
+
+        if (searchTerm) {
+          query = query.or(
+            `first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,institution.ilike.%${searchTerm}%`
+          );
+        }
+
+        const { data, error } = await query.order("created_at", {
+          ascending: false,
+        });
+
+        if (error) {
+          console.error("Error fetching filtered applications:", error);
+          setFilteredApplications([]);
+        } else {
+          setFilteredApplications(data || []);
+        }
+      } catch (err) {
+        console.error("Error in fetchFilteredApplications:", err);
+        setFilteredApplications([]);
+      } finally {
+        setFilterLoading(false); // End loading state
+      }
+    };
+
+    fetchFilteredApplications();
+  }, [applications, searchTerm, statusFilter, membershipFilter]);
 
   // Handle sorting column click
   const handleSort = (key: keyof Application) => {
@@ -165,13 +142,13 @@ const Applications = () => {
     setSortConfig({ key, direction });
   };
 
-  // Handle status change
+  // Update handleStatusChange to update the database
   const handleStatusChange = async (
     id: string,
     newStatus: ApplicationStatus
   ) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("membership_applications")
         .update({ status: newStatus })
         .eq("id", id);
@@ -193,37 +170,6 @@ const Applications = () => {
       }
     } catch (err) {
       console.error("Error updating application status:", err);
-      // Show error to user
-    }
-  };
-
-  // Handle view application
-  const handleViewApplication = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("membership_applications")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-
-      setSelectedApplication({
-        id: data.id,
-        firstName: data.first_name,
-        lastName: data.last_name,
-        email: data.email,
-        phone: data.phone,
-        membershipType: data.membership_type,
-        nationality: data.nationality,
-        currentProfession: data.current_profession,
-        institution: data.institution,
-        submittedAt: data.created_at,
-        status: data.status,
-        // Add other fields as needed
-      });
-    } catch (err) {
-      console.error("Error fetching application details:", err);
       // Handle error
     }
   };
@@ -257,9 +203,35 @@ const Applications = () => {
   };
 
   // Handle export to CSV
-  const handleExport = () => {
-    // In a real app, this would generate and download a CSV file
-    alert("Export functionality would be implemented here");
+  const handleExport = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("membership_applications")
+        .select("*");
+
+      if (error) throw error;
+
+      if (data) {
+        const headers = Object.keys(data[0]).join(",");
+        const csvContent = [
+          headers,
+          ...data.map((row) => Object.values(row).join(",")),
+        ].join("\n");
+
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", "applications.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error("Error exporting data:", err);
+    }
   };
 
   return (
@@ -346,7 +318,7 @@ const Applications = () => {
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort("lastName")}
+                          onClick={() => handleSort("last_name")}
                         >
                           <div className="flex items-center">
                             Name
@@ -356,7 +328,7 @@ const Applications = () => {
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort("membershipType")}
+                          onClick={() => handleSort("membership_type")}
                         >
                           <div className="flex items-center">
                             Membership Type
@@ -372,7 +344,7 @@ const Applications = () => {
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort("submittedAt")}
+                          onClick={() => handleSort("created_at")}
                         >
                           <div className="flex items-center">
                             Submitted On
@@ -398,7 +370,7 @@ const Applications = () => {
                         <tr key={application.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
                             <div className="font-medium text-gray-900">
-                              {application.firstName} {application.lastName}
+                              {application.first_name} {application.last_name}
                             </div>
                             <div className="text-sm text-gray-500">
                               {application.email}
@@ -406,19 +378,19 @@ const Applications = () => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900 capitalize">
-                              {getMembershipLabel(application.membershipType)}
+                              {getMembershipLabel(application.membership_type)}
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">
-                              {application.currentProfession}
+                              {application.current_profession}
                             </div>
                             <div className="text-xs text-gray-500">
                               {application.institution}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500">
-                            {formatDate(application.submittedAt)}
+                            {formatDate(application.created_at)}
                           </td>
                           <td className="px-6 py-4">
                             <span
@@ -434,7 +406,7 @@ const Applications = () => {
                             <div className="flex justify-end space-x-2">
                               <button
                                 onClick={() =>
-                                  handleViewApplication(application.id)
+                                  setSelectedApplication(application)
                                 }
                                 className="text-primary-600 hover:text-primary-900"
                               >
@@ -501,7 +473,8 @@ const Applications = () => {
                   Personal Information
                 </h4>
                 <p className="font-semibold text-lg">
-                  {selectedApplication.firstName} {selectedApplication.lastName}
+                  {selectedApplication.first_name}{" "}
+                  {selectedApplication.last_name}
                 </p>
                 <p className="text-gray-600">
                   Email: {selectedApplication.email}
@@ -524,11 +497,11 @@ const Applications = () => {
                 <p className="text-gray-600">
                   Membership Type:{" "}
                   <span className="capitalize">
-                    {getMembershipLabel(selectedApplication.membershipType)}
+                    {getMembershipLabel(selectedApplication.membership_type)}
                   </span>
                 </p>
                 <p className="text-gray-600">
-                  Submitted On: {formatDate(selectedApplication.submittedAt)}
+                  Submitted On: {formatDate(selectedApplication.created_at)}
                 </p>
                 <p className="text-gray-600">
                   Current Status:
@@ -549,7 +522,7 @@ const Applications = () => {
                 Professional Information
               </h4>
               <p className="text-gray-800">
-                Current Profession: {selectedApplication.currentProfession}
+                Current Profession: {selectedApplication.current_profession}
               </p>
               <p className="text-gray-800">
                 Institution: {selectedApplication.institution}
