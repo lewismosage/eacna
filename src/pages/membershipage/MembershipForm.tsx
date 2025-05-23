@@ -5,6 +5,7 @@ import { CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 import Card, { CardContent } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import { createClient } from "@supabase/supabase-js";
+import { MembershipTier, membershipTiers } from "../../types/membership";
 
 type FormData = {
   firstName: string;
@@ -16,7 +17,7 @@ type FormData = {
   email: string;
   phone: string;
   idNumber: string;
-  membershipType: string;
+  membershipType: MembershipTier;
   currentProfession: string;
   institution: string;
   workAddress: string;
@@ -86,7 +87,7 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
-  
+
     try {
       // First, sign up the user with email and password
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -99,35 +100,38 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
           },
         },
       });
-  
+
       if (authError) throw authError;
-  
+
       // Then call the stored procedure to create the application
-      const { data: result, error } = await supabase.rpc('create_membership_application', {
-        email: data.email,
-        password: data.password, // Still needed for the function signature
-        first_name: data.firstName,
-        middle_name: data.middleName,
-        last_name: data.lastName,
-        gender: data.gender,
-        nationality: data.nationality,
-        country_of_residence: data.countryOfResidence,
-        phone: data.phone,
-        id_number: data.idNumber,
-        membership_type: data.membershipType,
-        current_profession: data.currentProfession,
-        institution: data.institution,
-        work_address: data.workAddress,
-        registration_number: data.registrationNumber,
-        highest_degree: data.highestDegree,
-        university: data.university,
-        certify_info: data.certifyInfo,
-        consent_data: data.consentData
-      });
-  
+      const { data: result, error } = await supabase.rpc(
+        "create_membership_application",
+        {
+          email: data.email,
+          password: data.password, // Still needed for the function signature
+          first_name: data.firstName,
+          middle_name: data.middleName,
+          last_name: data.lastName,
+          gender: data.gender,
+          nationality: data.nationality,
+          country_of_residence: data.countryOfResidence,
+          phone: data.phone,
+          id_number: data.idNumber,
+          membership_type: data.membershipType,
+          current_profession: data.currentProfession,
+          institution: data.institution,
+          work_address: data.workAddress,
+          registration_number: data.registrationNumber,
+          highest_degree: data.highestDegree,
+          university: data.university,
+          certify_info: data.certifyInfo,
+          consent_data: data.consentData,
+        }
+      );
+
       if (error) throw error;
-      if (!result?.success) throw new Error(result?.error || 'Unknown error');
-  
+      if (!result?.success) throw new Error(result?.error || "Unknown error");
+
       nextStep();
     } catch (err) {
       console.error("Error submitting application:", err);
@@ -622,17 +626,17 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                 </label>
                 <select
                   id="membershipType"
-                  className={`"appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" ${
+                  className={`appearance-none block w-full px-3 py-2 border ${
                     errors.membershipType ? "border-red-500" : "border-gray-300"
-                  }`}
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("membershipType", { required: true })}
                 >
                   <option value="">Select membership type</option>
-                  <option value="Full Member">Full Member</option>
-                  <option value="Associate Member">Associate Member</option>
-                  <option value="Student Member">Student Member</option>
-                  <option value="Institutional Member">Institutional Member</option>
-                  <option value="Honorary Member">Honorary Member</option>
+                  {Object.keys(membershipTiers).map((tier) => (
+                    <option key={tier} value={tier}>
+                      {tier}
+                    </option>
+                  ))}
                 </select>
                 {errors.membershipType && (
                   <p className="mt-1 text-sm text-red-600">
