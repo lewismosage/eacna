@@ -17,16 +17,16 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 interface AbstractSubmission {
   id: string;
   created_at: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   institution: string;
   country: string;
-  abstractTitle: string;
-  abstractText: string;
-  presentationPreference: 'oral' | 'poster' | 'no-preference';
-  file_url: string | null;
+  abstract_title: string;
+  abstract_text: string;
+  presentation_preference: 'oral' | 'poster' | 'no-preference';
+  file_path: string | null;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -121,10 +121,10 @@ const SubmissionsDashboard = () => {
   };
 
   const filteredAbstracts = abstracts.filter(abstract => 
-  (abstract.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-  (abstract.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (abstract.first_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (abstract.last_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
   (abstract.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-  (abstract.abstractTitle?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  (abstract.abstract_title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
 );
 
 const filteredEventRegistrations = eventRegistrations.filter(registration => 
@@ -365,125 +365,159 @@ const filteredWebinarRegistrations = webinarRegistrations.filter(registration =>
       </div>
 
       {/* Abstracts Tab Content */}
-      {activeTab === 'abstracts' && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          {filteredAbstracts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No abstract submissions found.</p>
+{activeTab === 'abstracts' && (
+  <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+    {filteredAbstracts.length === 0 ? (
+      <div className="text-center py-12">
+        <p className="text-gray-500">No abstract submissions found.</p>
+      </div>
+    ) : (
+      <ul className="divide-y divide-gray-200">
+        {filteredAbstracts.map((abstract) => (
+          <li key={abstract.id} className="hover:bg-gray-50">
+            <div 
+              className="px-4 py-4 sm:px-6 cursor-pointer"
+              onClick={() => toggleExpandSubmission(abstract.id)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <p className="text-sm font-medium text-primary-600 truncate">
+                    {abstract.abstract_title || 'Untitled Abstract'}
+                  </p>
+                  <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(abstract.status)}`}>
+                    {abstract.status}
+                  </span>
+                </div>
+                <div className="ml-2 flex-shrink-0 flex">
+                  {expandedSubmission === abstract.id ? (
+                    <ChevronUp className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 sm:flex sm:justify-between">
+                <div className="sm:flex">
+                  <p className="flex items-center text-sm text-gray-500">
+                    <User className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                    {abstract.first_name} {abstract.last_name}
+                  </p>
+                  <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                    <Building className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                    {abstract.institution}
+                  </p>
+                </div>
+                <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                  <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                  <p>
+                    Submitted on {format(new Date(abstract.created_at), 'MMM d, yyyy')}
+                  </p>
+                </div>
+              </div>
             </div>
-          ) : (
-            <ul className="divide-y divide-gray-200">
-              {filteredAbstracts.map((abstract) => (
-                <li key={abstract.id} className="hover:bg-gray-50">
-                  <div 
-                    className="px-4 py-4 sm:px-6 cursor-pointer"
-                    onClick={() => toggleExpandSubmission(abstract.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <p className="text-sm font-medium text-primary-600 truncate">
-                          {abstract.abstractTitle}
-                        </p>
-                        <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(abstract.status)}`}>
-                          {abstract.status}
-                        </span>
+            {expandedSubmission === abstract.id && (
+              <div className="px-4 py-4 sm:px-6 border-t border-gray-200 bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Author Information</h3>
+                    <div className="mt-1 text-sm text-gray-900 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="font-semibold">First Name:</p>
+                          <p>{abstract.first_name}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold">Last Name:</p>
+                          <p>{abstract.last_name}</p>
+                        </div>
                       </div>
-                      <div className="ml-2 flex-shrink-0 flex">
-                        {expandedSubmission === abstract.id ? (
-                          <ChevronUp className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5 text-gray-400" />
-                        )}
+                      <div>
+                        <p className="font-semibold">Email:</p>
+                        <p>{abstract.email}</p>
                       </div>
-                    </div>
-                    <div className="mt-2 sm:flex sm:justify-between">
-                      <div className="sm:flex">
-                        <p className="flex items-center text-sm text-gray-500">
-                          <User className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                          {abstract.firstName} {abstract.lastName}
-                        </p>
-                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                          <Mail className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                          {abstract.email}
-                        </p>
+                      <div>
+                        <p className="font-semibold">Phone:</p>
+                        <p>{abstract.phone || 'Not provided'}</p>
                       </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                        <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                        <p>
-                          Submitted on {format(new Date(abstract.created_at), 'MMM d, yyyy')}
-                        </p>
+                      <div>
+                        <p className="font-semibold">Institution:</p>
+                        <p>{abstract.institution}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Country:</p>
+                        <p>{abstract.country}</p>
                       </div>
                     </div>
                   </div>
-                  {expandedSubmission === abstract.id && (
-                    <div className="px-4 py-4 sm:px-6 border-t border-gray-200 bg-gray-50">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-500">Author Information</h3>
-                          <div className="mt-1 text-sm text-gray-900 space-y-1">
-                            <p><strong>Name:</strong> {abstract.firstName} {abstract.lastName}</p>
-                            <p><strong>Email:</strong> {abstract.email}</p>
-                            <p><strong>Phone:</strong> {abstract.phone || 'Not provided'}</p>
-                            <p><strong>Institution:</strong> {abstract.institution}</p>
-                            <p><strong>Country:</strong> {abstract.country}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-500">Abstract Details</h3>
-                          <div className="mt-1 text-sm text-gray-900 space-y-1">
-                            <p><strong>Title:</strong> {abstract.abstractTitle}</p>
-                            <p><strong>Presentation Preference:</strong> {abstract.presentationPreference}</p>
-                            <p><strong>Status:</strong> 
-                              <select
-                                value={abstract.status}
-                                onChange={(e) => handleStatusChange('abstracts', abstract.id, e.target.value)}
-                                className={`ml-2 rounded-md ${getStatusColor(abstract.status)} px-2 py-1 text-xs font-medium`}
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                              </select>
-                            </p>
-                            {abstract.file_url && (
-                              <p>
-                                <strong>File:</strong> 
-                                <a 
-                                  href={abstract.file_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="ml-2 text-primary-600 hover:underline"
-                                >
-                                  Download
-                                </a>
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Abstract Details</h3>
+                    <div className="mt-1 text-sm text-gray-900 space-y-2">
+                      <div>
+                        <p className="font-semibold">Title:</p>
+                        <p>{abstract.abstract_title}</p>
                       </div>
-                      <div className="mt-4">
-                        <h3 className="text-sm font-medium text-gray-500">Abstract Text</h3>
-                        <div className="mt-1 text-sm text-gray-900 bg-white p-3 rounded border border-gray-200">
-                          {abstract.abstractText}
-                        </div>
+                      <div>
+                        <p className="font-semibold">Presentation Preference:</p>
+                        <p className="capitalize">{abstract.presentation_preference?.replace('-', ' ')}</p>
                       </div>
-                      <div className="mt-4 flex justify-end space-x-3">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteSubmission('abstracts', abstract.id)}
+                      <div className="flex items-center">
+                        <p className="font-semibold mr-2">Status:</p>
+                        <select
+                          value={abstract.status}
+                          onChange={(e) => handleStatusChange('abstracts', abstract.id, e.target.value)}
+                          className={`rounded-md ${getStatusColor(abstract.status)} px-2 py-1 text-xs font-medium`}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </Button>
+                          <option value="pending">Pending</option>
+                          <option value="approved">Approved</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
                       </div>
+                      {abstract.file_path && (
+                        <div>
+                          <p className="font-semibold">Attachment:</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const url = supabase.storage
+                                .from('abstract_files')
+                                .getPublicUrl(abstract.file_path!).data.publicUrl;
+                              window.open(url, '_blank');
+                            }}
+                            className="text-primary-600 hover:text-primary-800"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download File
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-500">Abstract Text</h3>
+                  <div className="mt-2 p-4 bg-white rounded border border-gray-200 whitespace-pre-wrap">
+                    {abstract.abstract_text}
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end space-x-3">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteSubmission('abstracts', abstract.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Submission
+                  </Button>
+                </div>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+)}
 
       {/* Event Registrations Tab Content */}
       {activeTab === 'events' && (

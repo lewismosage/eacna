@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { LucideIcon } from 'lucide-react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'outline' | 'text' | 'destructive';
+type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'outline' | 'success' | 'text' | 'ghost' | 'destructive';
 
 type ButtonSize = 'sm' | 'md' | 'lg';
 
@@ -42,7 +42,9 @@ const Button: React.FC<ButtonProps> = ({
   accent: 'bg-accent-500 text-primary-900 hover:bg-accent-600 focus:ring-accent-400',
   outline: 'border border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500',
   text: 'text-primary-600 hover:text-primary-700 hover:bg-primary-50 focus:ring-primary-500',
-  destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500', 
+  success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+  destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+  ghost: 'bg-transparent text-primary-600 hover:bg-primary-50 focus:ring-primary-500',
 };
 
   
