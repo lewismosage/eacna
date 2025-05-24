@@ -206,46 +206,63 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberData) return;
-
+  
     setSubmitLoading(true);
     setSubmitStatus("");
-
+  
     try {
-      // Validate payment method and transaction ID
-      if (!paymentMethod) {
-        throw new Error("Please select a payment method");
-      }
+      // Validate inputs
+      if (!paymentMethod) throw new Error("Please select a payment method");
       if (!transactionId || transactionId.length < 8) {
         throw new Error("Please enter a valid transaction ID");
       }
-
-      // Create payment record
-      const { error } = await supabase.from("payments").insert({
-        member_id: memberData.id,
-        member_type: "application",
-        amount: membershipTiers[memberData.membership_type].price,
-        payment_method: paymentMethod,
-        payment_reference: transactionId,
-        payment_status: "pending",
-        payment_date: new Date().toISOString(),
-      });
-
-      if (error) throw error;
-
-      // Update application status
+  
+      // Map payment method to database enum values
+      const dbPaymentMethod = paymentMethod === 'mobile' ? 'mpesa' : paymentMethod;
+  
+      // Submit payment
+      const { data: paymentData, error: paymentError } = await supabase
+        .from("payments")
+        .insert({
+          transaction_id: transactionId,
+          amount: membershipTiers[memberData.membership_type].price,
+          currency: "KES",
+          payment_method: dbPaymentMethod,
+          status: "pending",
+          application_id: memberData.id,
+          member_name: `${memberData.first_name} ${memberData.last_name}`,
+          member_email: memberData.email,
+          payment_type: "application",
+          notes: "Payment submitted through member portal"
+        })
+        .select()
+        .single();
+  
+      if (paymentError) {
+        console.error("Payment creation error:", paymentError);
+        throw paymentError;
+      }
+  
+      // Update application with payment ID
       const { error: updateError } = await supabase
         .from("membership_applications")
-        .update({ payment_status: "pending" })
+        .update({ 
+          payment_id: paymentData.id,
+          status: "pending_payment" // Using existing status column if payment_status doesn't exist
+        })
         .eq("id", memberData.id);
-
-      if (updateError) throw updateError;
-
+  
+      if (updateError) {
+        console.error("Application update error:", updateError);
+        throw updateError;
+      }
+  
       setSubmitStatus("success");
-      setStep(3); // Move to success step
+      setStep(3);
     } catch (error) {
-      console.error("Payment error:", error);
+      console.error("Payment processing error:", error);
       setSubmitStatus(
-        error instanceof Error ? error.message : "Payment failed"
+        error instanceof Error ? error.message : "Payment processing failed"
       );
     } finally {
       setSubmitLoading(false);

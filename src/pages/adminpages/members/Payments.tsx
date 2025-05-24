@@ -1,4 +1,3 @@
-// components/admin/Payments.tsx
 import { useState, useEffect } from 'react';
 import { 
   Search, 
@@ -14,107 +13,21 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { getEmailTemplateHTML } from '../../../components/common/EmailTemplate';
 import emailjs from '@emailjs/browser';
 import AlertModal from '../../../components/common/AlertModal';
-emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
-const mockPayments: Payment[] = [
-  {
-    id: '1',
-    transaction_id: 'MPESA-123456',
-    amount: 5000,
-    currency: 'KES',
-    payment_method: 'mpesa',
-    status: 'pending',
-    member_id: 'mem-001',
-    application_id: 'app-001',
-    renewal_id: null,
-    member_name: 'John Doe',
-    member_email: 'lewismosage@gmail.com',
-    payment_type: 'application',
-    created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    verified_at: null,
-    verified_by: null,
-    notes: 'Waiting for confirmation from M-Pesa'
-  },
-  {
-    id: '2',
-    transaction_id: 'BANK-789012',
-    amount: 10000,
-    currency: 'KES',
-    payment_method: 'bank_transfer',
-    status: 'completed',
-    member_id: 'mem-002',
-    application_id: null,
-    renewal_id: 'ren-001',
-    member_name: 'Jane Smith',
-    member_email: 'lewismosage@gmail.com',
-    payment_type: 'renewal',
-    created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    verified_at: new Date(Date.now() - 86400000).toISOString(),
-    verified_by: 'admin-1',
-    notes: 'Verified with bank statement'
-  },
-  {
-    id: '3',
-    transaction_id: 'CARD-345678',
-    amount: 15000,
-    currency: 'KES',
-    payment_method: 'credit_card',
-    status: 'failed',
-    member_id: 'mem-003',
-    application_id: 'app-002',
-    renewal_id: null,
-    member_name: 'Robert Johnson',
-    member_email: 'lewismosage@gmail.com',
-    payment_type: 'upgrade',
-    created_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-    verified_at: new Date(Date.now() - 172800000).toISOString(),
-    verified_by: 'admin-2',
-    notes: 'Card declined - insufficient funds'
-  },
-  {
-    id: '4',
-    transaction_id: 'MPESA-901234',
-    amount: 7500,
-    currency: 'KES',
-    payment_method: 'mpesa',
-    status: 'refunded',
-    member_id: 'mem-004',
-    application_id: null,
-    renewal_id: 'ren-002',
-    member_name: 'Sarah Williams',
-    member_email: 'lewismosage@gmail.com',
-    payment_type: 'renewal',
-    created_at: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-    verified_at: new Date(Date.now() - 259200000).toISOString(),
-    verified_by: 'admin-1',
-    notes: 'Refund processed due to duplicate payment'
-  },
-  {
-    id: '5',
-    transaction_id: 'MPESA-567890',
-    amount: 5000,
-    currency: 'KES',
-    payment_method: 'mpesa',
-    status: 'pending',
-    member_id: 'mem-005',
-    application_id: 'app-003',
-    renewal_id: null,
-    member_name: 'Michael Brown',
-    member_email: 'lewismosage@gmail.com',
-    payment_type: 'application',
-    created_at: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-    verified_at: null,
-    verified_by: null,
-    notes: 'Payment received but not yet confirmed'
-  }
-];
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
+
+emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
 interface Payment {
   id: string;
@@ -135,11 +48,7 @@ interface Payment {
   notes: string | null;
 }
 
-interface AdminPaymentsProps {
-  supabase: SupabaseClient;
-}
-
-export default function AdminPayments({ supabase }: AdminPaymentsProps) {
+export default function AdminPayments() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -178,44 +87,37 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
   }, [statusFilter, typeFilter]);
 
   const fetchPayments = async () => {
-  setIsLoading(true);
-  try {
-    // Use mock data in development
-    if (process.env.NODE_ENV === 'development') {
-      setPayments(mockPayments);
-      setFilteredPayments(mockPayments);
-      return;
+    setIsLoading(true);
+    try {
+      let query = supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      if (typeFilter !== 'all') {
+        query = query.eq('payment_type', typeFilter);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
+      setPayments(data as Payment[] || []);
+      setFilteredPayments(data as Payment[] || []);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to load payments. Please try again.'
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    // Original Supabase code for production
-    let query = supabase
-      .from('payments')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter);
-    }
-
-    if (typeFilter !== 'all') {
-      query = query.eq('payment_type', typeFilter);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-    setPayments(data as Payment[] || []);
-    setFilteredPayments(data as Payment[] || []);
-  } catch (error) {
-    console.error('Error fetching payments:', error);
-    setNotification({
-      type: 'error',
-      message: 'Failed to load payments. Please try again.'
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     let result = [...payments];
@@ -288,40 +190,12 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
         setAlert({ ...alert, open: false });
         setIsProcessing(true);
         try {
-          // For mock data in development
-          if (process.env.NODE_ENV === 'development') {
-            const updatedPayments = payments.map(payment => {
-              if (payment.id === id) {
-                const updatedPayment = {
-                  ...payment,
-                  status,
-                  verified_at: new Date().toISOString(),
-                  verified_by: 'admin'
-                };
-                if (status === 'completed') {
-                  sendPaymentConfirmationEmail(updatedPayment);
-                }
-                return updatedPayment;
-              }
-              return payment;
-            });
-            setPayments(updatedPayments);
-            setFilteredPayments(updatedPayments);
-            setNotification({
-              type: 'success',
-              message: `Payment marked as ${status} successfully!`
-            });
-            setIsViewOpen(false);
-            return;
-          }
-
-          // Original Supabase code for production
           const { error } = await supabase
             .from('payments')
             .update({ 
               status,
               verified_at: new Date().toISOString(),
-              verified_by: 'admin'
+              verified_by: (await supabase.auth.getUser()).data.user?.id
             })
             .eq('id', id);
 
@@ -340,7 +214,7 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
             }
           }
 
-          fetchPayments();
+          await fetchPayments();
           setNotification({
             type: 'success',
             message: `Payment marked as ${status} successfully!`
@@ -432,74 +306,74 @@ export default function AdminPayments({ supabase }: AdminPaymentsProps) {
   };
 
   const sendPaymentConfirmationEmail = async (payment: Payment) => {
-  try {
-    // Verify environment variables
-    if (!import.meta.env.VITE_EMAILJS_SERVICE_ID || 
-        !import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 
-        !import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
-      console.error('EmailJS configuration is missing');
+    try {
+      if (!import.meta.env.VITE_EMAILJS_SERVICE_ID || 
+          !import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 
+          !import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
+        console.error('EmailJS configuration is missing');
+        return false;
+      }
+
+      const templateParams = {
+        from_name: 'EACNA Payments',
+        reply_to: 'no-reply@eacna.org',
+        to_name: payment.member_name,
+        to_email: payment.member_email,
+        subject: 'Your Payment Has Been Verified',
+        message: getPaymentConfirmationTemplate(payment),
+      };
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error sending payment confirmation email:', error);
       return false;
     }
+  };
 
-    const templateParams = {
-      from_name: 'EACNA Payments',
-      reply_to: 'no-reply@eacna.org',
-      to_name: payment.member_name,
-      to_email: payment.member_email,
-      subject: 'Your Payment Has Been Verified',
-      message: getPaymentConfirmationTemplate(payment),
-    };
-
-    await emailjs.send(
-      import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-      templateParams,
-      import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-    );
-
-    return true;
-  } catch (error) {
-    console.error('Error sending payment confirmation email:', error);
-    return false;
-  }
-};
-
-const getPaymentConfirmationTemplate = (payment: Payment) => {
-  const content = `
-    <p>We're pleased to inform you that your payment has been successfully verified by our team.</p>
-    
-    <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
-      <div style="display: flex; margin-bottom: 8px;">
-        <span style="font-weight: bold; width: 150px;">Transaction ID:</span>
-        <span>${payment.transaction_id}</span>
+  const getPaymentConfirmationTemplate = (payment: Payment) => {
+    const content = `
+      <p>We're pleased to inform you that your payment has been successfully verified by our team.</p>
+      
+      <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="font-weight: bold; width: 150px;">Transaction ID:</span>
+          <span>${payment.transaction_id}</span>
+        </div>
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="font-weight: bold; width: 150px;">Amount:</span>
+          <span>${payment.currency} ${payment.amount.toLocaleString()}</span>
+        </div>
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="font-weight: bold; width: 150px;">Payment Method:</span>
+          <span>${payment.payment_method.replace('_', ' ')}</span>
+        </div>
+        <div style="display: flex;">
+          <span style="font-weight: bold; width: 150px;">Payment Date:</span>
+          <span>${new Date(payment.created_at).toLocaleDateString()}</span>
+        </div>
       </div>
-      <div style="display: flex; margin-bottom: 8px;">
-        <span style="font-weight: bold; width: 150px;">Amount:</span>
-        <span>${payment.currency} ${payment.amount.toLocaleString()}</span>
-      </div>
-      <div style="display: flex; margin-bottom: 8px;">
-        <span style="font-weight: bold; width: 150px;">Payment Method:</span>
-        <span>${payment.payment_method.replace('_', ' ')}</span>
-      </div>
-      <div style="display: flex;">
-        <span style="font-weight: bold; width: 150px;">Payment Date:</span>
-        <span>${new Date(payment.created_at).toLocaleDateString()}</span>
-      </div>
-    </div>
-    
-    <p>You can now enjoy all the benefits of your EACNA membership. If you have any questions, please don't hesitate to contact us.</p>
-  `;
+      
+      <p>You can now enjoy all the benefits of your EACNA membership. If you have any questions, please don't hesitate to contact us.</p>
+    `;
 
-  return getEmailTemplateHTML({
-    title: 'Payment Confirmation',
-    recipientName: payment.member_name,
-    content: content,
-    type: 'payment'
-  });
-};
+    return getEmailTemplateHTML({
+      title: 'Payment Confirmation',
+      recipientName: payment.member_name,
+      content: content,
+      type: 'payment'
+    });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Header and export button */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Payment Records</h1>
@@ -507,14 +381,12 @@ const getPaymentConfirmationTemplate = (payment: Payment) => {
             {payments.length} total payments ({payments.filter(p => p.status === 'pending').length} pending verification)
           </p>
         </div>
-        <Button 
-          onClick={exportPayments}
-          className="flex items-center"
-        >
+        <Button onClick={exportPayments} className="flex items-center">
           <Download className="h-4 w-4 mr-2" /> Export
         </Button>
       </div>
 
+      {/* Notification display */}
       {notification && (
         <div className={`p-4 rounded-md flex items-start justify-between ${
           notification.type === 'success' 
@@ -538,6 +410,7 @@ const getPaymentConfirmationTemplate = (payment: Payment) => {
         </div>
       )}
 
+      {/* Main card with filters and table */}
       <Card>
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -584,6 +457,7 @@ const getPaymentConfirmationTemplate = (payment: Payment) => {
           </div>
         </div>
 
+        {/* Loading state */}
         {isLoading ? (
           <div className="py-12 flex justify-center">
             <LoadingSpinner />
@@ -591,6 +465,7 @@ const getPaymentConfirmationTemplate = (payment: Payment) => {
         ) : filteredPayments.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
+              {/* Table headers */}
               <thead className="bg-gray-50">
                 <tr>
                   <th 
@@ -658,6 +533,8 @@ const getPaymentConfirmationTemplate = (payment: Payment) => {
                   </th>
                 </tr>
               </thead>
+              
+              {/* Table body */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPayments.map(payment => (
                   <tr key={payment.id} className="hover:bg-gray-50">
@@ -868,6 +745,7 @@ const getPaymentConfirmationTemplate = (payment: Payment) => {
           </div>
         </div>
       )}
+      
       {/* AlertModal for confirmations */}
       <AlertModal
         isOpen={alert.open}

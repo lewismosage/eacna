@@ -141,25 +141,46 @@ export default function MembershipRenewalPage() {
     try {
       // Validate transaction ID
       if (!transactionId || transactionId.length < 8) {
-        setSubmitStatus("Please enter a valid M-Pesa transaction ID");
-        setSubmitLoading(false);
-        return;
+        throw new Error("Please enter a valid transaction ID");
       }
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // First create payment record
+      const { data: paymentData, error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        member_id: memberData?.id, // from directory table
+        member_type: actionType === "renew" ? "renewal" : "upgrade",
+        amount: membershipTiers[membershipTier].price,
+        payment_method: "mpesa",
+        payment_reference: transactionId,
+        payment_status: "pending",
+        payment_date: new Date().toISOString(),
+        new_tier: actionType === "upgrade" ? membershipTier : null,
+      })
+        .select()
+        .single();
 
-      // In production, this would update the database
+      if (paymentError) throw paymentError;
+      if (!paymentData) throw new Error("Payment record not created");
+
+      // For immediate feedback, we'll set status to pending verification
       setSubmitStatus("PAYMENT VERIFICATION IN PROGRESS");
       setSubmitted(true);
 
-      // Show success message after a brief delay
+      // In a real app, you might want to:
+      // 1. Send this to a webhook for verification
+      // 2. Or schedule a background job to verify
+      // 3. Or have admin manually verify
+
+      // For demo purposes, we'll proceed to success
       setTimeout(() => {
-        setStep(4); // Move to success step
+        setStep(4);
       }, 1000);
     } catch (error) {
       console.error("Error submitting payment:", error);
-      setSubmitStatus("Error processing payment. Please try again.");
+      setSubmitStatus(
+        error instanceof Error ? error.message : "Payment processing failed"
+      );
     } finally {
       setSubmitLoading(false);
     }
