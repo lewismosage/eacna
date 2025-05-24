@@ -61,6 +61,18 @@ interface PaymentModalProps {
   onClose: () => void;
 }
 
+// Define the MemberData interface
+interface MemberData {
+  id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string;
+  membership_type: MembershipTier;
+  status: string;
+}
+
 export default function PaymentModal({ onClose }: PaymentModalProps) {
   // Search state
   const [firstName, setFirstName] = useState("");
@@ -69,15 +81,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   const [email, setEmail] = useState("");
 
   // Member data from search
-  const [memberData, setMemberData] = useState<{
-    id: string;
-    first_name: string;
-    last_name: string;
-    phone: string;
-    email: string;
-    membership_type: MembershipTier;
-    status: string;
-  } | null>(null);
+  const [memberData, setMemberData] = useState<MemberData | null>(null);
 
   // Payment state
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -165,6 +169,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         if (application.status === "approved") {
           setMemberData({
             id: application.id,
+            user_id: application.user_id,
             first_name: application.first_name,
             last_name: application.last_name,
             phone: application.phone,
@@ -206,21 +211,22 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberData) return;
-  
+
     setSubmitLoading(true);
     setSubmitStatus("");
-  
+
     try {
       // Validate inputs
       if (!paymentMethod) throw new Error("Please select a payment method");
       if (!transactionId || transactionId.length < 8) {
         throw new Error("Please enter a valid transaction ID");
       }
-  
+
       // Map payment method to database enum values
-      const dbPaymentMethod = paymentMethod === 'mobile' ? 'mpesa' : paymentMethod;
-  
-      // Submit payment
+      const dbPaymentMethod =
+        paymentMethod === "mobile" ? "mpesa" : paymentMethod;
+
+      // Submit payment with user_id included
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .insert({
@@ -230,33 +236,34 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
           payment_method: dbPaymentMethod,
           status: "pending",
           application_id: memberData.id,
+          user_id: memberData.user_id,
           member_name: `${memberData.first_name} ${memberData.last_name}`,
           member_email: memberData.email,
           payment_type: "application",
-          notes: "Payment submitted through member portal"
+          notes: "Payment submitted through member portal",
         })
         .select()
         .single();
-  
+
       if (paymentError) {
         console.error("Payment creation error:", paymentError);
         throw paymentError;
       }
-  
+
       // Update application with payment ID
       const { error: updateError } = await supabase
         .from("membership_applications")
-        .update({ 
+        .update({
           payment_id: paymentData.id,
-          status: "pending_payment" // Using existing status column if payment_status doesn't exist
+          status: "pending_payment",
         })
         .eq("id", memberData.id);
-  
+
       if (updateError) {
         console.error("Application update error:", updateError);
         throw updateError;
       }
-  
+
       setSubmitStatus("success");
       setStep(3);
     } catch (error) {

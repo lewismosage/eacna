@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import {
   Search,
-  Filter,
   Download,
   ChevronDown,
   ChevronUp,
@@ -13,6 +12,7 @@ import {
 } from "lucide-react";
 import Card from "../../../components/common/Card";
 import { createClient } from "@supabase/supabase-js";
+import { MembershipTier, membershipTiers } from "../../../types/membership";
 
 // Define the Member interface
 interface Member {
@@ -22,31 +22,21 @@ interface Member {
   last_name: string;
   email: string;
   phone: string;
-  membership_type: string;
+  membership_type: MembershipTier;
   member_since: string;
   expiry_date: string;
-  status: "active" | "expired" | "pending";
+  status: "active" | "expired";
   institution: string;
   nationality?: string;
   country_of_residence?: string;
   current_profession: string;
 }
 
-// Define the membership type options
-const membershipTypes = [
-  { value: "ordinary", label: "Full Member" }, // changed here
-  { value: "associate", label: "Associate Member" },
-  { value: "student", label: "Student Member" },
-  { value: "institutional", label: "Institutional Member" },
-  { value: "honorary", label: "Honorary Member" },
-];
-
 // Define the status options
 const statusOptions = [
   { value: "active", label: "Active" },
   { value: "expired", label: "Expired" },
-  { value: "pending", label: "Pending" },
-];
+] as const;
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
@@ -73,23 +63,8 @@ const getDaysUntilExpiry = (expiryDate: string) => {
 };
 
 const MembershipStatusBadge = ({ status }: { status: Member["status"] }) => {
-  let bgColor = "";
-  let textColor = "";
-
-  switch (status) {
-    case "active":
-      bgColor = "bg-green-100";
-      textColor = "text-green-800";
-      break;
-    case "expired":
-      bgColor = "bg-red-100";
-      textColor = "text-red-800";
-      break;
-    case "pending":
-      bgColor = "bg-yellow-100";
-      textColor = "text-yellow-800";
-      break;
-  }
+  const bgColor = status === "active" ? "bg-green-100" : "bg-red-100";
+  const textColor = status === "active" ? "text-green-800" : "text-red-800";
 
   return (
     <span
@@ -124,12 +99,11 @@ const ExpiryBadge = ({ expiryDate }: { expiryDate: string }) => {
   }
 };
 
-const MembershipTypeLabel = ({ type }: { type: string }) => {
-  const membershipType = membershipTypes.find((t) => t.value === type);
-  return membershipType ? membershipType.label : type;
+const MembershipTypeLabel = ({ type }: { type: MembershipTier }) => {
+  const membershipType = membershipTiers[type];
+  return membershipType ? membershipType.name : type;
 };
 
-// Update the sortConfig type to only allow sortable keys
 type SortableMemberKeys =
   | "first_name"
   | "last_name"
@@ -145,9 +119,12 @@ const AdminMembershipDirectory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMembershipType, setSelectedMembershipType] =
-    useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedMembershipType, setSelectedMembershipType] = useState<
+    MembershipTier | ""
+  >("");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "active" | "expired" | ""
+  >("");
   const [sortConfig, setSortConfig] = useState<{
     key: SortableMemberKeys;
     direction: "ascending" | "descending";
@@ -160,26 +137,55 @@ const AdminMembershipDirectory = () => {
     const fetchMembers = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("directory")
+
+        // Get completed payments for membership applications or renewals
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from("payments")
           .select("*")
-          .order("last_name", { ascending: true });
+          .eq("status", "completed")
+          .in("payment_type", ["application", "renewal"])
+          .order("verified_at", { ascending: false });
 
-        if (error) throw error;
+        if (paymentsError) throw paymentsError;
 
-        // Transform data to match your interface if needed
-        const transformedData = data.map((member) => ({
-          ...member,
-          firstName: member.first_name,
-          lastName: member.last_name,
-          membershipType: member.membership_type,
-          memberSince: member.member_since,
-          expiryDate: member.expiry_date,
-          profession: member.current_profession,
-          country: member.country_of_residence || member.nationality || "N/A",
-        }));
+        // Then get the associated membership applications
+        const userIds = paymentsData.map((payment) => payment.user_id);
+        const { data: applicationsData, error: applicationsError } =
+          await supabase
+            .from("membership_applications")
+            .select("*")
+            .in("user_id", userIds);
 
-        console.log("Transformed data:", transformedData);
+        if (applicationsError) throw applicationsError;
+
+        // Combine the data
+        const transformedData = paymentsData.map((payment): Member => {
+          const application = applicationsData.find(
+            (app) => app.user_id === payment.user_id
+          );
+          const expiryDate = new Date(payment.verified_at);
+          expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+          const status: "active" | "expired" =
+            new Date() > expiryDate ? "expired" : "active";
+
+          return {
+            id: payment.id,
+            user_id: payment.user_id,
+            first_name: application?.first_name || "",
+            last_name: application?.last_name || "",
+            email: application?.email || "",
+            phone: application?.phone || "",
+            membership_type:
+              (application?.membership_type as MembershipTier) || "ordinary",
+            member_since: payment.verified_at,
+            expiry_date: expiryDate.toISOString(),
+            status: status,
+            institution: application?.institution || "",
+            nationality: application?.nationality,
+            country_of_residence: application?.country_of_residence,
+            current_profession: application?.current_profession || "",
+          };
+        });
 
         setMembers(transformedData);
         setFilteredMembers(transformedData);
@@ -194,7 +200,7 @@ const AdminMembershipDirectory = () => {
     };
 
     fetchMembers();
-  }, [supabase]);
+  }, []);
 
   // Handle search and filtering
   useEffect(() => {
@@ -206,7 +212,7 @@ const AdminMembershipDirectory = () => {
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
       result = result.filter(
-        (member: Member) =>
+        (member) =>
           member.first_name.toLowerCase().includes(lowercasedSearch) ||
           member.last_name.toLowerCase().includes(lowercasedSearch) ||
           member.email.toLowerCase().includes(lowercasedSearch) ||
@@ -217,20 +223,18 @@ const AdminMembershipDirectory = () => {
     // Apply membership type filter
     if (selectedMembershipType) {
       result = result.filter(
-        (member: Member) => member.membership_type === selectedMembershipType
+        (member) => member.membership_type === selectedMembershipType
       );
     }
 
     // Apply status filter
     if (selectedStatus) {
-      result = result.filter(
-        (member: Member) => member.status === selectedStatus
-      );
+      result = result.filter((member) => member.status === selectedStatus);
     }
 
     // Apply sorting
     if (sortConfig !== null) {
-      result.sort((a: Member, b: Member) => {
+      result.sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
 
@@ -246,8 +250,8 @@ const AdminMembershipDirectory = () => {
           sortConfig.key === "member_since" ||
           sortConfig.key === "expiry_date"
         ) {
-          const aDate = new Date(aValue);
-          const bDate = new Date(bValue);
+          const aDate = new Date(aValue as string);
+          const bDate = new Date(bValue as string);
           if (aDate < bDate) {
             return sortConfig.direction === "ascending" ? -1 : 1;
           }
@@ -397,12 +401,14 @@ const AdminMembershipDirectory = () => {
             <select
               className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
               value={selectedMembershipType}
-              onChange={(e) => setSelectedMembershipType(e.target.value)}
+              onChange={(e) =>
+                setSelectedMembershipType(e.target.value as MembershipTier)
+              }
             >
               <option value="">All membership types</option>
-              {membershipTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
+              {Object.entries(membershipTiers).map(([value, tier]) => (
+                <option key={value} value={value}>
+                  {tier.name}
                 </option>
               ))}
             </select>
@@ -412,7 +418,9 @@ const AdminMembershipDirectory = () => {
             <select
               className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              onChange={(e) =>
+                setSelectedStatus(e.target.value as "active" | "expired")
+              }
             >
               <option value="">All statuses</option>
               {statusOptions.map((status) => (
@@ -527,21 +535,13 @@ const AdminMembershipDirectory = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
-                                <MembershipTypeLabel
-                                  type={member.membership_type}
-                                />
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {member.country_of_residence ||
-                                  member.nationality ||
-                                  "N/A"}
-                              </div>
-                            </td>
-                          </td>
+                        <div className="text-sm text-gray-900">
+                          <MembershipTypeLabel type={member.membership_type} />
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {member.country_of_residence ||
+                            member.nationality ||
+                            "N/A"}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -556,18 +556,7 @@ const AdminMembershipDirectory = () => {
                         <ExpiryBadge expiryDate={member.expiry_date} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            member.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : member.status === "expired"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {member.status?.charAt(0).toUpperCase() +
-                            member.status?.slice(1) || "Pending"}
-                        </span>
+                        <MembershipStatusBadge status={member.status} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div
@@ -838,7 +827,9 @@ const AdminMembershipDirectory = () => {
                   }).length
                 }
               </div>
-              <div className="text-sm text-gray-500">Expiring Soon</div>
+              <div className="text-sm text-gray-500">
+                Expiring Soon (≤30 days)
+              </div>
             </div>
           </div>
         </Card>
@@ -885,33 +876,24 @@ const AdminMembershipDirectory = () => {
           </div>
           <div>
             <ul className="divide-y divide-gray-200">
-              {membershipTypes.map((type) => {
+              {Object.entries(membershipTiers).map(([value, tier]) => {
                 const count = members.filter(
-                  (m) => m.membership_type === type.value
+                  (m) => m.membership_type === value
                 ).length;
                 const percentage = (count / members.length) * 100;
 
                 return (
-                  <li key={type.value} className="py-3">
+                  <li key={value} className="py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <span
                           className="w-3 h-3 rounded-full mr-3"
                           style={{
-                            backgroundColor:
-                              type.value === "ordinary"
-                                ? "#10B981"
-                                : type.value === "associate"
-                                ? "#3B82F6"
-                                : type.value === "student"
-                                ? "#F59E0B"
-                                : type.value === "institutional"
-                                ? "#8B5CF6"
-                                : "#EC4899",
+                            backgroundColor: tier.color || "#10B981",
                           }}
                         ></span>
                         <span className="text-sm font-medium text-gray-900">
-                          {type.label}
+                          {tier.name}
                         </span>
                       </div>
                       <div className="flex items-center">
@@ -928,16 +910,7 @@ const AdminMembershipDirectory = () => {
                         className="h-2 rounded-full"
                         style={{
                           width: `${percentage}%`,
-                          backgroundColor:
-                            type.value === "ordinary"
-                              ? "#10B981"
-                              : type.value === "associate"
-                              ? "#3B82F6"
-                              : type.value === "student"
-                              ? "#F59E0B"
-                              : type.value === "institutional"
-                              ? "#8B5CF6"
-                              : "#EC4899",
+                          backgroundColor: tier.color || "#10B981",
                         }}
                       ></div>
                     </div>
