@@ -8,7 +8,10 @@ import {
   MoreHorizontal,
   FileText,
   UserPlus,
-  Trash2,
+  X,
+  CreditCard,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 import Card from "../../../components/common/Card";
 import { createClient } from "@supabase/supabase-js";
@@ -30,6 +33,43 @@ interface Member {
   nationality?: string;
   country_of_residence?: string;
   current_profession: string;
+}
+
+// Define application details interface
+interface ApplicationDetails {
+  id: string;
+  user_id: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  gender?: string;
+  nationality?: string;
+  country_of_residence?: string;
+  email: string;
+  phone: string;
+  id_number?: string;
+  membership_type: MembershipTier;
+  current_profession: string;
+  institution: string;
+  work_address?: string;
+  registration_number?: string;
+  highest_degree?: string;
+  university?: string;
+  created_at: string;
+}
+
+// Define payment details interface
+interface PaymentDetails {
+  id: string;
+  transaction_id: string;
+  amount: number;
+  currency: string;
+  payment_method: string;
+  payment_type: string;
+  status: string;
+  verified_at: string;
+  expiry_date: string;
+  membership_type: string;
 }
 
 // Define the status options
@@ -131,6 +171,19 @@ const AdminMembershipDirectory = () => {
   } | null>(null);
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [dropdownMenu, setDropdownMenu] = useState<string | null>(null);
+  const [viewDetailsModal, setViewDetailsModal] = useState<{
+    open: boolean;
+    memberId: string | null;
+    applicationDetails: ApplicationDetails | null;
+    paymentDetails: PaymentDetails | null;
+    loading: boolean;
+  }>({
+    open: false,
+    memberId: null,
+    applicationDetails: null,
+    paymentDetails: null,
+    loading: false,
+  });
 
   // Fetch members from Supabase
   useEffect(() => {
@@ -322,6 +375,74 @@ const AdminMembershipDirectory = () => {
       setExpandedMember(null);
     } else {
       setExpandedMember(memberId);
+    }
+  };
+
+  // Handle view details click
+  const handleViewDetails = async (memberId: string, userId: string) => {
+    setViewDetailsModal({
+      open: true,
+      memberId,
+      applicationDetails: null,
+      paymentDetails: null,
+      loading: true,
+    });
+
+    try {
+      // Fetch application details - remove .single() since we might get multiple
+      const { data: applicationData, error: applicationError } = await supabase
+        .from("membership_applications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1); // Get the most recent application
+
+      if (applicationError) throw applicationError;
+
+      // Fetch payment details - also remove .single()
+      const { data: paymentData, error: paymentError } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("user_id", userId)
+        .order("verified_at", { ascending: false })
+        .limit(1); // Get the most recent payment
+
+      if (paymentError) throw paymentError;
+
+      // Calculate expiry date using the most recent payment
+      const latestPayment = paymentData?.[0];
+      const expiryDate = latestPayment
+        ? new Date(latestPayment.verified_at)
+        : new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+      setViewDetailsModal({
+        open: true,
+        memberId,
+        applicationDetails:
+          (applicationData?.[0] as ApplicationDetails) || null,
+        paymentDetails: latestPayment
+          ? {
+              id: latestPayment.id,
+              transaction_id: latestPayment.transaction_id,
+              amount: latestPayment.amount,
+              currency: latestPayment.currency,
+              payment_method: latestPayment.payment_method,
+              payment_type: latestPayment.payment_type,
+              status: latestPayment.status,
+              verified_at: latestPayment.verified_at,
+              expiry_date: expiryDate.toISOString(),
+              membership_type: latestPayment.membership_type,
+            }
+          : null,
+        loading: false,
+      });
+    } catch (err) {
+      console.error("Error fetching member details:", err);
+      setViewDetailsModal((prev) => ({
+        ...prev,
+        loading: false,
+      }));
     }
   };
 
@@ -581,50 +702,15 @@ const AdminMembershipDirectory = () => {
                                   className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    alert(
-                                      `View ${member.first_name}'s details`
+                                    handleViewDetails(
+                                      member.id,
+                                      member.user_id
                                     );
+                                    setDropdownMenu(null);
                                   }}
                                 >
                                   <FileText className="h-4 w-4 mr-2" />
                                   View Details
-                                </button>
-                                <button
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    alert(
-                                      `Edit ${member.first_name}'s profile`
-                                    );
-                                  }}
-                                >
-                                  <svg
-                                    className="h-4 w-4 mr-2"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                    />
-                                  </svg>
-                                  Edit Profile
-                                </button>
-                                <button
-                                  className="flex items-center px-4 py-2 text-sm text-red-700 hover:bg-gray-100 w-full text-left"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    alert(
-                                      `Delete ${member.first_name}'s profile`
-                                    );
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
                                 </button>
                               </div>
                             </div>
@@ -782,19 +868,7 @@ const AdminMembershipDirectory = () => {
         </Card>
         <Card>
           <div className="flex items-center space-x-4">
-            <svg
-              className="h-6 w-6 text-green-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <Check className="h-6 w-6 text-green-600" />
             <div>
               <div className="text-lg font-semibold">
                 {members.filter((m) => m.status === "active").length}
@@ -805,19 +879,7 @@ const AdminMembershipDirectory = () => {
         </Card>
         <Card>
           <div className="flex items-center space-x-4">
-            <svg
-              className="h-6 w-6 text-yellow-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <AlertCircle className="h-6 w-6 text-yellow-600" />
             <div>
               <div className="text-lg font-semibold">
                 {
@@ -835,19 +897,7 @@ const AdminMembershipDirectory = () => {
         </Card>
         <Card>
           <div className="flex items-center space-x-4">
-            <svg
-              className="h-6 w-6 text-red-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <X className="h-6 w-6 text-red-600" />
             <div>
               <div className="text-lg font-semibold">
                 {members.filter((m) => m.status === "expired").length}
@@ -921,6 +971,244 @@ const AdminMembershipDirectory = () => {
           </div>
         </div>
       </div>
+
+      {/* View Details Modal */}
+      {viewDetailsModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Member Details
+              </h3>
+              <button
+                onClick={() =>
+                  setViewDetailsModal({
+                    open: false,
+                    memberId: null,
+                    applicationDetails: null,
+                    paymentDetails: null,
+                    loading: false,
+                  })
+                }
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              {viewDetailsModal.loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+                </div>
+              ) : (
+                <>
+                  {viewDetailsModal.applicationDetails && (
+                    <>
+                      <div className="mb-8">
+                        <h4 className="text-lg font-medium text-gray-900 mb-4">
+                          Application Details
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-500">
+                                Personal Information
+                              </h5>
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm">
+                                  <span className="font-medium">Name:</span>{" "}
+                                  {
+                                    viewDetailsModal.applicationDetails
+                                      .first_name
+                                  }{" "}
+                                  {
+                                    viewDetailsModal.applicationDetails
+                                      .middle_name
+                                  }{" "}
+                                  {
+                                    viewDetailsModal.applicationDetails
+                                      .last_name
+                                  }
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">Gender:</span>{" "}
+                                  {viewDetailsModal.applicationDetails.gender ||
+                                    "N/A"}
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Nationality:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .nationality || "N/A"}
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Country of Residence:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .country_of_residence || "N/A"}
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    ID Number:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .id_number || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-500">
+                                Contact Information
+                              </h5>
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm">
+                                  <span className="font-medium">Email:</span>{" "}
+                                  {viewDetailsModal.applicationDetails.email}
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">Phone:</span>{" "}
+                                  {viewDetailsModal.applicationDetails.phone}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-500">
+                                Professional Information
+                              </h5>
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Current Profession:
+                                  </span>{" "}
+                                  {
+                                    viewDetailsModal.applicationDetails
+                                      .current_profession
+                                  }
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Institution:
+                                  </span>{" "}
+                                  {
+                                    viewDetailsModal.applicationDetails
+                                      .institution
+                                  }
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Work Address:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .work_address || "N/A"}
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Registration Number:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .registration_number || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-500">
+                                Education
+                              </h5>
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Highest Degree:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .highest_degree || "N/A"}
+                                </p>
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    University:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .university || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {viewDetailsModal.paymentDetails && (
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900 mb-4">
+                        Payment Details
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <div className="space-y-2">
+                            <p className="text-sm">
+                              <span className="font-medium">
+                                Membership Type:
+                              </span>{" "}
+                              <MembershipTypeLabel
+                                type={
+                                  viewDetailsModal.paymentDetails
+                                    .membership_type as MembershipTier
+                                }
+                              />
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">
+                                Transaction ID:
+                              </span>{" "}
+                              {viewDetailsModal.paymentDetails.transaction_id}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Amount Paid:</span>{" "}
+                              {viewDetailsModal.paymentDetails.currency}{" "}
+                              {viewDetailsModal.paymentDetails.amount}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="space-y-2">
+                            <p className="text-sm">
+                              <span className="font-medium">
+                                Payment Method:
+                              </span>{" "}
+                              {viewDetailsModal.paymentDetails.payment_method}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Payment Type:</span>{" "}
+                              {viewDetailsModal.paymentDetails.payment_type}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Status:</span>{" "}
+                              {viewDetailsModal.paymentDetails.status}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Expiry Date:</span>{" "}
+                              {formatDate(
+                                viewDetailsModal.paymentDetails.expiry_date
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

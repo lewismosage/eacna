@@ -7,7 +7,7 @@ interface EmailTemplateProps {
   title?: string;
   recipientName?: string;
   content: string;
-  type?: 'newsletter' | 'payment' | 'contact' | 'system';
+  type?: 'newsletter'| 'application' | 'payment' | 'contact' | 'system';
   footerLinks?: {
     unsubscribe?: string;
     preferences?: string;

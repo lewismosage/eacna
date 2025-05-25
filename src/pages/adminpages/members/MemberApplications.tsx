@@ -8,18 +8,28 @@ import {
   Check,
   X,
   ArrowUpDown,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import Card, { CardContent } from "../../../components/common/Card";
 import Button from "../../../components/common/Button";
 import { createClient } from "@supabase/supabase-js";
+import { getEmailTemplateHTML } from "../../../components/common/EmailTemplate";
+import emailjs from "@emailjs/browser";
+import AlertModal from "../../../components/common/AlertModal";
+
+// Initialize emailjs (add to your env variables)
+emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
 // Application status types
 type ApplicationStatus = "pending" | "approved" | "rejected";
 
-// Initialize Supabase client (use your actual credentials)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
 
 // Update your Application interface to match your database schema
 interface Application {
@@ -32,7 +42,7 @@ interface Application {
   nationality: string;
   current_profession: string;
   institution: string;
-  created_at: string; // Updated from submittedAt
+  created_at: string;
   status: ApplicationStatus;
   // Add other fields from your table as needed
 }
@@ -61,8 +71,29 @@ const Applications = () => {
     useState<Application | null>(null);
 
   const [filterLoading, setFilterLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [notification, setNotification] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
 
-  // Replace the mock data useEffect with real data fetching
+  const [alert, setAlert] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info" | "confirm";
+    onConfirm?: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  // Fetch applications
   useEffect(() => {
     const fetchApplications = async () => {
       setLoading(true);
@@ -80,7 +111,10 @@ const Applications = () => {
         }
       } catch (err) {
         console.error("Error fetching applications:", err);
-        // Handle error (maybe show a toast notification)
+        setNotification({
+          type: "error",
+          message: "Failed to load applications. Please try again.",
+        });
       } finally {
         setLoading(false);
       }
@@ -92,7 +126,7 @@ const Applications = () => {
   // Apply filters and search
   useEffect(() => {
     const fetchFilteredApplications = async () => {
-      setFilterLoading(true); // Start loading state
+      setFilterLoading(true);
       try {
         let query = supabase.from("membership_applications").select("*");
 
@@ -124,7 +158,7 @@ const Applications = () => {
         console.error("Error in fetchFilteredApplications:", err);
         setFilteredApplications([]);
       } finally {
-        setFilterLoading(false); // End loading state
+        setFilterLoading(false);
       }
     };
 
@@ -142,35 +176,189 @@ const Applications = () => {
     setSortConfig({ key, direction });
   };
 
-  // Update handleStatusChange to update the database
+  // Send approval email
+  const sendApprovalEmail = async (application: Application) => {
+    try {
+      if (
+        !import.meta.env.VITE_EMAILJS_SERVICE_ID ||
+        !import.meta.env.VITE_EMAILJS_TEMPLATE_ID ||
+        !import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      ) {
+        console.error("EmailJS configuration is missing");
+        return false;
+      }
+
+      const templateParams = {
+        from_name: "EACNA Membership",
+        reply_to: "no-reply@eacna.org",
+        to_name: `${application.first_name} ${application.last_name}`,
+        to_email: application.email,
+        subject: "Your Membership Application Has Been Approved",
+        message: getApprovalEmailTemplate(application),
+      };
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+
+      return true;
+    } catch (error) {
+      console.error("Error sending approval email:", error);
+      return false;
+    }
+  };
+
+  // Generate approval email template
+  const getApprovalEmailTemplate = (application: Application) => {
+    const content = `
+      <p>We're pleased to inform you that your membership application has been approved!</p>
+      
+      <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="font-weight: bold; width: 150px;">Membership Type:</span>
+          <span>${getMembershipLabel(application.membership_type)}</span>
+        </div>
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="font-weight: bold; width: 150px;">Application Date:</span>
+          <span>${formatDate(application.created_at)}</span>
+        </div>
+      </div>
+      
+      <p>To complete your membership registration, please proceed with the payment of your membership fees. You can make the payment through our secure payment portal.</p>
+      
+      <p>Once your payment is received and verified, you'll gain full access to all member benefits.</p>
+      
+      <p>If you have any questions, please don't hesitate to contact us.</p>
+    `;
+
+    return getEmailTemplateHTML({
+      title: "Application Approved",
+      recipientName: `${application.first_name} ${application.last_name}`,
+      content: content,
+      type: "application",
+    });
+  };
+
+  // Update handleStatusChange to update the database and send emails
   const handleStatusChange = async (
     id: string,
     newStatus: ApplicationStatus
   ) => {
-    try {
-      const { error } = await supabase
-        .from("membership_applications")
-        .update({ status: newStatus })
-        .eq("id", id);
+    if (newStatus === "approved") {
+      setAlert({
+        open: true,
+        title: "Approve Application",
+        message: "Are you sure you want to approve this application? An approval email will be sent to the applicant.",
+        type: "confirm",
+        confirmText: "Yes, Approve",
+        cancelText: "Cancel",
+        onConfirm: async () => {
+          setAlert({ ...alert, open: false });
+          setIsProcessing(true);
+          try {
+            // Update status in database
+            const { error } = await supabase
+              .from("membership_applications")
+              .update({ status: newStatus })
+              .eq("id", id);
 
-      if (error) throw error;
+            if (error) throw error;
 
-      // Update local state
-      const updatedApplications = applications.map((app) =>
-        app.id === id ? { ...app, status: newStatus } : app
-      );
+            // Get the updated application
+            const { data } = await supabase
+              .from("membership_applications")
+              .select("*")
+              .eq("id", id)
+              .single();
 
-      setApplications(updatedApplications);
+            if (data) {
+              // Update local state
+              const updatedApplications = applications.map((app) =>
+                app.id === id ? { ...app, status: newStatus } : app
+              );
 
-      if (selectedApplication && selectedApplication.id === id) {
-        setSelectedApplication({
-          ...selectedApplication,
-          status: newStatus,
-        });
-      }
-    } catch (err) {
-      console.error("Error updating application status:", err);
-      // Handle error
+              setApplications(updatedApplications);
+
+              if (selectedApplication && selectedApplication.id === id) {
+                setSelectedApplication({
+                  ...selectedApplication,
+                  status: newStatus,
+                });
+              }
+
+              // Send approval email
+              await sendApprovalEmail(data as Application);
+
+              setNotification({
+                type: "success",
+                message: "Application approved and confirmation email sent!",
+              });
+            }
+          } catch (err) {
+            console.error("Error updating application status:", err);
+            setNotification({
+              type: "error",
+              message: "Failed to approve application. Please try again.",
+            });
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        onCancel: () => setAlert({ ...alert, open: false }),
+      });
+    } else {
+      // For rejections (no email needed)
+      setAlert({
+        open: true,
+        title: "Reject Application",
+        message: "Are you sure you want to reject this application?",
+        type: "confirm",
+        confirmText: "Yes, Reject",
+        cancelText: "Cancel",
+        onConfirm: async () => {
+          setAlert({ ...alert, open: false });
+          setIsProcessing(true);
+          try {
+            const { error } = await supabase
+              .from("membership_applications")
+              .update({ status: newStatus })
+              .eq("id", id);
+
+            if (error) throw error;
+
+            // Update local state
+            const updatedApplications = applications.map((app) =>
+              app.id === id ? { ...app, status: newStatus } : app
+            );
+
+            setApplications(updatedApplications);
+
+            if (selectedApplication && selectedApplication.id === id) {
+              setSelectedApplication({
+                ...selectedApplication,
+                status: newStatus,
+              });
+            }
+
+            setNotification({
+              type: "success",
+              message: "Application status updated successfully!",
+            });
+          } catch (err) {
+            console.error("Error updating application status:", err);
+            setNotification({
+              type: "error",
+              message: "Failed to update application status. Please try again.",
+            });
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        onCancel: () => setAlert({ ...alert, open: false }),
+      });
     }
   };
 
@@ -228,9 +416,18 @@ const Applications = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        setNotification({
+          type: "success",
+          message: "Applications exported successfully!",
+        });
       }
     } catch (err) {
       console.error("Error exporting data:", err);
+      setNotification({
+        type: "error",
+        message: "Failed to export applications. Please try again.",
+      });
     }
   };
 
@@ -245,6 +442,32 @@ const Applications = () => {
           Export to CSV
         </Button>
       </div>
+
+      {/* Notification display */}
+      {notification && (
+        <div
+          className={`p-4 rounded-md flex items-start justify-between mb-4 ${
+            notification.type === "success"
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
+          }`}
+        >
+          <div className="flex items-center">
+            {notification.type === "success" ? (
+              <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+            ) : (
+              <AlertCircle className="w-5 h-5 mr-2 text-red-600" />
+            )}
+            <p>{notification.message}</p>
+          </div>
+          <button
+            onClick={() => setNotification(null)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       <Card className="mb-8">
         <CardContent>
@@ -529,8 +752,6 @@ const Applications = () => {
               </p>
             </div>
 
-            {/* We would show more fields here in a real application */}
-
             <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
               <Button
                 variant="outline"
@@ -546,8 +767,13 @@ const Applications = () => {
                     onClick={() => {
                       handleStatusChange(selectedApplication.id, "rejected");
                     }}
+                    disabled={isProcessing}
                   >
-                    <X className="h-4 w-4 mr-2" />
+                    {isProcessing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <X className="h-4 w-4 mr-2" />
+                    )}
                     Reject
                   </Button>
                   <Button
@@ -555,8 +781,13 @@ const Applications = () => {
                     onClick={() => {
                       handleStatusChange(selectedApplication.id, "approved");
                     }}
+                    disabled={isProcessing}
                   >
-                    <Check className="h-4 w-4 mr-2" />
+                    {isProcessing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4 mr-2" />
+                    )}
                     Approve
                   </Button>
                 </>
@@ -565,6 +796,19 @@ const Applications = () => {
           </div>
         </div>
       )}
+
+      {/* AlertModal for confirmations */}
+      <AlertModal
+        isOpen={alert.open}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        confirmText={alert.confirmText}
+        cancelText={alert.cancelText}
+        onConfirm={alert.onConfirm}
+        onCancel={alert.onCancel}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
     </div>
   );
 };
