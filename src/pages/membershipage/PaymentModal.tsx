@@ -296,7 +296,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Enter first name"
               required
             />
@@ -309,7 +309,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Enter last name"
               required
             />
@@ -325,7 +325,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="e.g. 0712345678"
             />
           </div>
@@ -337,7 +337,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="your.email@example.com"
             />
           </div>
@@ -473,7 +473,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                       type="text"
                       value={transactionId}
                       onChange={(e) => setTransactionId(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="Enter transaction ID"
                       required
                     />

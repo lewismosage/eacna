@@ -690,7 +690,7 @@ export default function MembershipRenewalPage() {
                           firstName: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="Enter your first name"
                     />
                   </div>
@@ -708,7 +708,7 @@ export default function MembershipRenewalPage() {
                           lastName: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="Enter your last name"
                     />
                   </div>
@@ -726,7 +726,7 @@ export default function MembershipRenewalPage() {
                           phone: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="e.g. 0712345678"
                     />
                   </div>
@@ -744,7 +744,7 @@ export default function MembershipRenewalPage() {
                           email: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="your.email@example.com"
                     />
                     <p className="text-xs text-gray-500 mt-1">
