@@ -15,14 +15,12 @@ import {
 import Card, { CardContent } from "../../../components/common/Card";
 import Button from "../../../components/common/Button";
 import { createClient } from "@supabase/supabase-js";
-import { getEmailTemplateHTML } from "../../../components/common/EmailTemplate";
 import emailjs from "@emailjs/browser";
 import AlertModal from "../../../components/common/AlertModal";
 
-// Initialize emailjs (add to your env variables)
+// Initialize emailjs
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
-// Application status types
 type ApplicationStatus = "pending" | "approved" | "rejected";
 
 // Initialize Supabase client
@@ -31,39 +29,44 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_KEY
 );
 
-// Update your Application interface to match your database schema
-interface User {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-}
-
 interface Application {
   id: string;
-  applicant_key: string;
   first_name: string;
+  middle_name: string;
   last_name: string;
   email: string;
   phone: string;
-  membership_type: string;
+  gender: string;
   nationality: string;
+  country_of_residence: string;
+  id_number: string;
+  membership_type: string;
   current_profession: string;
   institution: string;
+  work_address: string;
+  registration_number: string;
+  highest_degree: string;
+  university: string;
   created_at: string;
-  application_status: string;
-  membership_id: string | null;
-  user: User;
+  application_status: ApplicationStatus;
+  certify_info: boolean;
+  consent_data: boolean;
+}
+
+interface User {
+  id: string;
+  email: string;
+  raw_user_meta_data: {
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 const Applications = () => {
-  // State for applications data
   const [applications, setApplications] = useState<Application[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<
     Application[]
   >([]);
-
-  // UI states
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">(
@@ -71,21 +74,16 @@ const Applications = () => {
   );
   const [membershipFilter, setMembershipFilter] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<{
-    key: keyof Application | null;
+    key: keyof Application;
     direction: "ascending" | "descending";
   }>({ key: "created_at", direction: "descending" });
-
-  // State for selected application to view details
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
-
-  const [filterLoading, setFilterLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState<{
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
-
   const [alert, setAlert] = useState<{
     open: boolean;
     title: string;
@@ -103,129 +101,111 @@ const Applications = () => {
   });
 
   // Fetch applications
-  useEffect(() => {
-    const fetchApplications = async () => {
-      setLoading(true);
-      try {
-        // Fetch applications without the user relationship first
-        const { data: applicationsData, error } = await supabase
-          .from("membership_applications")
-          .select("*")
-          .order("created_at", { ascending: false });
+  const fetchApplications = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("membership_applications")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        if (applicationsData) {
-          // Then fetch user data separately
-          const userIds = applicationsData.map((app) => app.applicant_key);
-          const { data: usersData } = await supabase
-            .from("users")
-            .select("id, email, raw_user_meta_data")
-            .in("id", userIds);
-
-          // Combine the data
-          const formattedData = applicationsData.map((app) => {
-            const user = usersData?.find((u) => u.id === app.applicant_key);
-            return {
-              ...app,
-              user: {
-                id: user?.id || "",
-                email: user?.email || "",
-                first_name: user?.raw_user_meta_data?.first_name || "",
-                last_name: user?.raw_user_meta_data?.last_name || "",
-              },
-            };
-          });
-
-          setApplications(formattedData);
-          setFilteredApplications(formattedData);
-        }
-      } catch (err) {
-        console.error("Error fetching applications:", err);
-        setNotification({
-          type: "error",
-          message: "Failed to load applications. Please try again.",
-        });
-      } finally {
-        setLoading(false);
+      if (data) {
+        setApplications(data);
+        setFilteredApplications(data);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+      setNotification({
+        type: "error",
+        message: "Failed to load applications. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchApplications();
   }, []);
 
   // Apply filters and search
   useEffect(() => {
-    const fetchFilteredApplications = async () => {
-      setFilterLoading(true);
-      try {
-        let query = supabase.from("membership_applications").select("*");
+    let filtered = [...applications];
 
-        if (statusFilter !== "all") {
-          query = query.eq("application_status", statusFilter);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(
+        (app) => app.application_status === statusFilter
+      );
+    }
+
+    if (membershipFilter !== "all") {
+      filtered = filtered.filter(
+        (app) => app.membership_type === membershipFilter
+      );
+    }
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (app) =>
+          app.first_name.toLowerCase().includes(term) ||
+          app.last_name.toLowerCase().includes(term) ||
+          app.email.toLowerCase().includes(term) ||
+          (app.institution && app.institution.toLowerCase().includes(term))
+      );
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        // Handle null/undefined values by treating them as empty strings for comparison
+        const aValue = a[sortConfig.key] ?? "";
+        const bValue = b[sortConfig.key] ?? "";
+
+        if (aValue < bValue) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
         }
-
-        if (membershipFilter !== "all") {
-          query = query.eq("membership_type", membershipFilter);
+        if (aValue > bValue) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
         }
+        return 0;
+      });
+    }
 
-        if (searchTerm) {
-          query = query.or(
-            `first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,institution.ilike.%${searchTerm}%`
-          );
-        }
+    setFilteredApplications(filtered);
+  }, [applications, searchTerm, statusFilter, membershipFilter, sortConfig]);
 
-        const { data, error } = await query.order("created_at", {
-          ascending: false,
-        });
-
-        if (error) {
-          console.error("Error fetching filtered applications:", error);
-          setFilteredApplications([]);
-        } else {
-          setFilteredApplications(data || []);
-        }
-      } catch (err) {
-        console.error("Error in fetchFilteredApplications:", err);
-        setFilteredApplications([]);
-      } finally {
-        setFilterLoading(false);
-      }
-    };
-
-    fetchFilteredApplications();
-  }, [applications, searchTerm, statusFilter, membershipFilter]);
-
-  // Handle sorting column click
   const handleSort = (key: keyof Application) => {
     let direction: "ascending" | "descending" = "ascending";
-
     if (sortConfig.key === key && sortConfig.direction === "ascending") {
       direction = "descending";
     }
-
     setSortConfig({ key, direction });
   };
 
-  // Send approval email
   const sendApprovalEmail = async (application: Application) => {
     try {
-      if (
-        !import.meta.env.VITE_EMAILJS_SERVICE_ID ||
-        !import.meta.env.VITE_EMAILJS_TEMPLATE_ID ||
-        !import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      ) {
-        console.error("EmailJS configuration is missing");
-        return false;
-      }
-
       const templateParams = {
-        from_name: "EACNA Membership",
-        reply_to: "no-reply@eacna.org",
         to_name: `${application.first_name} ${application.last_name}`,
         to_email: application.email,
-        subject: "Your Membership Application Has Been Approved",
-        message: getApprovalEmailTemplate(application),
+        subject: "Your EACNA Membership Application Has Been Approved",
+        message: `
+          <p>Dear ${application.first_name},</p>
+          <p>We are pleased to inform you that your application for ${getMembershipLabel(
+            application.membership_type
+          )} membership with EACNA has been approved!</p>
+          <p>Next steps:</p>
+          <ol>
+            <li>Complete your membership payment (you will receive payment instructions separately)</li>
+            <li>Once payment is confirmed, you will receive your membership details</li>
+            <li>Access member resources on our portal</li>
+            <li>Connect with other members</li>
+          </ol>
+          <p>If you have any questions, please contact us at members@eacna.org.</p>
+          <p>Welcome to EACNA!</p>
+        `,
       };
 
       await emailjs.send(
@@ -234,7 +214,6 @@ const Applications = () => {
         templateParams,
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       );
-
       return true;
     } catch (error) {
       console.error("Error sending approval email:", error);
@@ -242,38 +221,6 @@ const Applications = () => {
     }
   };
 
-  // Generate approval email template
-  const getApprovalEmailTemplate = (application: Application) => {
-    const content = `
-      <p>We're pleased to inform you that your membership application has been approved!</p>
-      
-      <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
-        <div style="display: flex; margin-bottom: 8px;">
-          <span style="font-weight: bold; width: 150px;">Membership Type:</span>
-          <span>${getMembershipLabel(application.membership_type)}</span>
-        </div>
-        <div style="display: flex; margin-bottom: 8px;">
-          <span style="font-weight: bold; width: 150px;">Application Date:</span>
-          <span>${formatDate(application.created_at)}</span>
-        </div>
-      </div>
-      
-      <p>To complete your membership registration, please proceed with the payment of your membership fees. You can make the payment through our secure payment portal.</p>
-      
-      <p>Once your payment is received and verified, you'll gain full access to all member benefits.</p>
-      
-      <p>If you have any questions, please don't hesitate to contact us.</p>
-    `;
-
-    return getEmailTemplateHTML({
-      title: "Application Approved",
-      recipientName: `${application.first_name} ${application.last_name}`,
-      content: content,
-      type: "application",
-    });
-  };
-
-  // Update handleStatusChange to update the database and send emails
   const handleStatusChange = async (
     id: string,
     newStatus: ApplicationStatus
@@ -283,15 +230,14 @@ const Applications = () => {
         open: true,
         title: "Approve Application",
         message:
-          "Are you sure you want to approve this application? This will generate a membership ID and send an approval email.",
+          "This will approve the application.Continue?",
         type: "confirm",
-        confirmText: "Yes, Approve",
+        confirmText: "Approve",
         cancelText: "Cancel",
         onConfirm: async () => {
-          setAlert({ ...alert, open: false });
           setIsProcessing(true);
           try {
-            // First get the application to access nationality
+            // Get the application first to access email
             const { data: applicationData } = await supabase
               .from("membership_applications")
               .select("*")
@@ -300,54 +246,30 @@ const Applications = () => {
 
             if (!applicationData) throw new Error("Application not found");
 
-            // Generate the membership ID
-            const countryCode = applicationData.nationality
-              .substring(0, 2)
-              .toUpperCase();
-            const currentYear = new Date().getFullYear();
-
-            // Get the sequence number for this year/country
-            const { count } = await supabase
-              .from("membership_applications")
-              .select("*", { count: "exact" })
-              .eq("application_status", "approved")
-              .like("membership_id", `EACNA-${currentYear}-${countryCode}%`);
-
-            const seqNumber = (count || 0) + 1;
-            const membershipId = `EACNA-${currentYear}-${countryCode}-${seqNumber
-              .toString()
-              .padStart(3, "0")}`;
-
-            // Update status and set membership_id
+            // Update application status
             const { error } = await supabase
               .from("membership_applications")
               .update({
-                application_status: newStatus,
-                membership_id: membershipId,
+                application_status: "approved",
+                updated_at: new Date().toISOString(),
               })
               .eq("id", id);
 
             if (error) throw error;
 
-            // Refresh applications
-            const { data: updatedApplications } = await supabase
-              .from("membership_applications")
-              .select("*")
-              .order("created_at", { ascending: false });
-
-            setApplications(updatedApplications || []);
-            setFilteredApplications(updatedApplications || []);
-
-            // Send approval email with membership ID
+            // Send approval email (without membership ID)
             await sendApprovalEmail({
               ...applicationData,
               application_status: "approved",
-              membership_id: membershipId,
             });
+
+            // Refresh applications
+            await fetchApplications();
 
             setNotification({
               type: "success",
-              message: `Application approved! Membership ID: ${membershipId}`,
+              message:
+                "Application approved!",
             });
           } catch (err) {
             console.error("Error approving application:", err);
@@ -357,56 +279,49 @@ const Applications = () => {
             });
           } finally {
             setIsProcessing(false);
+            setAlert({ ...alert, open: false });
           }
         },
         onCancel: () => setAlert({ ...alert, open: false }),
       });
     } else {
-      // For rejections (no email needed)
+      // For rejections
       setAlert({
         open: true,
         title: "Reject Application",
         message: "Are you sure you want to reject this application?",
         type: "confirm",
-        confirmText: "Yes, Reject",
+        confirmText: "Reject",
         cancelText: "Cancel",
         onConfirm: async () => {
-          setAlert({ ...alert, open: false });
           setIsProcessing(true);
           try {
             const { error } = await supabase
               .from("membership_applications")
-              .update({ application_status: newStatus })
+              .update({
+                application_status: "rejected",
+                updated_at: new Date().toISOString(),
+              })
               .eq("id", id);
 
             if (error) throw error;
 
-            // Update local state
-            const updatedApplications = applications.map((app) =>
-              app.id === id ? { ...app, application_status: newStatus } : app
-            );
-
-            setApplications(updatedApplications);
-
-            if (selectedApplication && selectedApplication.id === id) {
-              setSelectedApplication({
-                ...selectedApplication,
-                application_status: newStatus,
-              });
-            }
+            // Refresh applications
+            await fetchApplications();
 
             setNotification({
               type: "success",
-              message: "Application status updated successfully!",
+              message: "Application has been rejected.",
             });
           } catch (err) {
-            console.error("Error updating application status:", err);
+            console.error("Error rejecting application:", err);
             setNotification({
               type: "error",
-              message: "Failed to update application status. Please try again.",
+              message: "Failed to reject application. Please try again.",
             });
           } finally {
             setIsProcessing(false);
+            setAlert({ ...alert, open: false });
           }
         },
         onCancel: () => setAlert({ ...alert, open: false }),
@@ -414,7 +329,6 @@ const Applications = () => {
     }
   };
 
-  // Format date for display
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -423,7 +337,6 @@ const Applications = () => {
     });
   };
 
-  // Get status color class
   const getStatusClass = (status: ApplicationStatus) => {
     switch (status) {
       case "approved":
@@ -435,45 +348,66 @@ const Applications = () => {
     }
   };
 
-  // Update the getMembershipLabel helper function to show "Full Member" for "ordinary"
   const getMembershipLabel = (type: string) => {
-    if (type === "ordinary") return "Full Member";
-    // Add more mappings if needed
-    return type.charAt(0).toUpperCase() + type.slice(1);
+    const labels: Record<string, string> = {
+      ordinary: "Full Member",
+      associate: "Associate Member",
+      student: "Student Member",
+      institutional: "Institutional Member",
+      honorary: "Honorary Member",
+    };
+    return labels[type] || type;
   };
 
-  // Handle export to CSV
   const handleExport = async () => {
     try {
-      const { data, error } = await supabase
-        .from("membership_applications")
-        .select("*");
+      const headers = [
+        "ID",
+        "Name",
+        "Email",
+        "Phone",
+        "Membership Type",
+        "Nationality",
+        "Profession",
+        "Institution",
+        "Status",
+        "Date Submitted",
+      ].join(",");
 
-      if (error) throw error;
+      const csvRows = filteredApplications.map((app) =>
+        [
+          app.id,
+          `"${app.first_name} ${app.middle_name ? app.middle_name + " " : ""}${
+            app.last_name
+          }"`,
+          app.email,
+          app.phone,
+          getMembershipLabel(app.membership_type),
+          app.nationality,
+          app.current_profession,
+          app.institution,
+          app.application_status,
+          formatDate(app.created_at),
+        ].join(",")
+      );
 
-      if (data) {
-        const headers = Object.keys(data[0]).join(",");
-        const csvContent = [
-          headers,
-          ...data.map((row) => Object.values(row).join(",")),
-        ].join("\n");
+      const csvContent = [headers, ...csvRows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `eacna-applications-${new Date().toISOString().slice(0, 10)}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-        const blob = new Blob([csvContent], {
-          type: "text/csv;charset=utf-8;",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "applications.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setNotification({
-          type: "success",
-          message: "Applications exported successfully!",
-        });
-      }
+      setNotification({
+        type: "success",
+        message: "Applications exported successfully!",
+      });
     } catch (err) {
       console.error("Error exporting data:", err);
       setNotification({
@@ -495,7 +429,6 @@ const Applications = () => {
         </Button>
       </div>
 
-      {/* Notification display */}
       {notification && (
         <div
           className={`p-4 rounded-md flex items-start justify-between mb-4 ${
@@ -524,7 +457,6 @@ const Applications = () => {
       <Card className="mb-8">
         <CardContent>
           <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-            {/* Search box */}
             <div className="relative w-full md:w-1/3">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
@@ -538,7 +470,6 @@ const Applications = () => {
               />
             </div>
 
-            {/* Filters */}
             <div className="flex flex-wrap gap-3 items-center">
               <div className="flex items-center">
                 <Filter className="h-5 w-5 text-gray-500 mr-2" />
@@ -652,7 +583,7 @@ const Applications = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 capitalize">
+                            <div className="text-sm text-gray-900">
                               {getMembershipLabel(application.membership_type)}
                             </div>
                           </td>
@@ -670,7 +601,7 @@ const Applications = () => {
                           <td className="px-6 py-4">
                             <span
                               className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
-                                application.application_status as ApplicationStatus
+                                application.application_status
                               )}`}
                             >
                               {application.application_status
@@ -731,7 +662,7 @@ const Applications = () => {
       {/* Application Details Modal */}
       {selectedApplication && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto p-6">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-bold text-primary-800">
                 Application Details
@@ -744,71 +675,120 @@ const Applications = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">
-                  Personal Information
-                </h4>
-                <p className="font-semibold text-lg">
-                  {selectedApplication.first_name}{" "}
-                  {selectedApplication.last_name}
-                </p>
-                <p className="text-gray-600">
-                  Email: {selectedApplication.email}
-                </p>
-                <p className="text-gray-600">
-                  Phone: {selectedApplication.phone}
-                </p>
-                <p className="text-gray-600">
-                  Nationality:{" "}
-                  <span className="capitalize">
-                    {selectedApplication.nationality}
-                  </span>
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">
+                    Personal Information
+                  </h4>
+                  <div className="mt-2 space-y-1">
+                    <p>
+                      <span className="font-medium">Name:</span>{" "}
+                      {selectedApplication.first_name}{" "}
+                      {selectedApplication.middle_name}{" "}
+                      {selectedApplication.last_name}
+                    </p>
+                    <p>
+                      <span className="font-medium">Email:</span>{" "}
+                      {selectedApplication.email}
+                    </p>
+                    <p>
+                      <span className="font-medium">Phone:</span>{" "}
+                      {selectedApplication.phone}
+                    </p>
+                    <p>
+                      <span className="font-medium">Gender:</span>{" "}
+                      {selectedApplication.gender}
+                    </p>
+                    <p>
+                      <span className="font-medium">Nationality:</span>{" "}
+                      {selectedApplication.nationality}
+                    </p>
+                    <p>
+                      <span className="font-medium">Country of Residence:</span>{" "}
+                      {selectedApplication.country_of_residence}
+                    </p>
+                    <p>
+                      <span className="font-medium">ID/Passport:</span>{" "}
+                      {selectedApplication.id_number}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">
+                    Membership Details
+                  </h4>
+                  <div className="mt-2 space-y-1">
+                    <p>
+                      <span className="font-medium">Type:</span>{" "}
+                      {getMembershipLabel(selectedApplication.membership_type)}
+                    </p>
+                    <p>
+                      <span className="font-medium">Status:</span>
+                      <span
+                        className={`ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
+                          selectedApplication.application_status
+                        )}`}
+                      >
+                        {selectedApplication.application_status
+                          .charAt(0)
+                          .toUpperCase() +
+                          selectedApplication.application_status.slice(1)}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-medium">Submitted:</span>{" "}
+                      {formatDate(selectedApplication.created_at)}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">
-                  Application Details
-                </h4>
-                <p className="text-gray-600">
-                  Membership Type:{" "}
-                  <span className="capitalize">
-                    {getMembershipLabel(selectedApplication.membership_type)}
-                  </span>
-                </p>
-                <p className="text-gray-600">
-                  Submitted On: {formatDate(selectedApplication.created_at)}
-                </p>
-                <p className="text-gray-600">
-                  Current Status:
-                  <span
-                    className={`ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
-                      selectedApplication.application_status as ApplicationStatus
-                    )}`}
-                  >
-                    {selectedApplication.application_status
-                      .charAt(0)
-                      .toUpperCase() +
-                      selectedApplication.application_status.slice(1)}
-                  </span>
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">
+                    Professional Information
+                  </h4>
+                  <div className="mt-2 space-y-1">
+                    <p>
+                      <span className="font-medium">Profession:</span>{" "}
+                      {selectedApplication.current_profession}
+                    </p>
+                    <p>
+                      <span className="font-medium">Institution:</span>{" "}
+                      {selectedApplication.institution}
+                    </p>
+                    <p>
+                      <span className="font-medium">Work Address:</span>{" "}
+                      {selectedApplication.work_address}
+                    </p>
+                    <p>
+                      <span className="font-medium">Registration Number:</span>{" "}
+                      {selectedApplication.registration_number || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">
+                    Education
+                  </h4>
+                  <div className="mt-2 space-y-1">
+                    <p>
+                      <span className="font-medium">Highest Degree:</span>{" "}
+                      {selectedApplication.highest_degree}
+                    </p>
+                    <p>
+                      <span className="font-medium">University:</span>{" "}
+                      {selectedApplication.university}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="mb-6">
-              <h4 className="text-sm font-medium text-gray-500 mb-2">
-                Professional Information
-              </h4>
-              <p className="text-gray-800">
-                Current Profession: {selectedApplication.current_profession}
-              </p>
-              <p className="text-gray-800">
-                Institution: {selectedApplication.institution}
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <Button
                 variant="outline"
                 onClick={() => setSelectedApplication(null)}
@@ -820,9 +800,9 @@ const Applications = () => {
                 <>
                   <Button
                     variant="secondary"
-                    onClick={() => {
-                      handleStatusChange(selectedApplication.id, "rejected");
-                    }}
+                    onClick={() =>
+                      handleStatusChange(selectedApplication.id, "rejected")
+                    }
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
@@ -834,9 +814,9 @@ const Applications = () => {
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={() => {
-                      handleStatusChange(selectedApplication.id, "approved");
-                    }}
+                    onClick={() =>
+                      handleStatusChange(selectedApplication.id, "approved")
+                    }
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
@@ -853,7 +833,6 @@ const Applications = () => {
         </div>
       )}
 
-      {/* AlertModal for confirmations */}
       <AlertModal
         isOpen={alert.open}
         title={alert.title}
