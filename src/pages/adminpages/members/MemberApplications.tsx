@@ -32,8 +32,16 @@ const supabase = createClient(
 );
 
 // Update your Application interface to match your database schema
+interface User {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+}
+
 interface Application {
   id: string;
+  applicant_key: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -43,8 +51,9 @@ interface Application {
   current_profession: string;
   institution: string;
   created_at: string;
-  status: ApplicationStatus;
-  // Add other fields from your table as needed
+  application_status: string;
+  membership_id: string | null;
+  user: User;
 }
 
 const Applications = () => {
@@ -98,16 +107,38 @@ const Applications = () => {
     const fetchApplications = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        // Fetch applications without the user relationship first
+        const { data: applicationsData, error } = await supabase
           .from("membership_applications")
           .select("*")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
 
-        if (data) {
-          setApplications(data);
-          setFilteredApplications(data);
+        if (applicationsData) {
+          // Then fetch user data separately
+          const userIds = applicationsData.map((app) => app.applicant_key);
+          const { data: usersData } = await supabase
+            .from("users")
+            .select("id, email, raw_user_meta_data")
+            .in("id", userIds);
+
+          // Combine the data
+          const formattedData = applicationsData.map((app) => {
+            const user = usersData?.find((u) => u.id === app.applicant_key);
+            return {
+              ...app,
+              user: {
+                id: user?.id || "",
+                email: user?.email || "",
+                first_name: user?.raw_user_meta_data?.first_name || "",
+                last_name: user?.raw_user_meta_data?.last_name || "",
+              },
+            };
+          });
+
+          setApplications(formattedData);
+          setFilteredApplications(formattedData);
         }
       } catch (err) {
         console.error("Error fetching applications:", err);
@@ -131,7 +162,7 @@ const Applications = () => {
         let query = supabase.from("membership_applications").select("*");
 
         if (statusFilter !== "all") {
-          query = query.eq("status", statusFilter);
+          query = query.eq("application_status", statusFilter);
         }
 
         if (membershipFilter !== "all") {
@@ -251,7 +282,8 @@ const Applications = () => {
       setAlert({
         open: true,
         title: "Approve Application",
-        message: "Are you sure you want to approve this application? An approval email will be sent to the applicant.",
+        message:
+          "Are you sure you want to approve this application? This will generate a membership ID and send an approval email.",
         type: "confirm",
         confirmText: "Yes, Approve",
         cancelText: "Cancel",
@@ -259,46 +291,66 @@ const Applications = () => {
           setAlert({ ...alert, open: false });
           setIsProcessing(true);
           try {
-            // Update status in database
-            const { error } = await supabase
-              .from("membership_applications")
-              .update({ status: newStatus })
-              .eq("id", id);
-
-            if (error) throw error;
-
-            // Get the updated application
-            const { data } = await supabase
+            // First get the application to access nationality
+            const { data: applicationData } = await supabase
               .from("membership_applications")
               .select("*")
               .eq("id", id)
               .single();
 
-            if (data) {
-              // Update local state
-              const updatedApplications = applications.map((app) =>
-                app.id === id ? { ...app, status: newStatus } : app
-              );
+            if (!applicationData) throw new Error("Application not found");
 
-              setApplications(updatedApplications);
+            // Generate the membership ID
+            const countryCode = applicationData.nationality
+              .substring(0, 2)
+              .toUpperCase();
+            const currentYear = new Date().getFullYear();
 
-              if (selectedApplication && selectedApplication.id === id) {
-                setSelectedApplication({
-                  ...selectedApplication,
-                  status: newStatus,
-                });
-              }
+            // Get the sequence number for this year/country
+            const { count } = await supabase
+              .from("membership_applications")
+              .select("*", { count: "exact" })
+              .eq("application_status", "approved")
+              .like("membership_id", `EACNA-${currentYear}-${countryCode}%`);
 
-              // Send approval email
-              await sendApprovalEmail(data as Application);
+            const seqNumber = (count || 0) + 1;
+            const membershipId = `EACNA-${currentYear}-${countryCode}-${seqNumber
+              .toString()
+              .padStart(3, "0")}`;
 
-              setNotification({
-                type: "success",
-                message: "Application approved and confirmation email sent!",
-              });
-            }
+            // Update status and set membership_id
+            const { error } = await supabase
+              .from("membership_applications")
+              .update({
+                application_status: newStatus,
+                membership_id: membershipId,
+              })
+              .eq("id", id);
+
+            if (error) throw error;
+
+            // Refresh applications
+            const { data: updatedApplications } = await supabase
+              .from("membership_applications")
+              .select("*")
+              .order("created_at", { ascending: false });
+
+            setApplications(updatedApplications || []);
+            setFilteredApplications(updatedApplications || []);
+
+            // Send approval email with membership ID
+            await sendApprovalEmail({
+              ...applicationData,
+              application_status: "approved",
+              membership_id: membershipId,
+            });
+
+            setNotification({
+              type: "success",
+              message: `Application approved! Membership ID: ${membershipId}`,
+            });
           } catch (err) {
-            console.error("Error updating application status:", err);
+            console.error("Error approving application:", err);
             setNotification({
               type: "error",
               message: "Failed to approve application. Please try again.",
@@ -324,14 +376,14 @@ const Applications = () => {
           try {
             const { error } = await supabase
               .from("membership_applications")
-              .update({ status: newStatus })
+              .update({ application_status: newStatus })
               .eq("id", id);
 
             if (error) throw error;
 
             // Update local state
             const updatedApplications = applications.map((app) =>
-              app.id === id ? { ...app, status: newStatus } : app
+              app.id === id ? { ...app, application_status: newStatus } : app
             );
 
             setApplications(updatedApplications);
@@ -339,7 +391,7 @@ const Applications = () => {
             if (selectedApplication && selectedApplication.id === id) {
               setSelectedApplication({
                 ...selectedApplication,
-                status: newStatus,
+                application_status: newStatus,
               });
             }
 
@@ -618,11 +670,13 @@ const Applications = () => {
                           <td className="px-6 py-4">
                             <span
                               className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
-                                application.status
+                                application.application_status as ApplicationStatus
                               )}`}
                             >
-                              {application.status.charAt(0).toUpperCase() +
-                                application.status.slice(1)}
+                              {application.application_status
+                                .charAt(0)
+                                .toUpperCase() +
+                                application.application_status.slice(1)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right text-sm font-medium">
@@ -635,7 +689,7 @@ const Applications = () => {
                               >
                                 <Eye className="h-5 w-5" />
                               </button>
-                              {application.status === "pending" && (
+                              {application.application_status === "pending" && (
                                 <>
                                   <button
                                     onClick={() =>
@@ -730,11 +784,13 @@ const Applications = () => {
                   Current Status:
                   <span
                     className={`ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
-                      selectedApplication.status
+                      selectedApplication.application_status as ApplicationStatus
                     )}`}
                   >
-                    {selectedApplication.status.charAt(0).toUpperCase() +
-                      selectedApplication.status.slice(1)}
+                    {selectedApplication.application_status
+                      .charAt(0)
+                      .toUpperCase() +
+                      selectedApplication.application_status.slice(1)}
                   </span>
                 </p>
               </div>
@@ -760,7 +816,7 @@ const Applications = () => {
                 Close
               </Button>
 
-              {selectedApplication.status === "pending" && (
+              {selectedApplication.application_status === "pending" && (
                 <>
                   <Button
                     variant="secondary"

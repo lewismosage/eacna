@@ -1,11 +1,12 @@
 // components/membership/MembershipForm.tsx
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, AlertCircle, Eye, EyeOff, MailCheck } from "lucide-react";
 import Card, { CardContent } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import { createClient } from "@supabase/supabase-js";
 import { MembershipTier, membershipTiers } from "../../types/membership";
+import { useNavigate } from "react-router-dom";
 
 type FormData = {
   firstName: string;
@@ -58,11 +59,13 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const MembershipForm = ({ onComplete }: MembershipFormProps) => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [emailForConfirmation, setEmailForConfirmation] = useState("");
 
   const {
     register,
@@ -70,6 +73,7 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
     watch,
     trigger,
     control,
+    getValues,
     formState: { errors },
   } = useForm<FormData>();
 
@@ -84,54 +88,71 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
   const nextStep = () => setCurrentStep((prev) => prev + 1);
   const prevStep = () => setCurrentStep((prev) => prev - 1);
 
-  const onSubmit = async (data: FormData) => {
+  const handleInitialSignup = async (formData: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
+    setEmailForConfirmation(formData.email);
 
     try {
-      // First, sign up the user with email and password
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
+      const { error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
         options: {
           data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
           },
         },
       });
 
       if (authError) throw authError;
+      nextStep();
+    } catch (err) {
+      console.error("Error during signup:", err);
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create account. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      // Then call the stored procedure to create the application
+  const handleCompleteApplication = async (formData: FormData) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
       const { data: result, error } = await supabase.rpc(
         "create_membership_application",
         {
-          email: data.email,
-          password: data.password, // Still needed for the function signature
-          first_name: data.firstName,
-          middle_name: data.middleName,
-          last_name: data.lastName,
-          gender: data.gender,
-          nationality: data.nationality,
-          country_of_residence: data.countryOfResidence,
-          phone: data.phone,
-          id_number: data.idNumber,
-          membership_type: data.membershipType,
-          current_profession: data.currentProfession,
-          institution: data.institution,
-          work_address: data.workAddress,
-          registration_number: data.registrationNumber,
-          highest_degree: data.highestDegree,
-          university: data.university,
-          certify_info: data.certifyInfo,
-          consent_data: data.consentData,
+          email: formData.email,
+          password: formData.password,
+          first_name: formData.firstName,
+          middle_name: formData.middleName,
+          last_name: formData.lastName,
+          gender: formData.gender,
+          nationality: formData.nationality,
+          country_of_residence: formData.countryOfResidence,
+          phone: formData.phone,
+          id_number: formData.idNumber,
+          membership_type: formData.membershipType,
+          current_profession: formData.currentProfession,
+          institution: formData.institution,
+          work_address: formData.workAddress,
+          registration_number: formData.registrationNumber,
+          highest_degree: formData.highestDegree,
+          university: formData.university,
+          certify_info: formData.certifyInfo,
+          consent_data: formData.consentData,
         }
       );
 
       if (error) throw error;
       if (!result?.success) throw new Error(result?.error || "Unknown error");
 
+      onComplete?.(formData);
       nextStep();
     } catch (err) {
       console.error("Error submitting application:", err);
@@ -150,7 +171,11 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
       case 1:
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold mb-4">Personal Information</h3>
+            <h3 className="text-xl font-semibold mb-4">Account Creation</h3>
+            <p className="text-gray-600 mb-4">
+              First, create your account with basic information. You'll need to
+              verify your email before completing the full application.
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -219,111 +244,6 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Gender*
-                </label>
-                <div className="flex space-x-4">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      value="male"
-                      {...register("gender", {
-                        required: "Gender is required",
-                      })}
-                    />
-                    <span className="ml-2">Male</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      value="female"
-                      {...register("gender", {
-                        required: "Gender is required",
-                      })}
-                    />
-                    <span className="ml-2">Female</span>
-                  </label>
-                </div>
-                {errors.gender && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.gender.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="nationality"
-                >
-                  Nationality*
-                </label>
-                <select
-                  id="nationality"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.nationality ? "border-red-500" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("nationality", {
-                    required: "Nationality is required",
-                  })}
-                >
-                  <option value="">Select nationality</option>
-                  <option value="kenyan">Kenyan</option>
-                  <option value="ugandan">Ugandan</option>
-                  <option value="tanzanian">Tanzanian</option>
-                  <option value="south_sudanese">South Sudanese</option>
-                  <option value="rwandese">Rwandese</option>
-                  <option value="burundian">Burundian</option>
-                  <option value="ethiopian">Ethiopian</option>
-                  <option value="somalian">Somalian</option>
-                </select>
-                {errors.nationality && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.nationality.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="countryOfResidence"
-                >
-                  Country of Residence*
-                </label>
-                <select
-                  id="countryOfResidence"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.countryOfResidence
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("countryOfResidence", {
-                    required: "Country of residence is required",
-                  })}
-                >
-                  <option value="">Select country</option>
-                  <option value="kenya">Kenya</option>
-                  <option value="uganda">Uganda</option>
-                  <option value="tanzania">Tanzania</option>
-                  <option value="burundi">Burundi</option>
-                  <option value="south_sudan">South Sudan</option>
-                  <option value="rwanda">Rwanda</option>
-                  <option value="ethiopia">Ethiopia</option>
-                  <option value="somalia">Somalia</option>
-                </select>
-                {errors.countryOfResidence && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.countryOfResidence.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
                 <label
                   className="block text-sm font-medium text-gray-700 mb-1"
                   htmlFor="email"
@@ -350,9 +270,7 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                   </p>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   className="block text-sm font-medium text-gray-700 mb-1"
@@ -377,30 +295,6 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                 {errors.phone && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.phone.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="idNumber"
-                >
-                  ID Number/Passport*
-                </label>
-                <input
-                  id="idNumber"
-                  type="text"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.idNumber ? "border-red-500" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("idNumber", {
-                    required: "ID or Passport number is required",
-                  })}
-                />
-                {errors.idNumber && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.idNumber.message}
                   </p>
                 )}
               </div>
@@ -581,40 +475,231 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
 
             <div className="flex justify-end pt-4">
               <Button
-                type="button" // Important: prevent default form submission
+                type="button"
                 onClick={async () => {
-                  // Trigger validation for all fields
                   const isValid = await trigger([
                     "firstName",
                     "lastName",
-                    "gender",
-                    "nationality",
-                    "countryOfResidence",
                     "email",
                     "phone",
-                    "idNumber",
                     "password",
                     "confirmPassword",
                   ]);
 
-                  // Only proceed if validation passes
                   if (isValid) {
-                    nextStep();
+                    const formData = getValues();
+                    await handleInitialSignup(formData);
                   }
                 }}
+                disabled={isSubmitting}
               >
-                Continue to Professional Information
+                {isSubmitting
+                  ? "Creating Account..."
+                  : "Create Account & Verify Email"}
               </Button>
             </div>
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+                {submitError}
+              </div>
+            )}
           </div>
         );
 
       case 2:
         return (
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center h-24 w-24 rounded-full bg-blue-100 mb-6">
+              <MailCheck className="h-12 w-12 text-blue-600" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2 text-primary-800">
+              Verify Your Email
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-4">
+              We've sent a confirmation email to{" "}
+              <strong>{emailForConfirmation}</strong>. Please check your inbox
+              and click the verification link to continue your application.
+            </p>
+            <p className="text-gray-500 text-sm mb-6">
+              Didn't receive the email? Check your spam folder or
+              <button
+                className="text-blue-600 hover:text-blue-800 ml-1"
+                onClick={async () => {
+                  if (emailForConfirmation) {
+                    await supabase.auth.resend({
+                      type: "signup",
+                      email: emailForConfirmation,
+                    });
+                  }
+                }}
+              >
+                resend confirmation
+              </button>
+            </p>
+            <div className="flex justify-center">
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  const {
+                    data: { user },
+                  } = await supabase.auth.getUser();
+                  if (user?.email_confirmed_at) {
+                    setCurrentStep(3); // Move to form completion if confirmed
+                  } else {
+                    alert("Please confirm your email first. Check your inbox.");
+                  }
+                }}
+              >
+                I've Verified My Email
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
           <div className="space-y-6">
             <h3 className="text-xl font-semibold mb-4">
-              Professional Information
+              Complete Your Application
             </h3>
+            <p className="text-gray-600 mb-6">
+              Thank you for verifying your email. Please complete the remaining
+              application details.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="gender"
+                >
+                  Gender*
+                </label>
+                <div className="flex space-x-4">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                      value="male"
+                      {...register("gender", {
+                        required: "Gender is required",
+                      })}
+                    />
+                    <span className="ml-2">Male</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                      value="female"
+                      {...register("gender", {
+                        required: "Gender is required",
+                      })}
+                    />
+                    <span className="ml-2">Female</span>
+                  </label>
+                </div>
+                {errors.gender && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.gender.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="nationality"
+                >
+                  Nationality*
+                </label>
+                <select
+                  id="nationality"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.nationality ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("nationality", {
+                    required: "Nationality is required",
+                  })}
+                >
+                  <option value="">Select nationality</option>
+                  <option value="kenyan">Kenyan</option>
+                  <option value="ugandan">Ugandan</option>
+                  <option value="tanzanian">Tanzanian</option>
+                  <option value="south_sudanese">South Sudanese</option>
+                  <option value="rwandese">Rwandese</option>
+                  <option value="burundian">Burundian</option>
+                  <option value="ethiopian">Ethiopian</option>
+                  <option value="somalian">Somalian</option>
+                </select>
+                {errors.nationality && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.nationality.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="countryOfResidence"
+                >
+                  Country of Residence*
+                </label>
+                <select
+                  id="countryOfResidence"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.countryOfResidence
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("countryOfResidence", {
+                    required: "Country of residence is required",
+                  })}
+                >
+                  <option value="">Select country</option>
+                  <option value="kenya">Kenya</option>
+                  <option value="uganda">Uganda</option>
+                  <option value="tanzania">Tanzania</option>
+                  <option value="burundi">Burundi</option>
+                  <option value="south_sudan">South Sudan</option>
+                  <option value="rwanda">Rwanda</option>
+                  <option value="ethiopia">Ethiopia</option>
+                  <option value="somalia">Somalia</option>
+                </select>
+                {errors.countryOfResidence && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.countryOfResidence.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="idNumber"
+                >
+                  ID Number/Passport*
+                </label>
+                <input
+                  id="idNumber"
+                  type="text"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.idNumber ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("idNumber", {
+                    required: "ID or Passport number is required",
+                  })}
+                />
+                {errors.idNumber && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.idNumber.message}
+                  </p>
+                )}
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -780,7 +865,6 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
               </div>
             </div>
 
-            {/* Moved Declaration & Consent to this step */}
             <div className="pt-4">
               <h4 className="font-medium mb-2">Declaration & Consent</h4>
               <div className="space-y-3">
@@ -825,17 +909,23 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                 Back
               </Button>
               <Button
-                type="button" // Use type="button" to prevent default form submission
+                type="button"
                 variant="primary"
-                onClick={handleSubmit(onSubmit)} // This will properly handle validation
+                onClick={handleSubmit(handleCompleteApplication)}
+                disabled={isSubmitting}
               >
-                Submit Application
+                {isSubmitting ? "Submitting..." : "Submit Application"}
               </Button>
             </div>
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+                {submitError}
+              </div>
+            )}
           </div>
         );
 
-      case 3:
+      case 4:
         return (
           <div className="text-center py-8">
             <div className="inline-flex items-center justify-center h-24 w-24 rounded-full bg-green-100 mb-6">
@@ -845,11 +935,11 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
               Application Submitted!
             </h3>
             <p className="text-gray-600 max-w-md mx-auto mb-8">
-              Thank you for applying to join EACNA. We'll review your
-              application and contact you soon. Once approved, you'll be able to
+              Thank you for your application to join EACNA. We'll review your
+              information and contact you soon. Once approved, you'll be able to
               complete your payment through the payment portal.
             </p>
-            <Button variant="primary" to="/">
+            <Button variant="primary" onClick={() => navigate("/")}>
               Return Home
             </Button>
           </div>
@@ -888,7 +978,7 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                 >
                   1
                 </span>
-                <span className="font-medium">Personal Info</span>
+                <span className="font-medium">Account Creation</span>
               </div>
             </div>
             <div
@@ -906,7 +996,25 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
                 >
                   2
                 </span>
-                <span className="font-medium">Professional Info</span>
+                <span className="font-medium">Email Verification</span>
+              </div>
+            </div>
+            <div
+              className={`flex-1 border-b-2 pb-2 ${
+                currentStep >= 3 ? "border-primary-600" : "border-gray-300"
+              }`}
+            >
+              <div className="flex items-center">
+                <span
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 ${
+                    currentStep >= 3
+                      ? "bg-primary-600 text-white"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  3
+                </span>
+                <span className="font-medium">Application Details</span>
               </div>
             </div>
           </div>

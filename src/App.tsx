@@ -11,7 +11,7 @@ import HomePage from './pages/HomePage';
 import AboutPage from './pages/aboutpage/AboutUs';
 import TrainingPage from './pages/trainingpage/TrainingPage';
 import MembershipPage from './pages/membershipage/MembershipPage';
-
+import WelcomePage from './pages/WelcomePage'
 import ResourcesPage from './pages/resourcespage/ResourcesPage';
 import GalleryPage from './pages/GalleryPage';
 import FindSpecialistPage from './pages/specialistpage/FindSpecialistPage';
@@ -130,6 +130,7 @@ function App() {
           <Route path="read-publication/:id" element={<ReadPaperPage />} />
           <Route path="abstract-submission" element={<AbstractSubmission />} />
           <Route path="abstract-guidelines" element={<AbstractGuidelines />} />
+          <Route path="welcome" element={<WelcomePage />} />
           <Route path="*" element={<NotFoundPage />} />
 
           {/* Member Login */}
@@ -174,7 +175,7 @@ function App() {
             <Route path="communications/newsletter" element={<Newsletter supabase={supabase} />} />
             <Route path="communications/subscribers" element={<Subscribers supabase={supabase} />} />
             <Route path="members/applications" element={<MemberApplications />} />
-            <Route path="members/payments" element={<MembershipPayments supabase={supabase} />} />
+            <Route path="members/payments" element={<MembershipPayments />} />
             <Route path="members/directory" element={<Directory />} />
             <Route path="events/meetings" element={<AnnualMeetings/>} />
             <Route path="events/training" element={<TrainingEvents supabase={supabase}/>} />
