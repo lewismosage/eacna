@@ -36,7 +36,9 @@ interface Payment {
   currency: string;
   payment_method: "mpesa" | "bank_transfer" | "credit_card" | "other";
   status: "pending" | "completed" | "failed" | "refunded";
-  member_id: string | null;
+  membership_id: string;
+  membership_formatted_id?: string;
+  applicant_key: string;
   application_id: string | null;
   renewal_id: string | null;
   member_name: string;
@@ -211,6 +213,16 @@ export default function AdminPayments() {
         setAlert({ ...alert, open: false });
         setIsProcessing(true);
         try {
+          // First get the payment details
+          const { data: paymentData } = await supabase
+            .from("payments")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+          if (!paymentData) throw new Error("Payment not found");
+
+          // Update payment status
           const { error } = await supabase
             .from("payments")
             .update({
@@ -222,17 +234,37 @@ export default function AdminPayments() {
 
           if (error) throw error;
 
-          // Send confirmation email if status is completed
-          if (status === "completed") {
-            const { data } = await supabase
-              .from("payments")
-              .select("*")
-              .eq("id", id)
+          // If this is an application payment and status is completed,
+          // get the membership details from the application
+          let membershipDetails = {
+            formattedId: "",
+            type: paymentData.membership_type,
+          };
+
+          if (status === "completed" && paymentData.application_id) {
+            const { data: applicationData } = await supabase
+              .from("membership_applications")
+              .select("membership_id, membership_type")
+              .eq("id", paymentData.application_id)
               .single();
 
-            if (data) {
-              await sendPaymentConfirmationEmail(data as Payment);
+            if (applicationData) {
+              membershipDetails = {
+                formattedId: applicationData.membership_id || "",
+                type:
+                  applicationData.membership_type ||
+                  paymentData.membership_type,
+              };
             }
+          }
+
+          // Send confirmation email if status is completed
+          if (status === "completed") {
+            await sendPaymentConfirmationEmail({
+              ...paymentData,
+              membership_formatted_id: membershipDetails.formattedId,
+              membership_type: membershipDetails.type,
+            });
           }
 
           await fetchPayments();
@@ -348,72 +380,95 @@ export default function AdminPayments() {
     }
   };
 
+  const getMembershipLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      ordinary: "Full Membership",
+      associate: "Associate Membership",
+      student: "Student Membership",
+      institutional: "Institutional Membership",
+      honorary: "Honorary Membership",
+    };
+    return labels[type] || type;
+  };
+
   const sendPaymentConfirmationEmail = async (payment: Payment) => {
     try {
-      if (
-        !import.meta.env.VITE_EMAILJS_SERVICE_ID ||
-        !import.meta.env.VITE_EMAILJS_TEMPLATE_ID ||
-        !import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      ) {
-        console.error("EmailJS configuration is missing");
-        return false;
-      }
+      // Format membership type for display
+      const membershipType = getMembershipLabel(payment.membership_type);
 
       const templateParams = {
-        from_name: "EACNA Payments",
-        reply_to: "no-reply@eacna.org",
         to_name: payment.member_name,
         to_email: payment.member_email,
-        subject: "Your Payment Has Been Verified",
-        message: getPaymentConfirmationTemplate(payment),
+        subject: "Your EACNA Payment Has Been Verified",
+        message: `
+          <p>Dear ${payment.member_name},</p>
+          <p>We're pleased to inform you that your payment has been successfully verified by our team.</p>
+          
+          <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+            <div style="display: flex; margin-bottom: 8px;">
+              <span style="font-weight: bold; width: 180px;">Transaction ID:</span>
+              <span>${payment.transaction_id}</span>
+            </div>
+            <div style="display: flex; margin-bottom: 8px;">
+              <span style="font-weight: bold; width: 180px;">Amount:</span>
+              <span>${
+                payment.currency
+              } ${payment.amount.toLocaleString()}</span>
+            </div>
+            ${
+              payment.membership_formatted_id
+                ? `
+            <div style="display: flex; margin-bottom: 8px;">
+              <span style="font-weight: bold; width: 180px;">Membership ID:</span>
+              <span style="font-weight: 600;">${payment.membership_formatted_id}</span>
+            </div>
+            `
+                : ""
+            }
+            <div style="display: flex; margin-bottom: 8px;">
+              <span style="font-weight: bold; width: 180px;">Membership Type:</span>
+              <span>${membershipType}</span>
+            </div>
+            <div style="display: flex; margin-bottom: 8px;">
+              <span style="font-weight: bold; width: 180px;">Payment Method:</span>
+              <span>${payment.payment_method.replace("_", " ")}</span>
+            </div>
+            <div style="display: flex;">
+              <span style="font-weight: bold; width: 180px;">Payment Date:</span>
+              <span>${new Date(payment.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+          
+          ${
+            payment.membership_formatted_id
+              ? `
+          <p><strong>Important:</strong> Your membership ID is <strong>${payment.membership_formatted_id}</strong>. 
+          Please keep this number for your records as you'll need it for all future interactions with EACNA.</p>
+          `
+              : `
+          <p>Your ${membershipType.toLowerCase()} membership is now active.</p>
+          `
+          }
+          
+          <p>You can now enjoy all the benefits of your EACNA membership. If you have any questions, please don't hesitate to contact us at members@eacna.org.</p>
+          
+          <p>Best regards,<br/>The EACNA Team</p>
+        `,
       };
 
-      await emailjs.send(
+      const response = await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
         import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
         templateParams,
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       );
 
+      console.log("Email sent successfully:", response);
       return true;
     } catch (error) {
       console.error("Error sending payment confirmation email:", error);
       return false;
     }
-  };
-
-  const getPaymentConfirmationTemplate = (payment: Payment) => {
-    const content = `
-      <p>We're pleased to inform you that your payment has been successfully verified by our team.</p>
-      
-      <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
-        <div style="display: flex; margin-bottom: 8px;">
-          <span style="font-weight: bold; width: 150px;">Transaction ID:</span>
-          <span>${payment.transaction_id}</span>
-        </div>
-        <div style="display: flex; margin-bottom: 8px;">
-          <span style="font-weight: bold; width: 150px;">Amount:</span>
-          <span>${payment.currency} ${payment.amount.toLocaleString()}</span>
-        </div>
-        <div style="display: flex; margin-bottom: 8px;">
-          <span style="font-weight: bold; width: 150px;">Payment Method:</span>
-          <span>${payment.payment_method.replace("_", " ")}</span>
-        </div>
-        <div style="display: flex;">
-          <span style="font-weight: bold; width: 150px;">Payment Date:</span>
-          <span>${new Date(payment.created_at).toLocaleDateString()}</span>
-        </div>
-      </div>
-      
-      <p>You can now enjoy all the benefits of your EACNA membership. If you have any questions, please don't hesitate to contact us.</p>
-    `;
-
-    return getEmailTemplateHTML({
-      title: "Payment Confirmation",
-      recipientName: payment.member_name,
-      content: content,
-      type: "payment",
-    });
   };
 
   return (
@@ -797,11 +852,11 @@ export default function AdminPayments() {
                         </p>
                       </div>
                     )}
-                    {selectedPayment.member_id && (
+                    {selectedPayment.application_id && (
                       <div>
-                        <p className="text-xs text-gray-500">Member ID</p>
+                        <p className="text-xs text-gray-500">Application ID</p>
                         <p className="text-sm font-mono">
-                          {selectedPayment.member_id}
+                          {selectedPayment.application_id}
                         </p>
                       </div>
                     )}

@@ -96,26 +96,28 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     // Validate at least one field is filled
     if (!firstName && !lastName && !phone && !email) {
       setSearchError("Please fill at least one search field");
       return;
     }
-
+  
     setSearchLoading(true);
     setSearchError("");
-
+  
     try {
       // Clean search terms
       const cleanFirstName = firstName.trim();
       const cleanLastName = lastName.trim();
       const cleanPhone = phone.trim();
       const cleanEmail = email.trim();
-
-      // Start building the query
-      let query = supabase.from("membership_applications").select("*");
-
+  
+      // Start building the query - explicitly select application_status
+      let query = supabase
+        .from("membership_applications")
+        .select("*, application_status");
+  
       // Add conditions for each provided field
       if (cleanFirstName) {
         query = query.ilike("first_name", `%${cleanFirstName}%`);
@@ -129,67 +131,86 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
       if (cleanEmail) {
         query = query.ilike("email", `%${cleanEmail}%`);
       }
-
+  
       // Execute the query
       const { data, error } = await query;
-
+  
       if (error) throw error;
-
+  
       if (data && data.length > 0) {
         // Find the best match - prioritize exact matches
         let bestMatch = data[0];
-
+  
         if (cleanFirstName || cleanLastName) {
           // If searching by name, try to find exact matches first
           const exactMatch = data.find(
             (app) =>
               (cleanFirstName &&
-                app.first_name.toLowerCase() ===
-                  cleanFirstName.toLowerCase()) ||
+                app.first_name?.toLowerCase() === cleanFirstName.toLowerCase()) ||
               (cleanLastName &&
-                app.last_name.toLowerCase() === cleanLastName.toLowerCase())
+                app.last_name?.toLowerCase() === cleanLastName.toLowerCase())
           );
-
+  
           if (exactMatch) {
             bestMatch = exactMatch;
           }
         }
-
+  
         const application = bestMatch;
-
-        // Validate membership type
-        const validMembershipTypes: MembershipTier[] = Object.keys(
-          membershipTiers
-        ) as MembershipTier[];
-
-        if (!validMembershipTypes.includes(application.membership_type)) {
-          throw new Error("Invalid membership type in application");
+  
+        // Debug: Log the application data
+        console.log("Found application with status:", {
+          id: application.id,
+          status: application.application_status,
+          data: application
+        });
+  
+        // Validate we have an application_status
+        if (!application.application_status) {
+          throw new Error("Application status is missing");
         }
-
-        if (application.status === "approved") {
-          setMemberData({
-            id: application.id,
-            user_id: application.user_id,
-            first_name: application.first_name,
-            last_name: application.last_name,
-            phone: application.phone,
-            email: application.email,
-            membership_type: application.membership_type as MembershipTier,
-            status: application.status,
-          });
-          setStep(2); // Move to payment step
-        } else if (application.status === "pending") {
-          setSearchError(
-            "Your application is still under review. Payment can only be made after approval."
-          );
-        } else if (application.status === "rejected") {
-          setSearchError(
-            "Your application was not approved. Please contact support for more information."
-          );
-        } else {
-          setSearchError(
-            `Your application status is currently: ${application.status}. Payment can only be made for approved applications.`
-          );
+  
+        // Handle different status cases - using application_status
+        switch (application.application_status.toLowerCase()) {
+          case "approved":
+            // Validate membership type
+            const validMembershipTypes: MembershipTier[] = Object.keys(
+              membershipTiers
+            ) as MembershipTier[];
+  
+            if (!validMembershipTypes.includes(application.membership_type)) {
+              throw new Error("Invalid membership type in application");
+            }
+  
+            setMemberData({
+              id: application.id,
+              user_id: application.user_id,
+              first_name: application.first_name,
+              last_name: application.last_name,
+              phone: application.phone,
+              email: application.email,
+              membership_type: application.membership_type as MembershipTier,
+              status: application.application_status,
+            });
+            setStep(2); // Move to payment step
+            break;
+  
+          case "pending":
+            setSearchError(
+              "Your application is still under review. Payment can only be made after approval."
+            );
+            break;
+  
+          case "rejected":
+            setSearchError(
+              "Your application was not approved. Please contact support for more information."
+            );
+            break;
+  
+          default:
+            setSearchError(
+              `Your application status is currently: ${application.application_status}. Payment can only be made for approved applications.`
+            );
         }
       } else {
         setSearchError(
@@ -222,11 +243,22 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         throw new Error("Please enter a valid transaction ID");
       }
   
-      // Map payment method to database enum values
-      const dbPaymentMethod =
-        paymentMethod === "mobile" ? "mpesa" : paymentMethod;
+      // First fetch the membership application to get applicant_key
+      const { data: application, error: appError } = await supabase
+        .from("membership_applications")
+        .select("applicant_key")
+        .eq("id", memberData.id)
+        .single();
   
-      // Submit payment with membership type included
+      if (appError) throw appError;
+      if (!application?.applicant_key) {
+        throw new Error("Could not retrieve applicant key from application");
+      }
+  
+      // Map payment method to database enum values
+      const dbPaymentMethod = paymentMethod === "mobile" ? "mpesa" : paymentMethod;
+  
+      // Submit payment with applicant_key from membership_applications
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .insert({
@@ -235,8 +267,8 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
           currency: "KES",
           payment_method: dbPaymentMethod,
           status: "pending",
-          application_id: memberData.id,
-          user_id: memberData.user_id,
+          membership_id: memberData.id,
+          applicant_key: application.applicant_key,
           member_name: `${memberData.first_name} ${memberData.last_name}`,
           member_email: memberData.email,
           payment_type: "application",
@@ -246,24 +278,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         .select()
         .single();
   
-      if (paymentError) {
-        console.error("Payment creation error:", paymentError);
-        throw paymentError;
-      }
-  
-      // Update application with payment ID
-      const { error: updateError } = await supabase
-        .from("membership_applications")
-        .update({
-          payment_id: paymentData.id,
-          status: "pending_payment",
-        })
-        .eq("id", memberData.id);
-  
-      if (updateError) {
-        console.error("Application update error:", updateError);
-        throw updateError;
-      }
+      if (paymentError) throw paymentError;
   
       setSubmitStatus("success");
       setStep(3);

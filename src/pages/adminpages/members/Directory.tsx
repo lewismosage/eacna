@@ -20,7 +20,7 @@ import { MembershipTier, membershipTiers } from "../../../types/membership";
 // Define the Member interface
 interface Member {
   id: string;
-  user_id: string;
+  applicant_key: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -38,7 +38,7 @@ interface Member {
 // Define application details interface
 interface ApplicationDetails {
   id: string;
-  user_id: string;
+  applicant_key: string;
   first_name: string;
   middle_name?: string;
   last_name: string;
@@ -49,6 +49,7 @@ interface ApplicationDetails {
   phone: string;
   id_number?: string;
   membership_type: MembershipTier;
+  membership_id: string;
   current_profession: string;
   institution: string;
   work_address?: string;
@@ -201,20 +202,22 @@ const AdminMembershipDirectory = () => {
 
         if (paymentsError) throw paymentsError;
 
-        // Then get the associated membership applications
-        const userIds = paymentsData.map((payment) => payment.user_id);
+        // Then get the associated membership applications using applicant_key
+        const applicantKeys = paymentsData.map(
+          (payment) => payment.applicant_key
+        );
         const { data: applicationsData, error: applicationsError } =
           await supabase
             .from("membership_applications")
             .select("*")
-            .in("user_id", userIds);
+            .in("applicant_key", applicantKeys);
 
         if (applicationsError) throw applicationsError;
 
         // Combine the data
         const transformedData = paymentsData.map((payment): Member => {
           const application = applicationsData.find(
-            (app) => app.user_id === payment.user_id
+            (app) => app.applicant_key === payment.applicant_key
           );
           const expiryDate = new Date(payment.verified_at);
           expiryDate.setFullYear(expiryDate.getFullYear() + 1);
@@ -223,7 +226,7 @@ const AdminMembershipDirectory = () => {
 
           return {
             id: payment.id,
-            user_id: payment.user_id,
+            applicant_key: payment.applicant_key,
             first_name: application?.first_name || "",
             last_name: application?.last_name || "",
             email: application?.email || "",
@@ -379,7 +382,7 @@ const AdminMembershipDirectory = () => {
   };
 
   // Handle view details click
-  const handleViewDetails = async (memberId: string, userId: string) => {
+  const handleViewDetails = async (memberId: string, applicantKey: string) => {
     setViewDetailsModal({
       open: true,
       memberId,
@@ -389,21 +392,21 @@ const AdminMembershipDirectory = () => {
     });
 
     try {
-      // Fetch application details - remove .single() since we might get multiple
+      // Fetch application details using applicant_key
       const { data: applicationData, error: applicationError } = await supabase
         .from("membership_applications")
-        .select("*")
-        .eq("user_id", userId)
+        .select("*, membership_id")
+        .eq("applicant_key", applicantKey)
         .order("created_at", { ascending: false })
         .limit(1); // Get the most recent application
 
       if (applicationError) throw applicationError;
 
-      // Fetch payment details - also remove .single()
+      // Fetch payment details using applicant_key
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .select("*")
-        .eq("user_id", userId)
+        .eq("applicant_key", applicantKey)
         .order("verified_at", { ascending: false })
         .limit(1); // Get the most recent payment
 
@@ -704,7 +707,7 @@ const AdminMembershipDirectory = () => {
                                     e.stopPropagation();
                                     handleViewDetails(
                                       member.id,
-                                      member.user_id
+                                      member.applicant_key
                                     );
                                     setDropdownMenu(null);
                                   }}
@@ -1002,6 +1005,17 @@ const AdminMembershipDirectory = () => {
                 </div>
               ) : (
                 <>
+                  {viewDetailsModal.applicationDetails?.membership_id && (
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                      <h4 className="text-lg font-medium text-gray-900">
+                        Membership ID:{" "}
+                        <span className="font-mono font-bold">
+                          {viewDetailsModal.applicationDetails.membership_id}
+                        </span>
+                      </h4>
+                    </div>
+                  )}
+
                   {viewDetailsModal.applicationDetails && (
                     <>
                       <div className="mb-8">
@@ -1015,6 +1029,13 @@ const AdminMembershipDirectory = () => {
                                 Personal Information
                               </h5>
                               <div className="mt-2 space-y-2">
+                                <p className="text-sm">
+                                  <span className="font-medium">
+                                    Membership ID:
+                                  </span>{" "}
+                                  {viewDetailsModal.applicationDetails
+                                    .membership_id || "N/A"}
+                                </p>
                                 <p className="text-sm">
                                   <span className="font-medium">Name:</span>{" "}
                                   {
