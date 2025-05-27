@@ -20,36 +20,43 @@ function AdminLogin() {
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+  
     if (!email || !password) {
       setError('Please enter both email and password');
       return;
     }
-
+  
     setLoading(true);
     setError('');
-
+  
     try {
-      const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
+      // 1. Sign in the user
+      const { data: { user }, error: signInError } = 
+        await supabase.auth.signInWithPassword({ email, password });
+  
       if (signInError) throw signInError;
       if (!user) throw new Error('No user returned from sign in');
-
-      const isAdmin = (
-        user.user_metadata?.role === 'admin' ||
-        user.app_metadata?.role === 'admin'
-      );
-
-      if (!isAdmin) {
+  
+      // 2. Fetch the user's role from the profiles table
+      const { data: profile, error: profileError } = 
+        await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+  
+      if (profileError) throw profileError;
+      if (!profile) throw new Error('No profile found for this user');
+  
+      // 3. Check if the user is an admin
+      if (profile.role !== 'admin') {
         await supabase.auth.signOut();
         throw new Error('You do not have admin privileges');
       }
-
+  
+      // 4. Redirect to admin dashboard
       navigate('/admin', { replace: true });
-
+  
     } catch (err) {
       setError(
         err instanceof Error 

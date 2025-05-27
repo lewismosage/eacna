@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
@@ -10,7 +11,9 @@ interface ProtectedRouteProps {
   adminOnly?: boolean;
 }
 
-export default function ProtectedRoute({ adminOnly = false }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  adminOnly = false,
+}: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const location = useLocation();
@@ -18,7 +21,10 @@ export default function ProtectedRoute({ adminOnly = false }: ProtectedRouteProp
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
         if (error || !user) {
           setAuthorized(false);
@@ -27,12 +33,14 @@ export default function ProtectedRoute({ adminOnly = false }: ProtectedRouteProp
         }
 
         if (adminOnly) {
-          // Check both metadata sources for admin role
-          const isAdmin = (
-            user.user_metadata?.role === 'admin' || 
-            user.app_metadata?.role === 'admin'
-          );
-          
+          const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+
+          const isAdmin = profile?.role === "admin";
+
           if (!isAdmin) {
             setAuthorized(false);
           } else {
@@ -53,15 +61,17 @@ export default function ProtectedRoute({ adminOnly = false }: ProtectedRouteProp
   }, [adminOnly, location]);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   if (!authorized) {
-    return <Navigate 
-      to={adminOnly ? "/admin-login" : "/login"} 
-      state={{ from: location }} 
-      replace 
-    />;
+    return (
+      <Navigate
+        to={adminOnly ? "/admin/login" : "/login"}
+        state={{ from: location }}
+        replace
+      />
+    );
   }
 
   return <Outlet />;
