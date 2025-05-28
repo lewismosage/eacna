@@ -11,9 +11,7 @@ interface ProtectedRouteProps {
   adminOnly?: boolean;
 }
 
-export default function ProtectedRoute({
-  adminOnly = false,
-}: ProtectedRouteProps) {
+export default function ProtectedRoute({ adminOnly = false }: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const location = useLocation();
@@ -23,34 +21,35 @@ export default function ProtectedRoute({
       try {
         const {
           data: { user },
-          error,
+          error: authError,
         } = await supabase.auth.getUser();
 
-        if (error || !user) {
+        if (authError || !user) {
+          console.error("Auth error or user not found:", authError);
           setAuthorized(false);
           setLoading(false);
           return;
         }
 
         if (adminOnly) {
-          const { data: profile, error } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("role")
-            .eq("id", user.id)
+            .eq("user_id", user.id) 
             .single();
 
-          const isAdmin = profile?.role === "admin";
-
-          if (!isAdmin) {
+          if (profileError) {
+            console.error("Profile fetch error:", profileError);
             setAuthorized(false);
           } else {
-            setAuthorized(true);
+            const isAdmin = profile?.role === "admin";
+            setAuthorized(isAdmin);
           }
         } else {
           setAuthorized(true);
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        console.error("Unexpected error during auth check:", error);
         setAuthorized(false);
       } finally {
         setLoading(false);

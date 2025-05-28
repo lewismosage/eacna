@@ -73,6 +73,7 @@ interface MemberData {
   status: string;
 }
 
+
 export default function PaymentModal({ onClose }: PaymentModalProps) {
   // Search state
   const [firstName, setFirstName] = useState("");
@@ -243,32 +244,25 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         throw new Error("Please enter a valid transaction ID");
       }
   
-      // First fetch the membership application to get applicant_key
-      const { data: application, error: appError } = await supabase
-        .from("membership_applications")
-        .select("applicant_key")
-        .eq("id", memberData.id)
-        .single();
+      // Map frontend payment method to database values
+      const paymentMethodMap = {
+        'bank': 'bank_transfer', 
+        'mobile': 'mpesa',
+        'online': 'credit_card'
+      };
   
-      if (appError) throw appError;
-      if (!application?.applicant_key) {
-        throw new Error("Could not retrieve applicant key from application");
-      }
+      const dbPaymentMethod = paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] || 'other';
   
-      // Map payment method to database enum values
-      const dbPaymentMethod = paymentMethod === "mobile" ? "mpesa" : paymentMethod;
-  
-      // Submit payment with applicant_key from membership_applications
+      // Submit payment
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .insert({
           transaction_id: transactionId,
           amount: membershipTiers[memberData.membership_type].price,
           currency: "KES",
-          payment_method: dbPaymentMethod,
+          payment_method: dbPaymentMethod,  // Use mapped value
           status: "pending",
-          membership_id: memberData.id,
-          applicant_key: application.applicant_key,
+          application_id: memberData.id,
           member_name: `${memberData.first_name} ${memberData.last_name}`,
           member_email: memberData.email,
           payment_type: "application",

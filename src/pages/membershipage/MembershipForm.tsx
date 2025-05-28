@@ -70,7 +70,6 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
   const {
     register,
     handleSubmit,
-    watch,
     trigger,
     control,
     getValues,
@@ -88,70 +87,39 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
   const nextStep = () => setCurrentStep((prev) => prev + 1);
   const prevStep = () => setCurrentStep((prev) => prev - 1);
 
-  const handleInitialSignup = async (formData: FormData) => {
+  const handleSubmitApplication = async (formData: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
-    setEmailForConfirmation(formData.email);
-
-    try {
-      const { error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          },
-        },
-      });
-
-      if (authError) throw authError;
-      nextStep();
-    } catch (err) {
-      console.error("Error during signup:", err);
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create account. Please try again."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCompleteApplication = async (formData: FormData) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
-
+  
     try {
       const { data: result, error } = await supabase.rpc(
         "create_membership_application",
         {
-          email: formData.email,
-          password: formData.password,
-          first_name: formData.firstName,
-          middle_name: formData.middleName,
-          last_name: formData.lastName,
-          gender: formData.gender,
-          nationality: formData.nationality,
-          country_of_residence: formData.countryOfResidence,
-          phone: formData.phone,
-          id_number: formData.idNumber,
-          membership_type: formData.membershipType,
-          current_profession: formData.currentProfession,
-          institution: formData.institution,
-          work_address: formData.workAddress,
-          registration_number: formData.registrationNumber,
-          highest_degree: formData.highestDegree,
-          university: formData.university,
-          certify_info: formData.certifyInfo,
-          consent_data: formData.consentData,
+          p_email: formData.email,
+          p_first_name: formData.firstName,
+          p_last_name: formData.lastName,
+          p_middle_name: formData.middleName,
+          p_password: formData.password,
+          p_phone: formData.phone,
+          p_id_number: formData.idNumber,
+          p_gender: formData.gender,
+          p_nationality: formData.nationality,
+          p_country_of_residence: formData.countryOfResidence,
+          p_membership_type: formData.membershipType,
+          p_current_profession: formData.currentProfession,
+          p_institution: formData.institution,
+          p_work_address: formData.workAddress,
+          p_registration_number: formData.registrationNumber,
+          p_highest_degree: formData.highestDegree,
+          p_university: formData.university,
+          p_certify_info: formData.certifyInfo,
+          p_consent_data: formData.consentData
         }
       );
-
+  
       if (error) throw error;
       if (!result?.success) throw new Error(result?.error || "Unknown error");
-
+  
       onComplete?.(formData);
       nextStep();
     } catch (err) {
@@ -165,6 +133,25 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
       setIsSubmitting(false);
     }
   };
+
+  const handleAccountCreation = async (formData: FormData) => {
+    try {
+      await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password, // Generate random password if not provided
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+          },
+        },
+      });
+    } catch (err) {
+      console.error("Account creation optional - not critical:", err);
+    }
+  };
+
+  const steps = [{ title: "Application Details" }, { title: "Confirmation" }];
 
   const renderFormStep = () => {
     switch (currentStep) {
@@ -476,442 +463,7 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
             <div className="flex justify-end pt-4">
               <Button
                 type="button"
-                onClick={async () => {
-                  const isValid = await trigger([
-                    "firstName",
-                    "lastName",
-                    "email",
-                    "phone",
-                    "password",
-                    "confirmPassword",
-                  ]);
-
-                  if (isValid) {
-                    const formData = getValues();
-                    await handleInitialSignup(formData);
-                  }
-                }}
-                disabled={isSubmitting}
-              >
-                {isSubmitting
-                  ? "Creating Account..."
-                  : "Create Account & Verify Email"}
-              </Button>
-            </div>
-            {submitError && (
-              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
-                {submitError}
-              </div>
-            )}
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="text-center py-8">
-            <div className="inline-flex items-center justify-center h-24 w-24 rounded-full bg-blue-100 mb-6">
-              <MailCheck className="h-12 w-12 text-blue-600" />
-            </div>
-            <h3 className="text-2xl font-bold mb-2 text-primary-800">
-              Verify Your Email
-            </h3>
-            <p className="text-gray-600 max-w-md mx-auto mb-4">
-              We've sent a confirmation email to{" "}
-              <strong>{emailForConfirmation}</strong>. Please check your inbox
-              and click the verification link to continue your application.
-            </p>
-            <p className="text-gray-500 text-sm mb-6">
-              Didn't receive the email? Check your spam folder or
-              <button
-                className="text-blue-600 hover:text-blue-800 ml-1"
-                onClick={async () => {
-                  if (emailForConfirmation) {
-                    await supabase.auth.resend({
-                      type: "signup",
-                      email: emailForConfirmation,
-                    });
-                  }
-                }}
-              >
-                resend confirmation
-              </button>
-            </p>
-            <div className="flex justify-center">
-              <Button
-                variant="primary"
-                onClick={async () => {
-                  const {
-                    data: { user },
-                  } = await supabase.auth.getUser();
-                  if (user?.email_confirmed_at) {
-                    setCurrentStep(3); // Move to form completion if confirmed
-                  } else {
-                    alert("Please confirm your email first. Check your inbox.");
-                  }
-                }}
-              >
-                I've Verified My Email
-              </Button>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold mb-4">
-              Complete Your Application
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Thank you for verifying your email. Please complete the remaining
-              application details.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="gender"
-                >
-                  Gender*
-                </label>
-                <div className="flex space-x-4">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      value="male"
-                      {...register("gender", {
-                        required: "Gender is required",
-                      })}
-                    />
-                    <span className="ml-2">Male</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      value="female"
-                      {...register("gender", {
-                        required: "Gender is required",
-                      })}
-                    />
-                    <span className="ml-2">Female</span>
-                  </label>
-                </div>
-                {errors.gender && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.gender.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="nationality"
-                >
-                  Nationality*
-                </label>
-                <select
-                  id="nationality"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.nationality ? "border-red-500" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("nationality", {
-                    required: "Nationality is required",
-                  })}
-                >
-                  <option value="">Select nationality</option>
-                  <option value="kenyan">Kenyan</option>
-                  <option value="ugandan">Ugandan</option>
-                  <option value="tanzanian">Tanzanian</option>
-                  <option value="south_sudanese">South Sudanese</option>
-                  <option value="rwandese">Rwandese</option>
-                  <option value="burundian">Burundian</option>
-                  <option value="ethiopian">Ethiopian</option>
-                  <option value="somalian">Somalian</option>
-                </select>
-                {errors.nationality && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.nationality.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="countryOfResidence"
-                >
-                  Country of Residence*
-                </label>
-                <select
-                  id="countryOfResidence"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.countryOfResidence
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("countryOfResidence", {
-                    required: "Country of residence is required",
-                  })}
-                >
-                  <option value="">Select country</option>
-                  <option value="kenya">Kenya</option>
-                  <option value="uganda">Uganda</option>
-                  <option value="tanzania">Tanzania</option>
-                  <option value="burundi">Burundi</option>
-                  <option value="south_sudan">South Sudan</option>
-                  <option value="rwanda">Rwanda</option>
-                  <option value="ethiopia">Ethiopia</option>
-                  <option value="somalia">Somalia</option>
-                </select>
-                {errors.countryOfResidence && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.countryOfResidence.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="idNumber"
-                >
-                  ID Number/Passport*
-                </label>
-                <input
-                  id="idNumber"
-                  type="text"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.idNumber ? "border-red-500" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("idNumber", {
-                    required: "ID or Passport number is required",
-                  })}
-                />
-                {errors.idNumber && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.idNumber.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="membershipType"
-                >
-                  Membership Category
-                </label>
-                <select
-                  id="membershipType"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.membershipType ? "border-red-500" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("membershipType", { required: true })}
-                >
-                  <option value="">Select membership type</option>
-                  {Object.keys(membershipTiers).map((tier) => (
-                    <option key={tier} value={tier}>
-                      {tier}
-                    </option>
-                  ))}
-                </select>
-                {errors.membershipType && (
-                  <p className="mt-1 text-sm text-red-600">
-                    Membership type is required
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="currentProfession"
-                >
-                  Current Profession
-                </label>
-                <input
-                  id="currentProfession"
-                  type="text"
-                  placeholder="e.g., Paediatric Neurologist"
-                  className={`"appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" ${
-                    errors.currentProfession
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
-                  {...register("currentProfession", { required: true })}
-                />
-                {errors.currentProfession && (
-                  <p className="mt-1 text-sm text-red-600">
-                    Current profession is required
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="institution"
-              >
-                Institution
-              </label>
-              <input
-                id="institution"
-                type="text"
-                className={`"appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" ${
-                  errors.institution ? "border-red-500" : "border-gray-300"
-                }`}
-                {...register("institution", { required: true })}
-              />
-              {errors.institution && (
-                <p className="mt-1 text-sm text-red-600">
-                  Institution is required
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="workAddress"
-              >
-                Work Address
-              </label>
-              <textarea
-                id="workAddress"
-                rows={3}
-                className={`"appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" ${
-                  errors.workAddress ? "border-red-500" : "border-gray-300"
-                }`}
-                {...register("workAddress", { required: true })}
-              ></textarea>
-              {errors.workAddress && (
-                <p className="mt-1 text-sm text-red-600">
-                  Work address is required
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="registrationNumber"
-              >
-                Medical Registration/Licensure Number
-              </label>
-              <input
-                id="registrationNumber"
-                type="text"
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                {...register("registrationNumber")}
-              />
-            </div>
-
-            <h3 className="text-xl font-semibold mb-4 pt-4">
-              Educational Background
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="highestDegree"
-                >
-                  Highest Degree Earned
-                </label>
-                <input
-                  id="highestDegree"
-                  type="text"
-                  className={`"appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" ${
-                    errors.highestDegree ? "border-red-500" : "border-gray-300"
-                  }`}
-                  {...register("highestDegree", { required: true })}
-                />
-                {errors.highestDegree && (
-                  <p className="mt-1 text-sm text-red-600">
-                    Highest degree is required
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="university"
-                >
-                  University/Institution
-                </label>
-                <input
-                  id="university"
-                  type="text"
-                  className={`"appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" ${
-                    errors.university ? "border-red-500" : "border-gray-300"
-                  }`}
-                  {...register("university", { required: true })}
-                />
-                {errors.university && (
-                  <p className="mt-1 text-sm text-red-600">
-                    University is required
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-4">
-              <h4 className="font-medium mb-2">Declaration & Consent</h4>
-              <div className="space-y-3">
-                <label className="inline-flex items-start">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 mt-1 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    {...register("certifyInfo", { required: true })}
-                  />
-                  <span className="ml-2 text-gray-700">
-                    I certify that the information provided is true and complete
-                    to the best of my knowledge.
-                  </span>
-                </label>
-                {errors.certifyInfo && (
-                  <p className="text-sm text-red-600">
-                    You must certify that the information is true
-                  </p>
-                )}
-
-                <label className="inline-flex items-start">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 mt-1 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    {...register("consentData", { required: true })}
-                  />
-                  <span className="ml-2 text-gray-700">
-                    I consent to the use of my data for official communication
-                    and EACNA activities.
-                  </span>
-                </label>
-                {errors.consentData && (
-                  <p className="text-sm text-red-600">
-                    You must consent to data usage
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={prevStep}>
-                Back
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleSubmit(handleCompleteApplication)}
+                onClick={handleSubmit(handleSubmitApplication)}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Submit Application"}
@@ -924,27 +476,18 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
             )}
           </div>
         );
-
-      case 4:
+      case 2:
         return (
           <div className="text-center py-8">
-            <div className="inline-flex items-center justify-center h-24 w-24 rounded-full bg-green-100 mb-6">
-              <CheckCircle className="h-12 w-12 text-green-600" />
-            </div>
-            <h3 className="text-2xl font-bold mb-2 text-primary-800">
-              Application Submitted!
-            </h3>
-            <p className="text-gray-600 max-w-md mx-auto mb-8">
-              Thank you for your application to join EACNA. We'll review your
-              information and contact you soon. Once approved, you'll be able to
-              complete your payment through the payment portal.
+            <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold mb-2">Application Received!</h3>
+            <p className="text-gray-600 mb-4">
+              Thank you for your application. We'll review your information and
+              contact you soon.
             </p>
-            <Button variant="primary" onClick={() => navigate("/")}>
-              Return Home
-            </Button>
+            <Button onClick={() => navigate("/")}>Return Home</Button>
           </div>
         );
-
       default:
         return null;
     }

@@ -20,12 +20,13 @@ import { MembershipTier, membershipTiers } from "../../../types/membership";
 // Define the Member interface
 interface Member {
   id: string;
-  applicant_key: string;
+  user_id: string;
   first_name: string;
   last_name: string;
   email: string;
   phone: string;
   membership_type: MembershipTier;
+  membership_number: string;
   member_since: string;
   expiry_date: string;
   status: "active" | "expired";
@@ -38,7 +39,6 @@ interface Member {
 // Define application details interface
 interface ApplicationDetails {
   id: string;
-  applicant_key: string;
   first_name: string;
   middle_name?: string;
   last_name: string;
@@ -71,6 +71,7 @@ interface PaymentDetails {
   verified_at: string;
   expiry_date: string;
   membership_type: string;
+  membership_number: string;
 }
 
 // Define the status options
@@ -192,56 +193,33 @@ const AdminMembershipDirectory = () => {
       try {
         setLoading(true);
 
-        // Get completed payments for membership applications or renewals
-        const { data: paymentsData, error: paymentsError } = await supabase
-          .from("payments")
+        // Query the directory view directly
+        const { data: directoryData, error } = await supabase
+          .from("membership_directory")
           .select("*")
-          .eq("status", "completed")
-          .in("payment_type", ["application", "renewal"])
-          .order("verified_at", { ascending: false });
+          .order("member_since", { ascending: false });
 
-        if (paymentsError) throw paymentsError;
+        if (error) throw error;
 
-        // Then get the associated membership applications using applicant_key
-        const applicantKeys = paymentsData.map(
-          (payment) => payment.applicant_key
+        const transformedData = directoryData.map(
+          (member): Member => ({
+            id: member.user_id, // Using user_id as the primary identifier
+            user_id: member.user_id,
+            first_name: member.first_name,
+            last_name: member.last_name,
+            email: member.email,
+            phone: member.phone,
+            membership_type: member.membership_type as MembershipTier,
+            membership_number: member.membership_number, // Using membership_number
+            member_since: member.member_since,
+            expiry_date: member.expiry_date,
+            status: member.status as "active" | "expired",
+            institution: member.institution,
+            nationality: member.nationality,
+            country_of_residence: member.country_of_residence,
+            current_profession: member.current_profession,
+          })
         );
-        const { data: applicationsData, error: applicationsError } =
-          await supabase
-            .from("membership_applications")
-            .select("*")
-            .in("applicant_key", applicantKeys);
-
-        if (applicationsError) throw applicationsError;
-
-        // Combine the data
-        const transformedData = paymentsData.map((payment): Member => {
-          const application = applicationsData.find(
-            (app) => app.applicant_key === payment.applicant_key
-          );
-          const expiryDate = new Date(payment.verified_at);
-          expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-          const status: "active" | "expired" =
-            new Date() > expiryDate ? "expired" : "active";
-
-          return {
-            id: payment.id,
-            applicant_key: payment.applicant_key,
-            first_name: application?.first_name || "",
-            last_name: application?.last_name || "",
-            email: application?.email || "",
-            phone: application?.phone || "",
-            membership_type:
-              (application?.membership_type as MembershipTier) || "ordinary",
-            member_since: payment.verified_at,
-            expiry_date: expiryDate.toISOString(),
-            status: status,
-            institution: application?.institution || "",
-            nationality: application?.nationality,
-            country_of_residence: application?.country_of_residence,
-            current_profession: application?.current_profession || "",
-          };
-        });
 
         setMembers(transformedData);
         setFilteredMembers(transformedData);
@@ -382,7 +360,7 @@ const AdminMembershipDirectory = () => {
   };
 
   // Handle view details click
-  const handleViewDetails = async (memberId: string, applicantKey: string) => {
+  const handleViewDetails = async (memberId: string, userId: string) => {
     setViewDetailsModal({
       open: true,
       memberId,
@@ -392,52 +370,70 @@ const AdminMembershipDirectory = () => {
     });
 
     try {
-      // Fetch application details using applicant_key
-      const { data: applicationData, error: applicationError } = await supabase
-        .from("membership_applications")
-        .select("*, membership_id")
-        .eq("applicant_key", applicantKey)
-        .order("created_at", { ascending: false })
-        .limit(1); // Get the most recent application
-
-      if (applicationError) throw applicationError;
-
-      // Fetch payment details using applicant_key
+      // Get the most recent payment for this user
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .select("*")
-        .eq("applicant_key", applicantKey)
+        .eq("user_id", userId)
         .order("verified_at", { ascending: false })
-        .limit(1); // Get the most recent payment
+        .limit(1);
 
       if (paymentError) throw paymentError;
+      if (!paymentData || paymentData.length === 0)
+        throw new Error("No payment found");
 
-      // Calculate expiry date using the most recent payment
-      const latestPayment = paymentData?.[0];
-      const expiryDate = latestPayment
-        ? new Date(latestPayment.verified_at)
-        : new Date();
+      const payment = paymentData[0];
+
+      // Get the associated application
+      const { data: applicationData, error: applicationError } = await supabase
+        .from("membership_applications")
+        .select("*")
+        .eq("id", payment.application_id) // Using application_id to link
+        .single();
+
+      if (applicationError) throw applicationError;
+
+      // Calculate expiry date
+      const expiryDate = new Date(payment.verified_at);
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
       setViewDetailsModal({
         open: true,
         memberId,
-        applicationDetails:
-          (applicationData?.[0] as ApplicationDetails) || null,
-        paymentDetails: latestPayment
-          ? {
-              id: latestPayment.id,
-              transaction_id: latestPayment.transaction_id,
-              amount: latestPayment.amount,
-              currency: latestPayment.currency,
-              payment_method: latestPayment.payment_method,
-              payment_type: latestPayment.payment_type,
-              status: latestPayment.status,
-              verified_at: latestPayment.verified_at,
-              expiry_date: expiryDate.toISOString(),
-              membership_type: latestPayment.membership_type,
-            }
-          : null,
+        applicationDetails: {
+          id: applicationData.id,
+          first_name: applicationData.first_name,
+          middle_name: applicationData.middle_name,
+          last_name: applicationData.last_name,
+          gender: applicationData.gender,
+          nationality: applicationData.nationality,
+          country_of_residence: applicationData.country_of_residence,
+          email: applicationData.email,
+          phone: applicationData.phone,
+          id_number: applicationData.id_number,
+          membership_type: applicationData.membership_type as MembershipTier,
+          membership_id: payment.membership_number, // Using membership_number from payment
+          current_profession: applicationData.current_profession,
+          institution: applicationData.institution,
+          work_address: applicationData.work_address,
+          registration_number: applicationData.registration_number,
+          highest_degree: applicationData.highest_degree,
+          university: applicationData.university,
+          created_at: applicationData.created_at,
+        },
+        paymentDetails: {
+          id: payment.id,
+          transaction_id: payment.transaction_id,
+          amount: payment.amount,
+          currency: payment.currency,
+          payment_method: payment.payment_method,
+          payment_type: payment.payment_type,
+          status: payment.status,
+          verified_at: payment.verified_at,
+          expiry_date: expiryDate.toISOString(),
+          membership_type: payment.membership_type,
+          membership_number: payment.membership_number, // Added membership_number
+        },
         loading: false,
       });
     } catch (err) {
@@ -707,7 +703,7 @@ const AdminMembershipDirectory = () => {
                                     e.stopPropagation();
                                     handleViewDetails(
                                       member.id,
-                                      member.applicant_key
+                                      member.user_id
                                     );
                                     setDropdownMenu(null);
                                   }}
@@ -1008,9 +1004,10 @@ const AdminMembershipDirectory = () => {
                   {viewDetailsModal.applicationDetails?.membership_id && (
                     <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                       <h4 className="text-lg font-medium text-gray-900">
-                        Membership ID:{" "}
+                        Membership Number:{" "}
                         <span className="font-mono font-bold">
-                          {viewDetailsModal.applicationDetails.membership_id}
+                          {viewDetailsModal.paymentDetails?.membership_number ||
+                            viewDetailsModal.applicationDetails.membership_id}
                         </span>
                       </h4>
                     </div>
