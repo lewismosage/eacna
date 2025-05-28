@@ -1,35 +1,66 @@
 // components/membership/MembershipForm.tsx
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { CheckCircle, AlertCircle, Eye, EyeOff, MailCheck } from "lucide-react";
+import { CheckCircle, AlertCircle, Eye, EyeOff, MailCheck, Upload } from "lucide-react";
 import Card, { CardContent } from "../../components/common/Card";
 import Button from "../../components/common/Button";
-import { createClient } from "@supabase/supabase-js";
-import { MembershipTier, membershipTiers } from "../../types/membership";
 import { useNavigate } from "react-router-dom";
 
 type FormData = {
+  // Personal Information
   firstName: string;
-  middleName: string;
   lastName: string;
+  dateOfBirth: string;
   gender: string;
-  nationality: string;
-  countryOfResidence: string;
-  email: string;
+  nationalId: string;
   phone: string;
-  idNumber: string;
-  membershipType: MembershipTier;
-  currentProfession: string;
-  institution: string;
-  workAddress: string;
-  registrationNumber: string;
-  highestDegree: string;
-  university: string;
-  certifyInfo: boolean;
-  consentData: boolean;
+  email: string;
+  residentialAddress: string;
   password: string;
   confirmPassword: string;
+  
+  // Professional Information
+  medicalRegistrationNumber: string;
+  profession: string;
+  specialization: string;
+  yearsOfExperience: number;
+  currentEmployer: string;
+  workAddress: string;
+  
+  // Education and Certification
+  highestQualification: string;
+  institutionAttended: string;
+  yearOfGraduation: string;
+  credentials: FileList;
+  licenseExpiryDate: string;
+  
+  // Compliance
+  agreeToEthics: boolean;
+  consentToDataProcessing: boolean;
 };
+
+const professions = [
+  "Doctor",
+  "Nurse",
+  "Surgeon",
+  "Pharmacist",
+  "Neurologist",
+  "Lab Technician",
+  "Radiologist",
+  "Dentist",
+  "General Practitioner"
+];
+
+const qualifications = [
+  "MBChB",
+  "MD",
+  "BSc Nursing",
+  "PharmD",
+  "BSc Medicine",
+  "MSc Medicine",
+  "PhD",
+  "Diploma in Clinical Medicine"
+];
 
 const validatePassword = (password: string) => {
   const minLength = password.length >= 8;
@@ -49,23 +80,16 @@ const validatePassword = (password: string) => {
   };
 };
 
-interface MembershipFormProps {
-  onComplete: (data: FormData) => void;
-}
-
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-const MembershipForm = ({ onComplete }: MembershipFormProps) => {
+const MembershipForm = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [emailForConfirmation, setEmailForConfirmation] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
 
   const {
     register,
@@ -74,6 +98,7 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
     control,
     getValues,
     formState: { errors },
+    watch,
   } = useForm<FormData>();
 
   const watchedPassword = useWatch({
@@ -84,96 +109,111 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
 
   const passwordStrength = validatePassword(watchedPassword);
 
-  const nextStep = () => setCurrentStep((prev) => prev + 1);
+  const nextStep = async () => {
+    // Validate current step before proceeding
+    const fieldsToValidate = getStepFields(currentStep);
+    const isValid = await trigger(fieldsToValidate as any);
+    
+    if (isValid) {
+      setCurrentStep((prev) => prev + 1);
+    }
+  };
+
   const prevStep = () => setCurrentStep((prev) => prev - 1);
 
-  const handleSubmitApplication = async (formData: FormData) => {
+  const getStepFields = (step: number) => {
+    switch(step) {
+      case 1: 
+        return ['firstName', 'lastName', 'dateOfBirth', 'gender', 'nationalId', 'phone', 
+                'email', 'residentialAddress', 'password', 'confirmPassword'];
+      case 2:
+        return ['medicalRegistrationNumber', 'profession', 'specialization', 
+                'yearsOfExperience', 'currentEmployer', 'workAddress'];
+      case 3:
+        return ['highestQualification', 'institutionAttended', 'yearOfGraduation', 
+                'licenseExpiryDate'];
+      default:
+        return [];
+    }
+  };
+
+  const handlePersonalInfoSubmit = async (data: Partial<FormData>) => {
     setIsSubmitting(true);
     setSubmitError(null);
-  
+    
     try {
-      const { data: result, error } = await supabase.rpc(
-        "create_membership_application",
-        {
-          p_email: formData.email,
-          p_first_name: formData.firstName,
-          p_last_name: formData.lastName,
-          p_middle_name: formData.middleName,
-          p_password: formData.password,
-          p_phone: formData.phone,
-          p_id_number: formData.idNumber,
-          p_gender: formData.gender,
-          p_nationality: formData.nationality,
-          p_country_of_residence: formData.countryOfResidence,
-          p_membership_type: formData.membershipType,
-          p_current_profession: formData.currentProfession,
-          p_institution: formData.institution,
-          p_work_address: formData.workAddress,
-          p_registration_number: formData.registrationNumber,
-          p_highest_degree: formData.highestDegree,
-          p_university: formData.university,
-          p_certify_info: formData.certifyInfo,
-          p_consent_data: formData.consentData
-        }
-      );
-  
-      if (error) throw error;
-      if (!result?.success) throw new Error(result?.error || "Unknown error");
-  
-      onComplete?.(formData);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setVerificationSent(true);
       nextStep();
     } catch (err) {
-      console.error("Error submitting application:", err);
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Failed to submit application. Please try again."
-      );
+      console.error("Error creating account:", err);
+      setSubmitError("Failed to create account. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleAccountCreation = async (formData: FormData) => {
+  const handleCompleteApplication = async (formData: FormData) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
     try {
-      await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password, // Generate random password if not provided
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          },
-        },
-      });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      nextStep(); // Move to success screen
     } catch (err) {
-      console.error("Account creation optional - not critical:", err);
+      console.error("Error completing application:", err);
+      setSubmitError("Failed to complete application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const steps = [{ title: "Application Details" }, { title: "Confirmation" }];
+  const checkEmailVerification = async () => {
+    try {
+      // Simulate verification check
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // For demo purposes, we'll just set it to true
+      setEmailVerified(true);
+      return true;
+    } catch (err) {
+      console.error("Error checking verification:", err);
+      return false;
+    }
+  };
+
+  const resendVerificationEmail = async () => {
+    try {
+      // Simulate email resend
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setVerificationSent(true);
+    } catch (err) {
+      console.error("Error resending verification:", err);
+      setSubmitError("Failed to resend verification email. Please try again.");
+    }
+  };
 
   const renderFormStep = () => {
     switch (currentStep) {
-      case 1:
+      case 1: // Personal Information
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold mb-4">Account Creation</h3>
+            <h3 className="text-xl font-semibold mb-4">Personal Information</h3>
             <p className="text-gray-600 mb-4">
-              First, create your account with basic information. You'll need to
-              verify your email before completing the full application.
+              Please provide your personal details to create your account.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="firstName"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   First Name*
                 </label>
                 <input
-                  id="firstName"
                   type="text"
                   className={`appearance-none block w-full px-3 py-2 border ${
                     errors.firstName ? "border-red-500" : "border-gray-300"
@@ -190,29 +230,10 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
               </div>
 
               <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="middleName"
-                >
-                  Middle Name
-                </label>
-                <input
-                  id="middleName"
-                  type="text"
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  {...register("middleName")}
-                />
-              </div>
-
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="lastName"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Last Name*
                 </label>
                 <input
-                  id="lastName"
                   type="text"
                   className={`appearance-none block w-full px-3 py-2 border ${
                     errors.lastName ? "border-red-500" : "border-gray-300"
@@ -231,42 +252,77 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="email"
-                >
-                  Email*
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date of Birth*
                 </label>
                 <input
-                  id="email"
-                  type="email"
+                  type="date"
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.email ? "border-red-500" : "border-gray-300"
+                    errors.dateOfBirth ? "border-red-500" : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
-                    },
+                  {...register("dateOfBirth", {
+                    required: "Date of birth is required",
                   })}
                 />
-                {errors.email && (
+                {errors.dateOfBirth && (
                   <p className="mt-1 text-sm text-red-600">
-                    {errors.email.message}
+                    {errors.dateOfBirth.message}
                   </p>
                 )}
               </div>
 
               <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="phone"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gender*
+                </label>
+                <select
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.gender ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("gender", {
+                    required: "Gender is required",
+                  })}
                 >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer-not-to-say">Prefer not to say</option>
+                </select>
+                {errors.gender && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.gender.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  National ID / Passport No.*
+                </label>
+                <input
+                  type="text"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.nationalId ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("nationalId", {
+                    required: "National ID or Passport is required",
+                  })}
+                />
+                {errors.nationalId && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.nationalId.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number*
                 </label>
                 <input
-                  id="phone"
                   type="tel"
                   className={`appearance-none block w-full px-3 py-2 border ${
                     errors.phone ? "border-red-500" : "border-gray-300"
@@ -289,15 +345,57 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="password"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address*
+                </label>
+                <input
+                  type="email"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.email ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address",
+                    },
+                  })}
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Residential Address*
+                </label>
+                <input
+                  type="text"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.residentialAddress ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("residentialAddress", {
+                    required: "Residential address is required",
+                  })}
+                />
+                {errors.residentialAddress && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.residentialAddress.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Password*
                 </label>
                 <div className="relative">
                   <input
-                    id="password"
                     type={showPassword ? "text" : "password"}
                     className={`appearance-none block w-full px-3 py-2 border ${
                       errors.password ? "border-red-500" : "border-gray-300"
@@ -419,15 +517,11 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
               </div>
 
               <div>
-                <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                  htmlFor="confirmPassword"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Confirm Password*
                 </label>
                 <div className="relative">
                   <input
-                    id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     className={`appearance-none block w-full px-3 py-2 border ${
                       errors.confirmPassword
@@ -463,7 +557,488 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
             <div className="flex justify-end pt-4">
               <Button
                 type="button"
-                onClick={handleSubmit(handleSubmitApplication)}
+                onClick={handleSubmit(handlePersonalInfoSubmit)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creating Account..." : "Create Account"}
+              </Button>
+            </div>
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+                {submitError}
+              </div>
+            )}
+          </div>
+        );
+      case 2: // Email Verification
+        return (
+          <div className="text-center py-8">
+            <MailCheck className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold mb-2">Verify Your Email</h3>
+            <p className="text-gray-600 mb-4">
+              We've sent a verification link to <span className="font-semibold">{getValues('email')}</span>.
+              Please check your email and click the link to verify your account.
+            </p>
+            
+            <div className="bg-blue-50 p-4 rounded-md mb-6 text-left">
+              <p className="text-sm text-blue-700">
+                <strong>Note:</strong> You must verify your email before you can proceed with your application.
+                If you don't see the email, please check your spam folder.
+              </p>
+            </div>
+            
+            <div className="flex justify-center gap-4">
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={resendVerificationEmail}
+                disabled={verificationSent}
+              >
+                {verificationSent ? "Email Resent!" : "Resend Verification Email"}
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  const isVerified = await checkEmailVerification();
+                  if (isVerified) {
+                    nextStep();
+                  } else {
+                    setSubmitError("Email not yet verified. Please check your inbox.");
+                  }
+                }}
+              >
+                I've Verified My Email
+              </Button>
+            </div>
+            
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+                {submitError}
+              </div>
+            )}
+          </div>
+        );
+      case 3: // Professional Information
+        return (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold mb-4">Professional Information</h3>
+            <p className="text-gray-600 mb-4">
+              Please provide details about your professional background.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Medical Registration Number*
+                </label>
+                <input
+                  type="text"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.medicalRegistrationNumber ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("medicalRegistrationNumber", {
+                    required: "Registration number is required",
+                  })}
+                />
+                {errors.medicalRegistrationNumber && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.medicalRegistrationNumber.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Profession*
+                </label>
+                <select
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.profession ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("profession", {
+                    required: "Profession is required",
+                  })}
+                >
+                  <option value="">Select Profession</option>
+                  {professions.map((prof) => (
+                    <option key={prof} value={prof}>{prof}</option>
+                  ))}
+                </select>
+                {errors.profession && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.profession.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Area of Specialization*
+                </label>
+                <input
+                  type="text"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.specialization ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("specialization", {
+                    required: "Specialization is required",
+                  })}
+                />
+                {errors.specialization && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.specialization.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Years of Experience*
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.yearsOfExperience ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("yearsOfExperience", {
+                    required: "Years of experience is required",
+                    valueAsNumber: true,
+                  })}
+                />
+                {errors.yearsOfExperience && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.yearsOfExperience.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Current Employer / Hospital / Clinic*
+              </label>
+              <input
+                type="text"
+                className={`appearance-none block w-full px-3 py-2 border ${
+                  errors.currentEmployer ? "border-red-500" : "border-gray-300"
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                {...register("currentEmployer", {
+                  required: "Current employer is required",
+                })}
+              />
+              {errors.currentEmployer && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.currentEmployer.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Work Address*
+              </label>
+              <textarea
+                rows={3}
+                className={`appearance-none block w-full px-3 py-2 border ${
+                  errors.workAddress ? "border-red-500" : "border-gray-300"
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                {...register("workAddress", {
+                  required: "Work address is required",
+                })}
+              />
+              {errors.workAddress && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.workAddress.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={nextStep}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        );
+      case 4: // Education and Certification
+        return (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold mb-4">Education and Certification</h3>
+            <p className="text-gray-600 mb-4">
+              Please provide details about your education and upload relevant documents.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Highest Qualification*
+                </label>
+                <select
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.highestQualification ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("highestQualification", {
+                    required: "Highest qualification is required",
+                  })}
+                >
+                  <option value="">Select Qualification</option>
+                  {qualifications.map((qual) => (
+                    <option key={qual} value={qual}>{qual}</option>
+                  ))}
+                </select>
+                {errors.highestQualification && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.highestQualification.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  University / Institution Attended*
+                </label>
+                <input
+                  type="text"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.institutionAttended ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("institutionAttended", {
+                    required: "Institution is required",
+                  })}
+                />
+                {errors.institutionAttended && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.institutionAttended.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Year of Graduation*
+                </label>
+                <input
+                  type="number"
+                  min="1900"
+                  max={new Date().getFullYear()}
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.yearOfGraduation ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("yearOfGraduation", {
+                    required: "Year of graduation is required",
+                  })}
+                />
+                {errors.yearOfGraduation && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.yearOfGraduation.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Medical License Expiry Date*
+                </label>
+                <input
+                  type="date"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.licenseExpiryDate ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("licenseExpiryDate", {
+                    required: "License expiry date is required",
+                  })}
+                />
+                {errors.licenseExpiryDate && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.licenseExpiryDate.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Upload Credentials (Max 4 files, PDF/Images)*
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="credentials"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none"
+                    >
+                      <span>Upload files</span>
+                      <input
+                        id="credentials"
+                        type="file"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        max={4}
+                        className="sr-only"
+                        {...register("credentials", {
+                          required: "At least one credential is required",
+                          validate: (files) => {
+                            if (!files || files.length === 0) return "At least one file is required";
+                            if (files.length > 4) return "Maximum 4 files allowed";
+                            return true;
+                          }
+                        })}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    PDF, JPG, PNG up to 10MB each
+                  </p>
+                </div>
+              </div>
+              {errors.credentials && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.credentials.message}
+                </p>
+              )}
+              
+              {/* Show selected files */}
+              {watch('credentials')?.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-gray-700">Selected files:</p>
+                  <ul className="mt-1 space-y-1">
+                    {Array.from(watch('credentials')).map((file, index) => (
+                      <li key={index} className="flex items-center text-sm text-gray-600">
+                        <Upload className="h-4 w-4 mr-2" />
+                        {file.name} ({Math.round(file.size / 1024)} KB)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={nextStep}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        );
+      case 5: // Compliance and Declarations
+        return (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold mb-4">Compliance and Declarations</h3>
+            <p className="text-gray-600 mb-4">
+              Please review and agree to the following declarations.
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="agreeToEthics"
+                    type="checkbox"
+                    className="focus:ring-emerald-500 h-4 w-4 text-emerald-600 border-gray-300 rounded"
+                    {...register("agreeToEthics", {
+                      required: "You must agree to the code of ethics",
+                    })}
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="agreeToEthics" className="font-medium text-gray-700">
+                    I agree to abide by the EACNA Code of Ethics and Professional Conduct*
+                  </label>
+                  <p className="text-gray-500 mt-1">
+                    By checking this box, you acknowledge that you have read and agree to comply with
+                    the ethical standards set forth by the East Africa Clinical Nurses Association.
+                  </p>
+                </div>
+              </div>
+              {errors.agreeToEthics && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.agreeToEthics.message}
+                </p>
+              )}
+
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="consentToDataProcessing"
+                    type="checkbox"
+                    className="focus:ring-emerald-500 h-4 w-4 text-emerald-600 border-gray-300 rounded"
+                    {...register("consentToDataProcessing", {
+                      required: "You must consent to data processing",
+                    })}
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="consentToDataProcessing" className="font-medium text-gray-700">
+                    I consent to the processing of my personal data for membership purposes*
+                  </label>
+                  <p className="text-gray-500 mt-1">
+                    EACNA will process your personal data in accordance with our Privacy Policy
+                    and applicable data protection laws.
+                  </p>
+                </div>
+              </div>
+              {errors.consentToDataProcessing && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.consentToDataProcessing.message}
+                </p>
+              )}
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-md mt-6">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Application Summary</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                <div>
+                  <p><span className="font-medium">Name:</span> {getValues('firstName')} {getValues('lastName')}</p>
+                  <p><span className="font-medium">Email:</span> {getValues('email')}</p>
+                  <p><span className="font-medium">Phone:</span> {getValues('phone')}</p>
+                  <p><span className="font-medium">Profession:</span> {getValues('profession')}</p>
+                </div>
+                <div>
+                  <p><span className="font-medium">Specialization:</span> {getValues('specialization')}</p>
+                  <p><span className="font-medium">Current Employer:</span> {getValues('currentEmployer')}</p>
+                  <p><span className="font-medium">Highest Qualification:</span> {getValues('highestQualification')}</p>
+                  <p><span className="font-medium">Institution:</span> {getValues('institutionAttended')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit(handleCompleteApplication)}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Submit Application"}
@@ -476,16 +1051,19 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
             )}
           </div>
         );
-      case 2:
+      case 6: // Success
         return (
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold mb-2">Application Received!</h3>
+            <h3 className="text-2xl font-bold mb-2">Application Submitted Successfully!</h3>
             <p className="text-gray-600 mb-4">
-              Thank you for your application. We'll review your information and
-              contact you soon.
+              Thank you for applying to become a member of EACNA. Your application is under review.
             </p>
-            <Button onClick={() => navigate("/")}>Return Home</Button>
+            <p className="text-gray-600 mb-6">
+              We will contact you via email at <span className="font-semibold">{getValues('email')}</span>{' '}
+              within 5-7 business days regarding your application status.
+            </p>
+            <Button onClick={() => navigate("/")}>Return to Homepage</Button>
           </div>
         );
       default:
@@ -497,69 +1075,42 @@ const MembershipForm = ({ onComplete }: MembershipFormProps) => {
     <Card>
       <CardContent>
         <h2 className="text-2xl font-bold mb-6 text-primary-800">
-          EACNA Online Membership Application
+          EACNA Membership Application
         </h2>
         <p className="text-gray-600 mb-8">
-          Please complete the form below. Fields marked with an asterisk (*) are
-          required.
+          Complete the following steps to apply for membership. Fields marked with an asterisk (*) are required.
         </p>
 
+        {/* Progress Stepper */}
         <div className="mb-8 overflow-hidden">
           <div className="flex mb-2">
-            <div
-              className={`flex-1 border-b-2 pb-2 ${
-                currentStep >= 1 ? "border-primary-600" : "border-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <span
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 ${
-                    currentStep >= 1
-                      ? "bg-primary-600 text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  1
-                </span>
-                <span className="font-medium">Account Creation</span>
+            {[1, 2, 3, 4, 5].map((step) => (
+              <div
+                key={step}
+                className={`flex-1 border-b-2 pb-2 ${
+                  currentStep >= step ? "border-primary-600" : "border-gray-300"
+                }`}
+              >
+                <div className="flex items-center">
+                  <span
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 ${
+                      currentStep >= step
+                        ? "bg-primary-600 text-white"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {step}
+                  </span>
+                  <span className={`font-medium ${currentStep === step ? "text-primary-600" : ""}`}>
+                    {step === 1 && "Personal Info"}
+                    {step === 2 && "Email Verify"}
+                    {step === 3 && "Professional Info"}
+                    {step === 4 && "Education"}
+                    {step === 5 && "Compliance"}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div
-              className={`flex-1 border-b-2 pb-2 ${
-                currentStep >= 2 ? "border-primary-600" : "border-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <span
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 ${
-                    currentStep >= 2
-                      ? "bg-primary-600 text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  2
-                </span>
-                <span className="font-medium">Email Verification</span>
-              </div>
-            </div>
-            <div
-              className={`flex-1 border-b-2 pb-2 ${
-                currentStep >= 3 ? "border-primary-600" : "border-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <span
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 ${
-                    currentStep >= 3
-                      ? "bg-primary-600 text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  3
-                </span>
-                <span className="font-medium">Application Details</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
