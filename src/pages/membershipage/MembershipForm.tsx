@@ -1,11 +1,22 @@
 // components/membership/MembershipForm.tsx
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { CheckCircle, AlertCircle, Eye, EyeOff, MailCheck, Upload } from "lucide-react";
+import {
+  CheckCircle,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  MailCheck,
+  Upload,
+} from "lucide-react";
 import Card, { CardContent } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import { useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
+import {
+  MembershipTier,
+  membershipTiers as tierData,
+} from "../../types/membership";
 
 type FormData = {
   // Personal Information
@@ -19,7 +30,7 @@ type FormData = {
   residentialAddress: string;
   password: string;
   confirmPassword: string;
-  
+
   // Professional Information
   medicalRegistrationNumber: string;
   profession: string;
@@ -27,17 +38,20 @@ type FormData = {
   yearsOfExperience: number;
   currentEmployer: string;
   workAddress: string;
-  
+
   // Education and Certification
   highestQualification: string;
   institutionAttended: string;
   yearOfGraduation: string;
   credentials: FileList;
   licenseExpiryDate: string;
-  
+
   // Compliance
   agreeToEthics: boolean;
   consentToDataProcessing: boolean;
+
+  // Membership
+  membershipTier: string;
 };
 
 const professions = [
@@ -49,7 +63,7 @@ const professions = [
   "Lab Technician",
   "Radiologist",
   "Dentist",
-  "General Practitioner"
+  "General Practitioner",
 ];
 
 const qualifications = [
@@ -60,8 +74,16 @@ const qualifications = [
   "BSc Medicine",
   "MSc Medicine",
   "PhD",
-  "Diploma in Clinical Medicine"
+  "Diploma in Clinical Medicine",
 ];
+
+const membershipTierOptions = Object.entries(tierData).map(([value, data]) => ({
+  value: value as MembershipTier,
+  label:
+    value === "Honorary Membership"
+      ? "Honorary Membership (by invitation only)"
+      : data.name,
+}));
 
 const validatePassword = (password: string) => {
   const minLength = password.length >= 8;
@@ -90,7 +112,9 @@ const MembershipForm = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
+  const [uploadProgress, setUploadProgress] = useState<{
+    [key: string]: number;
+  }>({});
 
   const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL,
@@ -118,7 +142,7 @@ const MembershipForm = () => {
   const nextStep = async () => {
     const fieldsToValidate = getStepFields(currentStep);
     const isValid = await trigger(fieldsToValidate as any);
-    
+
     if (isValid) {
       setCurrentStep((prev) => prev + 1);
     }
@@ -127,16 +151,37 @@ const MembershipForm = () => {
   const prevStep = () => setCurrentStep((prev) => prev - 1);
 
   const getStepFields = (step: number) => {
-    switch(step) {
-      case 1: 
-        return ['firstName', 'lastName', 'dateOfBirth', 'gender', 'nationalId', 'phone', 
-                'email', 'residentialAddress', 'password', 'confirmPassword'];
+    switch (step) {
+      case 1:
+        return [
+          "firstName",
+          "lastName",
+          "dateOfBirth",
+          "gender",
+          "nationalId",
+          "phone",
+          "email",
+          "residentialAddress",
+          "password",
+          "confirmPassword",
+        ];
       case 2:
-        return ['medicalRegistrationNumber', 'profession', 'specialization', 
-                'yearsOfExperience', 'currentEmployer', 'workAddress'];
+        return [
+          "medicalRegistrationNumber",
+          "profession",
+          "specialization",
+          "yearsOfExperience",
+          "currentEmployer",
+          "workAddress",
+          "membershipTier",
+        ];
       case 3:
-        return ['highestQualification', 'institutionAttended', 'yearOfGraduation', 
-                'licenseExpiryDate'];
+        return [
+          "highestQualification",
+          "institutionAttended",
+          "yearOfGraduation",
+          "licenseExpiryDate",
+        ];
       default:
         return [];
     }
@@ -145,7 +190,7 @@ const MembershipForm = () => {
   const handlePersonalInfoSubmit = async (data: Partial<FormData>) => {
     setIsSubmitting(true);
     setSubmitError(null);
-    
+
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email!,
@@ -155,9 +200,9 @@ const MembershipForm = () => {
             first_name: data.firstName,
             last_name: data.lastName,
             phone: data.phone,
-            national_id: data.nationalId
-          }
-        }
+            national_id: data.nationalId,
+          },
+        },
       });
 
       if (authError) throw authError;
@@ -168,7 +213,9 @@ const MembershipForm = () => {
     } catch (err) {
       console.error("Error creating account:", err);
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to create account. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to create account. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -177,64 +224,64 @@ const MembershipForm = () => {
 
   const uploadFiles = async (files: FileList) => {
     const uploadedUrls: string[] = [];
-    
+
     // Generate a unique ID for each upload
     const uploadId = `anon-${crypto.randomUUID()}`;
-  
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${uploadId}-${Date.now()}.${fileExt}`;
       const filePath = `credentials/${fileName}`;
-  
+
       try {
         // Upload file (no auth required)
         const { error } = await supabase.storage
-          .from('member-documents')
+          .from("member-documents")
           .upload(filePath, file);
-  
+
         if (error) throw error;
-  
+
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('member-documents')
-          .getPublicUrl(filePath);
-  
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("member-documents").getPublicUrl(filePath);
+
         uploadedUrls.push(publicUrl);
       } catch (error) {
         console.error("Upload failed:", error);
         throw new Error(`Failed to upload ${file.name}.`);
       }
     }
-  
+
     return uploadedUrls;
   };
 
   const handleCompleteApplication = async (formData: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
-  
+
     try {
       // Upload credentials if provided
       let credentialUrls: string[] = [];
       if (formData.credentials && formData.credentials.length > 0) {
         credentialUrls = await uploadFiles(formData.credentials);
       }
-  
+
       // Try to find existing user by email
       const { data: existingUser, error: lookupError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', formData.email)
+        .from("profiles")
+        .select("user_id")
+        .eq("email", formData.email)
         .maybeSingle();
-  
+
       if (lookupError) throw lookupError;
-  
+
       // Prepare application data
       const applicationData = {
         // Use existing user_id if found, otherwise null
         user_id: existingUser?.user_id || null,
-        
+
         // Personal Information
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -244,7 +291,7 @@ const MembershipForm = () => {
         phone: formData.phone,
         email: formData.email,
         residential_address: formData.residentialAddress,
-        
+
         // Professional Information
         medical_registration_number: formData.medicalRegistrationNumber,
         profession: formData.profession,
@@ -252,31 +299,34 @@ const MembershipForm = () => {
         years_of_experience: formData.yearsOfExperience,
         current_employer: formData.currentEmployer,
         work_address: formData.workAddress,
-        
+        membership_tier: formData.membershipTier,
+
         // Education and Certification
         highest_qualification: formData.highestQualification,
         institution_attended: formData.institutionAttended,
         year_of_graduation: formData.yearOfGraduation,
         credentials: credentialUrls,
         license_expiry_date: formData.licenseExpiryDate,
-        
+
         // Compliance
         agree_to_ethics: formData.agreeToEthics,
-        consent_to_data_processing: formData.consentToDataProcessing
+        consent_to_data_processing: formData.consentToDataProcessing,
       };
-  
+
       // Insert application
       const { error } = await supabase
-        .from('membership_applications')
+        .from("membership_applications")
         .insert(applicationData);
-  
+
       if (error) throw error;
-  
+
       nextStep(); // Move to success screen
     } catch (err) {
       console.error("Error completing application:", err);
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to complete application. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to complete application. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -286,8 +336,8 @@ const MembershipForm = () => {
   const checkEmailVerification = async () => {
     try {
       // Simulate verification check
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // For demo purposes, we'll just set it to true
       setEmailVerified(true);
       return true;
@@ -299,24 +349,26 @@ const MembershipForm = () => {
 
   const resendVerificationEmail = async () => {
     try {
-      const email = getValues('email');
+      const email = getValues("email");
       if (!email) throw new Error("No email found");
-      
+
       const { error } = await supabase.auth.resend({
-        type: 'signup',
+        type: "signup",
         email,
         options: {
           emailRedirectTo: `${window.location.origin}/verify-success`,
-        }
+        },
       });
 
       if (error) throw error;
-      
+
       setVerificationSent(true);
     } catch (err) {
       console.error("Error resending verification:", err);
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to resend verification email. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to resend verification email. Please try again."
       );
     }
   };
@@ -498,7 +550,9 @@ const MembershipForm = () => {
                 <input
                   type="text"
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.residentialAddress ? "border-red-500" : "border-gray-300"
+                    errors.residentialAddress
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("residentialAddress", {
                     required: "Residential address is required",
@@ -699,25 +753,29 @@ const MembershipForm = () => {
             <MailCheck className="h-12 w-12 text-blue-600 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-2">Verify Your Email</h3>
             <p className="text-gray-600 mb-4">
-              We've sent a verification link to <span className="font-semibold">{getValues('email')}</span>.
+              We've sent a verification link to{" "}
+              <span className="font-semibold">{getValues("email")}</span>.
               Please check your email and click the link to verify your account.
             </p>
-            
+
             <div className="bg-blue-50 p-4 rounded-md mb-6 text-left">
               <p className="text-sm text-blue-700">
-                <strong>Note:</strong> You must verify your email before you can proceed with your application.
-                If you don't see the email, please check your spam folder.
+                <strong>Note:</strong> You must verify your email before you can
+                proceed with your application. If you don't see the email,
+                please check your spam folder.
               </p>
             </div>
-            
+
             <div className="flex justify-center gap-4">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="outline"
                 onClick={resendVerificationEmail}
                 disabled={verificationSent}
               >
-                {verificationSent ? "Email Resent!" : "Resend Verification Email"}
+                {verificationSent
+                  ? "Email Resent!"
+                  : "Resend Verification Email"}
               </Button>
               <Button
                 type="button"
@@ -726,14 +784,16 @@ const MembershipForm = () => {
                   if (isVerified) {
                     nextStep();
                   } else {
-                    setSubmitError("Email not yet verified. Please check your inbox.");
+                    setSubmitError(
+                      "Email not yet verified. Please check your inbox."
+                    );
                   }
                 }}
               >
                 I've Verified My Email
               </Button>
             </div>
-            
+
             {submitError && (
               <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
                 {submitError}
@@ -744,7 +804,9 @@ const MembershipForm = () => {
       case 3: // Professional Information
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold mb-4">Professional Information</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              Professional Information
+            </h3>
             <p className="text-gray-600 mb-4">
               Please provide details about your professional background.
             </p>
@@ -757,7 +819,9 @@ const MembershipForm = () => {
                 <input
                   type="text"
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.medicalRegistrationNumber ? "border-red-500" : "border-gray-300"
+                    errors.medicalRegistrationNumber
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("medicalRegistrationNumber", {
                     required: "Registration number is required",
@@ -784,7 +848,9 @@ const MembershipForm = () => {
                 >
                   <option value="">Select Profession</option>
                   {professions.map((prof) => (
-                    <option key={prof} value={prof}>{prof}</option>
+                    <option key={prof} value={prof}>
+                      {prof}
+                    </option>
                   ))}
                 </select>
                 {errors.profession && (
@@ -824,7 +890,9 @@ const MembershipForm = () => {
                   type="number"
                   min="0"
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.yearsOfExperience ? "border-red-500" : "border-gray-300"
+                    errors.yearsOfExperience
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("yearsOfExperience", {
                     required: "Years of experience is required",
@@ -879,18 +947,42 @@ const MembershipForm = () => {
               )}
             </div>
 
-            <div className="flex justify-between pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Membership Tier*
+              </label>
+              <select
+                className={`appearance-none block w-full px-3 py-2 border ${
+                  errors.membershipTier ? "border-red-500" : "border-gray-300"
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                {...register("membershipTier", {
+                  required: "Membership tier is required",
+                })}
               >
+                <option value="">Select Membership Tier</option>
+                {membershipTierOptions.map((tier) => (
+                  <option key={tier.value} value={tier.value}>
+                    {tier.label}
+                  </option>
+                ))}
+              </select>
+              {errors.membershipTier && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.membershipTier.message}
+                </p>
+              )}
+              {watch("membershipTier") === "honorary" && (
+                <p className="mt-1 text-xs text-yellow-600">
+                  Note: Honorary membership requires special invitation
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button type="button" variant="outline" onClick={prevStep}>
                 Back
               </Button>
-              <Button
-                type="button"
-                onClick={nextStep}
-              >
+              <Button type="button" onClick={nextStep}>
                 Continue
               </Button>
             </div>
@@ -899,9 +991,12 @@ const MembershipForm = () => {
       case 4: // Education and Certification
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold mb-4">Education and Certification</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              Education and Certification
+            </h3>
             <p className="text-gray-600 mb-4">
-              Please provide details about your education and upload relevant documents.
+              Please provide details about your education and upload relevant
+              documents.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -911,7 +1006,9 @@ const MembershipForm = () => {
                 </label>
                 <select
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.highestQualification ? "border-red-500" : "border-gray-300"
+                    errors.highestQualification
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("highestQualification", {
                     required: "Highest qualification is required",
@@ -919,7 +1016,9 @@ const MembershipForm = () => {
                 >
                   <option value="">Select Qualification</option>
                   {qualifications.map((qual) => (
-                    <option key={qual} value={qual}>{qual}</option>
+                    <option key={qual} value={qual}>
+                      {qual}
+                    </option>
                   ))}
                 </select>
                 {errors.highestQualification && (
@@ -936,7 +1035,9 @@ const MembershipForm = () => {
                 <input
                   type="text"
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.institutionAttended ? "border-red-500" : "border-gray-300"
+                    errors.institutionAttended
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("institutionAttended", {
                     required: "Institution is required",
@@ -960,7 +1061,9 @@ const MembershipForm = () => {
                   min="1900"
                   max={new Date().getFullYear()}
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.yearOfGraduation ? "border-red-500" : "border-gray-300"
+                    errors.yearOfGraduation
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("yearOfGraduation", {
                     required: "Year of graduation is required",
@@ -980,7 +1083,9 @@ const MembershipForm = () => {
                 <input
                   type="date"
                   className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.licenseExpiryDate ? "border-red-500" : "border-gray-300"
+                    errors.licenseExpiryDate
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
                   {...register("licenseExpiryDate", {
                     required: "License expiry date is required",
@@ -1016,10 +1121,12 @@ const MembershipForm = () => {
                         {...register("credentials", {
                           required: "At least one credential is required",
                           validate: (files) => {
-                            if (!files || files.length === 0) return "At least one file is required";
-                            if (files.length > 4) return "Maximum 4 files allowed";
+                            if (!files || files.length === 0)
+                              return "At least one file is required";
+                            if (files.length > 4)
+                              return "Maximum 4 files allowed";
                             return true;
-                          }
+                          },
                         })}
                       />
                     </label>
@@ -1035,14 +1142,19 @@ const MembershipForm = () => {
                   {errors.credentials.message}
                 </p>
               )}
-              
+
               {/* Show selected files */}
-              {watch('credentials')?.length > 0 && (
+              {watch("credentials")?.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-sm font-medium text-gray-700">Selected files:</p>
+                  <p className="text-sm font-medium text-gray-700">
+                    Selected files:
+                  </p>
                   <ul className="mt-1 space-y-1">
-                    {Array.from(watch('credentials')).map((file, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-600">
+                    {Array.from(watch("credentials")).map((file, index) => (
+                      <li
+                        key={index}
+                        className="flex items-center text-sm text-gray-600"
+                      >
                         <Upload className="h-4 w-4 mr-2" />
                         {file.name} ({Math.round(file.size / 1024)} KB)
                       </li>
@@ -1053,17 +1165,10 @@ const MembershipForm = () => {
             </div>
 
             <div className="flex justify-between pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-              >
+              <Button type="button" variant="outline" onClick={prevStep}>
                 Back
               </Button>
-              <Button
-                type="button"
-                onClick={nextStep}
-              >
+              <Button type="button" onClick={nextStep}>
                 Continue
               </Button>
             </div>
@@ -1072,7 +1177,9 @@ const MembershipForm = () => {
       case 5: // Compliance and Declarations
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold mb-4">Compliance and Declarations</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              Compliance and Declarations
+            </h3>
             <p className="text-gray-600 mb-4">
               Please review and agree to the following declarations.
             </p>
@@ -1090,12 +1197,17 @@ const MembershipForm = () => {
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor="agreeToEthics" className="font-medium text-gray-700">
-                    I agree to abide by the EACNA Code of Ethics and Professional Conduct*
+                  <label
+                    htmlFor="agreeToEthics"
+                    className="font-medium text-gray-700"
+                  >
+                    I agree to abide by the EACNA Code of Ethics and
+                    Professional Conduct*
                   </label>
                   <p className="text-gray-500 mt-1">
-                    By checking this box, you acknowledge that you have read and agree to comply with
-                    the ethical standards set forth by the East Africa Clinical Nurses Association.
+                    By checking this box, you acknowledge that you have read and
+                    agree to comply with the ethical standards set forth by the
+                    East Africa Clinical Nurses Association.
                   </p>
                 </div>
               </div>
@@ -1117,12 +1229,16 @@ const MembershipForm = () => {
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor="consentToDataProcessing" className="font-medium text-gray-700">
-                    I consent to the processing of my personal data for membership purposes*
+                  <label
+                    htmlFor="consentToDataProcessing"
+                    className="font-medium text-gray-700"
+                  >
+                    I consent to the processing of my personal data for
+                    membership purposes*
                   </label>
                   <p className="text-gray-500 mt-1">
-                    EACNA will process your personal data in accordance with our Privacy Policy
-                    and applicable data protection laws.
+                    EACNA will process your personal data in accordance with our
+                    Privacy Policy and applicable data protection laws.
                   </p>
                 </div>
               </div>
@@ -1134,29 +1250,55 @@ const MembershipForm = () => {
             </div>
 
             <div className="bg-gray-50 p-4 rounded-md mt-6">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Application Summary</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Application Summary
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                 <div>
-                  <p><span className="font-medium">Name:</span> {getValues('firstName')} {getValues('lastName')}</p>
-                  <p><span className="font-medium">Email:</span> {getValues('email')}</p>
-                  <p><span className="font-medium">Phone:</span> {getValues('phone')}</p>
-                  <p><span className="font-medium">Profession:</span> {getValues('profession')}</p>
+                  <p>
+                    <span className="font-medium">Name:</span>{" "}
+                    {getValues("firstName")} {getValues("lastName")}
+                  </p>
+                  <p>
+                    <span className="font-medium">Email:</span>{" "}
+                    {getValues("email")}
+                  </p>
+                  <p>
+                    <span className="font-medium">Phone:</span>{" "}
+                    {getValues("phone")}
+                  </p>
+                  <p>
+                    <span className="font-medium">Profession:</span>{" "}
+                    {getValues("profession")}
+                  </p>
                 </div>
                 <div>
-                  <p><span className="font-medium">Specialization:</span> {getValues('specialization')}</p>
-                  <p><span className="font-medium">Current Employer:</span> {getValues('currentEmployer')}</p>
-                  <p><span className="font-medium">Highest Qualification:</span> {getValues('highestQualification')}</p>
-                  <p><span className="font-medium">Institution:</span> {getValues('institutionAttended')}</p>
+                  <p>
+                    <span className="font-medium">Membership Tier:</span>{" "}
+                    {
+                      membershipTierOptions.find(
+                        (t) => t.value === getValues("membershipTier")
+                      )?.label
+                    }
+                  </p>
+                  <p>
+                    <span className="font-medium">Specialization:</span>{" "}
+                    {getValues("specialization")}
+                  </p>
+                  <p>
+                    <span className="font-medium">Current Employer:</span>{" "}
+                    {getValues("currentEmployer")}
+                  </p>
+                  <p>
+                    <span className="font-medium">Highest Qualification:</span>{" "}
+                    {getValues("highestQualification")}
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="flex justify-between pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-              >
+              <Button type="button" variant="outline" onClick={prevStep}>
                 Back
               </Button>
               <Button
@@ -1178,13 +1320,17 @@ const MembershipForm = () => {
         return (
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold mb-2">Application Submitted Successfully!</h3>
+            <h3 className="text-2xl font-bold mb-2">
+              Application Submitted Successfully!
+            </h3>
             <p className="text-gray-600 mb-4">
-              Thank you for applying to become a member of EACNA. Your application is under review.
+              Thank you for applying to become a member of EACNA. Your
+              application is under review.
             </p>
             <p className="text-gray-600 mb-6">
-              We will contact you via email at <span className="font-semibold">{getValues('email')}</span>{' '}
-              within 5-7 business days regarding your application status.
+              We will contact you via email at{" "}
+              <span className="font-semibold">{getValues("email")}</span> within
+              5-7 business days regarding your application status.
             </p>
             <Button onClick={() => navigate("/")}>Return to Homepage</Button>
           </div>
@@ -1201,7 +1347,8 @@ const MembershipForm = () => {
           EACNA Membership Application
         </h2>
         <p className="text-gray-600 mb-8">
-          Complete the following steps to apply for membership. Fields marked with an asterisk (*) are required.
+          Complete the following steps to apply for membership. Fields marked
+          with an asterisk (*) are required.
         </p>
 
         {/* Progress Stepper */}
@@ -1224,7 +1371,11 @@ const MembershipForm = () => {
                   >
                     {step}
                   </span>
-                  <span className={`font-medium ${currentStep === step ? "text-primary-600" : ""}`}>
+                  <span
+                    className={`font-medium ${
+                      currentStep === step ? "text-primary-600" : ""
+                    }`}
+                  >
                     {step === 1 && "Personal Info"}
                     {step === 2 && "Email Verify"}
                     {step === 3 && "Professional Info"}

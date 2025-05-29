@@ -61,7 +61,6 @@ interface PaymentModalProps {
   onClose: () => void;
 }
 
-// Define the MemberData interface
 interface MemberData {
   id: string;
   user_id: string;
@@ -69,10 +68,9 @@ interface MemberData {
   last_name: string;
   phone: string;
   email: string;
-  membership_type: MembershipTier;
+  membership_tier: MembershipTier;
   status: string;
 }
-
 
 export default function PaymentModal({ onClose }: PaymentModalProps) {
   // Search state
@@ -97,28 +95,29 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     // Validate at least one field is filled
     if (!firstName && !lastName && !phone && !email) {
       setSearchError("Please fill at least one search field");
       return;
     }
-  
+
     setSearchLoading(true);
     setSearchError("");
-  
+
     try {
       // Clean search terms
       const cleanFirstName = firstName.trim();
       const cleanLastName = lastName.trim();
       const cleanPhone = phone.trim();
       const cleanEmail = email.trim();
-  
-      // Start building the query - explicitly select application_status
+
+      // Start building the query
       let query = supabase
         .from("membership_applications")
-        .select("*, application_status");
-  
+        .select("*")
+        .eq("application_status", "approved");
+
       // Add conditions for each provided field
       if (cleanFirstName) {
         query = query.ilike("first_name", `%${cleanFirstName}%`);
@@ -132,18 +131,17 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
       if (cleanEmail) {
         query = query.ilike("email", `%${cleanEmail}%`);
       }
-  
+
       // Execute the query
       const { data, error } = await query;
-  
+
       if (error) throw error;
-  
+
       if (data && data.length > 0) {
         // Find the best match - prioritize exact matches
         let bestMatch = data[0];
-  
+
         if (cleanFirstName || cleanLastName) {
-          // If searching by name, try to find exact matches first
           const exactMatch = data.find(
             (app) =>
               (cleanFirstName &&
@@ -151,71 +149,38 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
               (cleanLastName &&
                 app.last_name?.toLowerCase() === cleanLastName.toLowerCase())
           );
-  
+
           if (exactMatch) {
             bestMatch = exactMatch;
           }
         }
-  
+
         const application = bestMatch;
-  
-        // Debug: Log the application data
-        console.log("Found application with status:", {
+
+        // Validate membership tier exists and is valid
+        if (!application.membership_tier) {
+          throw new Error("Membership tier is missing from application");
+        }
+
+        // Check if the tier exists in our membershipTiers
+        if (!membershipTiers[application.membership_tier as MembershipTier]) {
+          throw new Error(`Invalid membership tier: ${application.membership_tier}`);
+        }
+
+        setMemberData({
           id: application.id,
+          user_id: application.user_id,
+          first_name: application.first_name,
+          last_name: application.last_name,
+          phone: application.phone,
+          email: application.email,
+          membership_tier: application.membership_tier as MembershipTier,
           status: application.application_status,
-          data: application
         });
-  
-        // Validate we have an application_status
-        if (!application.application_status) {
-          throw new Error("Application status is missing");
-        }
-  
-        // Handle different status cases - using application_status
-        switch (application.application_status.toLowerCase()) {
-          case "approved":
-            // Validate membership type
-            const validMembershipTypes: MembershipTier[] = Object.keys(
-              membershipTiers
-            ) as MembershipTier[];
-  
-            if (!validMembershipTypes.includes(application.membership_type)) {
-              throw new Error("Invalid membership type in application");
-            }
-  
-            setMemberData({
-              id: application.id,
-              user_id: application.user_id,
-              first_name: application.first_name,
-              last_name: application.last_name,
-              phone: application.phone,
-              email: application.email,
-              membership_type: application.membership_type as MembershipTier,
-              status: application.application_status,
-            });
-            setStep(2); // Move to payment step
-            break;
-  
-          case "pending":
-            setSearchError(
-              "Your application is still under review. Payment can only be made after approval."
-            );
-            break;
-  
-          case "rejected":
-            setSearchError(
-              "Your application was not approved. Please contact support for more information."
-            );
-            break;
-  
-          default:
-            setSearchError(
-              `Your application status is currently: ${application.application_status}. Payment can only be made for approved applications.`
-            );
-        }
+        setStep(2); // Move to payment step
       } else {
         setSearchError(
-          "No matching membership application found. Please check your information or submit a new application."
+          "No matching approved membership application found. Please check your information or submit a new application."
         );
       }
     } catch (error) {
@@ -233,47 +198,54 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberData) return;
-  
+
     setSubmitLoading(true);
     setSubmitStatus("");
-  
+
     try {
       // Validate inputs
       if (!paymentMethod) throw new Error("Please select a payment method");
       if (!transactionId || transactionId.length < 8) {
         throw new Error("Please enter a valid transaction ID");
       }
-  
+
+      // Get the tier details
+      const tier = membershipTiers[memberData.membership_tier];
+      if (!tier) {
+        throw new Error("Invalid membership tier");
+      }
+
       // Map frontend payment method to database values
       const paymentMethodMap = {
-        'bank': 'bank_transfer', 
-        'mobile': 'mpesa',
-        'online': 'credit_card'
+        bank: "bank_transfer",
+        mobile: "mpesa",
+        online: "credit_card",
       };
-  
-      const dbPaymentMethod = paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] || 'other';
-  
+
+      const dbPaymentMethod = paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] || "other";
+
       // Submit payment
       const { data: paymentData, error: paymentError } = await supabase
-        .from("payments")
-        .insert({
-          transaction_id: transactionId,
-          amount: membershipTiers[memberData.membership_type].price,
-          currency: "KES",
-          payment_method: dbPaymentMethod,  // Use mapped value
-          status: "pending",
-          application_id: memberData.id,
-          member_name: `${memberData.first_name} ${memberData.last_name}`,
-          member_email: memberData.email,
-          payment_type: "application",
-          membership_type: memberData.membership_type,
-          notes: "Payment submitted through member portal",
-        })
-        .select()
-        .single();
-  
+      .from("payments")
+      .insert({
+        transaction_id: transactionId,
+        amount: tier.price,
+        currency: "KES",
+        payment_method: dbPaymentMethod,
+        status: "pending",
+        application_id: memberData.id,
+        first_name: memberData.first_name,  // Changed from member_name
+        last_name: memberData.last_name,    // Changed from member_name
+        email: memberData.email,            // Changed from member_email
+        payment_type: "application",
+        membership_tier: memberData.membership_tier,
+        notes: "Payment submitted through member portal",
+      })
+      .select()
+      .single();
+
       if (paymentError) throw paymentError;
-  
+
       setSubmitStatus("success");
       setStep(3);
     } catch (error) {
@@ -392,8 +364,17 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   const renderPaymentStep = () => {
     if (!memberData) return null;
 
-    const tier = membershipTiers[memberData.membership_type];
-    const price = tier.price;
+    const tier = membershipTiers[memberData.membership_tier];
+    if (!tier) {
+      return (
+        <div className="bg-white rounded-lg p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <span>Invalid membership tier configuration</span>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="grid md:grid-cols-3 gap-6">
@@ -423,7 +404,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                 <p className="font-medium">{memberData.phone}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Membership Type</p>
+                <p className="text-sm text-gray-500">Membership Tier</p>
                 <p className="font-medium">{tier.name}</p>
               </div>
             </div>
@@ -540,12 +521,12 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
 
             <div className="space-y-3 mb-4">
               <div className="flex justify-between">
-                <span className="text-gray-600">Membership Type</span>
+                <span className="text-gray-600">Membership Tier</span>
                 <span>{tier.name}</span>
               </div>
               <div className="flex justify-between font-medium">
                 <span>Total Amount</span>
-                <span>KES {price.toLocaleString()}</span>
+                <span>KES {tier.price.toLocaleString()}</span>
               </div>
             </div>
 
@@ -571,7 +552,17 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   const renderSuccessStep = () => {
     if (!memberData) return null;
 
-    const tier = membershipTiers[memberData.membership_type];
+    const tier = membershipTiers[memberData.membership_tier];
+    if (!tier) {
+      return (
+        <div className="bg-white rounded-lg p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <span>Invalid membership tier configuration</span>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="bg-white rounded-lg shadow-md p-8 text-center">

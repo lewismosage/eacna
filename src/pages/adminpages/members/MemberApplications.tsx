@@ -60,6 +60,7 @@ interface Application {
   created_at: string;
   application_status: ApplicationStatus;
   user_id?: string;
+  membership_tier: string;
 }
 
 const professions = [
@@ -131,6 +132,8 @@ const Applications = () => {
     approved: 0,
     rejected: 0,
   });
+  const [membershipTierFilter, setMembershipTierFilter] =
+    useState<string>("all");
 
   // Fetch applications
   const fetchApplications = async () => {
@@ -187,6 +190,12 @@ const Applications = () => {
       filtered = filtered.filter((app) => app.profession === professionFilter);
     }
 
+    if (membershipTierFilter !== "all") {
+      filtered = filtered.filter(
+        (app) => app.membership_tier === membershipTierFilter
+      );
+    }
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -219,7 +228,14 @@ const Applications = () => {
     }
 
     setFilteredApplications(filtered);
-  }, [applications, searchTerm, statusFilter, professionFilter, sortConfig]);
+  }, [
+    applications,
+    searchTerm,
+    statusFilter,
+    professionFilter,
+    membershipTierFilter,
+    sortConfig,
+  ]);
 
   const handleSort = (key: keyof Application) => {
     let direction: "ascending" | "descending" = "ascending";
@@ -234,10 +250,10 @@ const Applications = () => {
       const templateParams = {
         to_name: `${application.first_name} ${application.last_name}`,
         to_email: application.email,
-        subject: "Your EACNA Membership Application Has Been Approved",
+        subject: `Your EACNA Membership Application Has Been Approved`,
         message: `
           <p>Dear ${application.first_name},</p>
-          <p>We are pleased to inform you that your application for ${application.profession} membership with EACNA has been approved!</p>
+          <p>We are pleased to inform you that your application for ${application.membership_tier}membership with EACNA has been approved!</p>
           <p>Next steps:</p>
           <ol>
             <li>Complete your membership payment (you will receive payment instructions separately)</li>
@@ -270,7 +286,7 @@ const Applications = () => {
       const templateParams = {
         to_name: `${application.first_name} ${application.last_name}`,
         to_email: application.email,
-        subject: "Your EACNA Membership Application Status",
+        subject: `Your EACNA ${application.membership_tier} Membership Application Status`,
         message: `
           <p>Dear ${application.first_name},</p>
           <p>We regret to inform you that your application for ${
@@ -469,6 +485,7 @@ const Applications = () => {
         "Email",
         "Phone",
         "Profession",
+        "Membership Tier",
         "Specialization",
         "Current Employer",
         "Years of Experience",
@@ -483,6 +500,7 @@ const Applications = () => {
           app.email,
           app.phone,
           app.profession,
+          app.membership_tier,
           app.specialization,
           app.current_employer,
           app.years_of_experience,
@@ -519,16 +537,15 @@ const Applications = () => {
 
   const getPublicUrl = (path: string) => {
     // If the path already starts with http, return it as-is
-    if (path.startsWith('http')) {
+    if (path.startsWith("http")) {
       return path;
     }
-    
+
     // Otherwise, construct the proper URL
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('member-documents')
-      .getPublicUrl(path);
-    
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("member-documents").getPublicUrl(path);
+
     return publicUrl;
   };
 
@@ -674,6 +691,18 @@ const Applications = () => {
                   </option>
                 ))}
               </select>
+
+              <select
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={membershipTierFilter}
+                onChange={(e) => setMembershipTierFilter(e.target.value)}
+              >
+                <option value="Full">Full Membership</option>
+                <option value="Associate">Associate Membership</option>
+                <option value="Student">Student Membership</option>
+                <option value="Institutional">Institutional Membership</option>
+                <option value="Honorary">Honorary Membership</option>
+              </select>
             </div>
           </div>
 
@@ -732,6 +761,16 @@ const Applications = () => {
                         </th>
                         <th
                           scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort("membership_tier")}
+                        >
+                          <div className="flex items-center">
+                            Membership Tier
+                            <ArrowUpDown className="h-4 w-4 ml-1" />
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
                           Status
@@ -773,6 +812,9 @@ const Applications = () => {
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500">
                             {formatDate(application.created_at)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            {application.membership_tier}
                           </td>
                           <td className="px-6 py-4">
                             {getStatusBadge(application.application_status)}
@@ -960,6 +1002,12 @@ const Applications = () => {
                           {selectedApplication.work_address}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Membership Tier</p>
+                        <p className="font-medium">
+                          {selectedApplication.membership_tier}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1010,36 +1058,39 @@ const Applications = () => {
                   </div>
                 </div>
 
-                {selectedApplication.credentials && selectedApplication.credentials.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-2">
-                      Uploaded Credentials
-                    </h4>
-                    <div className="bg-gray-50 p-4 rounded-md">
-                      <div className="grid grid-cols-1 gap-2">
-                        {selectedApplication.credentials.map((credential, index) => {
-                          const url = getPublicUrl(credential);
-                          return (
-                            <div key={index} className="col-span-1">
-                              <a 
-                                href={url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="flex items-center text-primary-600 hover:text-primary-800"
-                              >
-                                <FileText className="h-4 w-4 mr-2" />
-                                Document {index + 1}
-                              </a>
-                              <p className="text-xs text-gray-500 mt-1 truncate">
-                                {url}
-                              </p>
-                            </div>
-                          );
-                        })}
+                {selectedApplication.credentials &&
+                  selectedApplication.credentials.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">
+                        Uploaded Credentials
+                      </h4>
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <div className="grid grid-cols-1 gap-2">
+                          {selectedApplication.credentials.map(
+                            (credential, index) => {
+                              const url = getPublicUrl(credential);
+                              return (
+                                <div key={index} className="col-span-1">
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center text-primary-600 hover:text-primary-800"
+                                  >
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Document {index + 1}
+                                  </a>
+                                  <p className="text-xs text-gray-500 mt-1 truncate">
+                                    {url}
+                                  </p>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-2">

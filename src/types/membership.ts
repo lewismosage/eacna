@@ -1,31 +1,30 @@
 export type MembershipTier =
-  | "Full Member"
-  | "Associate Member"
-  | "Student Member"
-  | "Institutional Member"
-  | "Honorary Member";
+  | "Full Membership"
+  | "Associate Membership"
+  | "Student Membership"
+  | "Institutional Membership"
+  | "Honorary Membership";
 
 export interface MembershipTierData {
   name: string;
   price: number;
   features: string[];
-  color: string; 
+  color: string;
 }
 
 export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
-  "Full Member": {
-    name: "Full Member",
+  "Full Membership": {
+    name: "Full Membership",
     price: 15000,
     color: "#10B981",
     features: [
       "Full access to resources",
       "Voting rights",
       "Conference discounts",
-      
     ],
   },
-  "Associate Member": {
-    name: "Associate Member",
+  "Associate Membership": {
+    name: "Associate Membership",
     price: 10000,
     color: "#3B82F6",
     features: [
@@ -34,14 +33,14 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
       "Event access",
     ],
   },
-  "Student Member": {
-    name: "Student Member",
+  "Student Membership": {
+    name: "Student Membership",
     price: 5000,
     color: "#3B82F6",
     features: ["Basic resource access", "Student networking", "Mentorship"],
   },
-  "Institutional Member": {
-    name: "Institutional Member",
+  "Institutional Membership": {
+    name: "Institutional Membership",
     price: 50000,
     color: "#3B82F6",
     features: [
@@ -50,8 +49,8 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
       "Organizational recognition",
     ],
   },
-  "Honorary Member": {
-    name: "Honorary Member",
+  "Honorary Membership": {
+    name: "Honorary Membership",
     price: 0,
     color: "#3B82F6",
     features: [
