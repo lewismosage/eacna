@@ -177,83 +177,101 @@ const MembershipForm = () => {
 
   const uploadFiles = async (files: FileList) => {
     const uploadedUrls: string[] = [];
-    const user = (await supabase.auth.getUser()).data.user;
     
-    if (!user) throw new Error("User not authenticated");
-
+    // Generate a unique ID for each upload
+    const uploadId = `anon-${crypto.randomUUID()}`;
+  
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-credential-${Date.now()}.${fileExt}`;
+      const fileName = `${uploadId}-${Date.now()}.${fileExt}`;
       const filePath = `credentials/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('member-documents')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('member-documents')
-        .getPublicUrl(filePath);
-
-      uploadedUrls.push(publicUrl);
+  
+      try {
+        // Upload file (no auth required)
+        const { error } = await supabase.storage
+          .from('member-documents')
+          .upload(filePath, file);
+  
+        if (error) throw error;
+  
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('member-documents')
+          .getPublicUrl(filePath);
+  
+        uploadedUrls.push(publicUrl);
+      } catch (error) {
+        console.error("Upload failed:", error);
+        throw new Error(`Failed to upload ${file.name}.`);
+      }
     }
-
+  
     return uploadedUrls;
   };
 
   const handleCompleteApplication = async (formData: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
-    
+  
     try {
       // Upload credentials if provided
       let credentialUrls: string[] = [];
       if (formData.credentials && formData.credentials.length > 0) {
         credentialUrls = await uploadFiles(formData.credentials);
       }
-
-      // Insert application into membership_applications table
+  
+      // Try to find existing user by email
+      const { data: existingUser, error: lookupError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('email', formData.email)
+        .maybeSingle();
+  
+      if (lookupError) throw lookupError;
+  
+      // Prepare application data
+      const applicationData = {
+        // Use existing user_id if found, otherwise null
+        user_id: existingUser?.user_id || null,
+        
+        // Personal Information
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        date_of_birth: formData.dateOfBirth,
+        gender: formData.gender,
+        national_id: formData.nationalId,
+        phone: formData.phone,
+        email: formData.email,
+        residential_address: formData.residentialAddress,
+        
+        // Professional Information
+        medical_registration_number: formData.medicalRegistrationNumber,
+        profession: formData.profession,
+        specialization: formData.specialization,
+        years_of_experience: formData.yearsOfExperience,
+        current_employer: formData.currentEmployer,
+        work_address: formData.workAddress,
+        
+        // Education and Certification
+        highest_qualification: formData.highestQualification,
+        institution_attended: formData.institutionAttended,
+        year_of_graduation: formData.yearOfGraduation,
+        credentials: credentialUrls,
+        license_expiry_date: formData.licenseExpiryDate,
+        
+        // Compliance
+        agree_to_ethics: formData.agreeToEthics,
+        consent_to_data_processing: formData.consentToDataProcessing
+      };
+  
+      // Insert application
       const { error } = await supabase
         .from('membership_applications')
-        .insert({
-          // Removed user_id since we don't have authenticated user
-          
-          // Personal Information
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          date_of_birth: formData.dateOfBirth,
-          gender: formData.gender,
-          national_id: formData.nationalId,
-          phone: formData.phone,
-          email: formData.email,
-          residential_address: formData.residentialAddress,
-          
-          // Professional Information
-          medical_registration_number: formData.medicalRegistrationNumber,
-          profession: formData.profession,
-          specialization: formData.specialization,
-          years_of_experience: formData.yearsOfExperience,
-          current_employer: formData.currentEmployer,
-          work_address: formData.workAddress,
-          
-          // Education and Certification
-          highest_qualification: formData.highestQualification,
-          institution_attended: formData.institutionAttended,
-          year_of_graduation: formData.yearOfGraduation,
-          credentials: credentialUrls,
-          license_expiry_date: formData.licenseExpiryDate,
-          
-          // Compliance
-          agree_to_ethics: formData.agreeToEthics,
-          consent_to_data_processing: formData.consentToDataProcessing,
-          
-          // Status will default to 'pending' as per table definition
-        });
-
+        .insert(applicationData);
+  
       if (error) throw error;
-
+  
       nextStep(); // Move to success screen
     } catch (err) {
       console.error("Error completing application:", err);
