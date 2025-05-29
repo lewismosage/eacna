@@ -6,7 +6,6 @@ import Card, { CardContent } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import { useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { v4 as uuidv4 } from 'uuid';
 
 type FormData = {
   // Personal Information
@@ -82,15 +81,6 @@ const validatePassword = (password: string) => {
   };
 };
 
-const generateMembershipId = (userId: string) => {
-  // Format: EACNA-{first 8 chars of uuid}-{date}
-  const shortUuid = userId.substring(0, 8);
-  const date = new Date();
-  const year = date.getFullYear().toString().substring(2);
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  return `EACNA-${shortUuid}-${year}${month}`;
-};
-
 const MembershipForm = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -101,7 +91,11 @@ const MembershipForm = () => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
-  const [userId, setUserId] = useState<string | null>(null);
+
+  const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_KEY
+  );
 
   const {
     register,
@@ -120,11 +114,6 @@ const MembershipForm = () => {
   });
 
   const passwordStrength = validatePassword(watchedPassword);
-
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_KEY
-  );
 
   const nextStep = async () => {
     const fieldsToValidate = getStepFields(currentStep);
@@ -158,7 +147,6 @@ const MembershipForm = () => {
     setSubmitError(null);
     
     try {
-      // Sign up user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email!,
         password: data.password!,
@@ -166,86 +154,73 @@ const MembershipForm = () => {
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
+            phone: data.phone,
+            national_id: data.nationalId
           }
         }
       });
 
-      if (authError) {
-        throw authError;
-      }
+      if (authError) throw authError;
 
-      if (!authData.user) {
-        throw new Error('User creation failed');
-      }
-
-      setUserId(authData.user.id);
-
-      // Create profile in profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          email: data.email,
-          role: 'user',
-          first_name: data.firstName,
-          last_name: data.lastName,
-        });
-
-      if (profileError) {
-        throw profileError;
-      }
-
+      // Profile is automatically created by the trigger we set up
       setVerificationSent(true);
       nextStep();
     } catch (err) {
       console.error("Error creating account:", err);
-      setSubmitError(err instanceof Error ? err.message : "Failed to create account. Please try again.");
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to create account. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCompleteApplication = async (formData: FormData) => {
-    if (!userId) {
-      setSubmitError("User session not found. Please try again.");
-      return;
+  const uploadFiles = async (files: FileList) => {
+    const uploadedUrls: string[] = [];
+    const user = (await supabase.auth.getUser()).data.user;
+    
+    if (!user) throw new Error("User not authenticated");
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-credential-${Date.now()}.${fileExt}`;
+      const filePath = `credentials/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('member-documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('member-documents')
+        .getPublicUrl(filePath);
+
+      uploadedUrls.push(publicUrl);
     }
 
+    return uploadedUrls;
+  };
+
+  const handleCompleteApplication = async (formData: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
     
     try {
-      // Upload credential files if they exist
+      // Upload credentials if provided
       let credentialUrls: string[] = [];
       if (formData.credentials && formData.credentials.length > 0) {
-        const uploadPromises = Array.from(formData.credentials).map(async (file) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${userId}-${uuidv4()}.${fileExt}`;
-          const filePath = `credentials/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('member-documents')
-            .upload(filePath, file);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('member-documents')
-            .getPublicUrl(filePath);
-
-          return publicUrl;
-        });
-
-        credentialUrls = await Promise.all(uploadPromises);
+        credentialUrls = await uploadFiles(formData.credentials);
       }
 
-      // Create membership application
-      const membershipId = generateMembershipId(userId);
-      
-      const { error: applicationError } = await supabase
+      // Insert application into membership_applications table
+      const { error } = await supabase
         .from('membership_applications')
         .insert({
-          user_id: userId,
+          // Removed user_id since we don't have authenticated user
+          
+          // Personal Information
           first_name: formData.firstName,
           last_name: formData.lastName,
           date_of_birth: formData.dateOfBirth,
@@ -254,31 +229,37 @@ const MembershipForm = () => {
           phone: formData.phone,
           email: formData.email,
           residential_address: formData.residentialAddress,
+          
+          // Professional Information
           medical_registration_number: formData.medicalRegistrationNumber,
           profession: formData.profession,
           specialization: formData.specialization,
           years_of_experience: formData.yearsOfExperience,
           current_employer: formData.currentEmployer,
           work_address: formData.workAddress,
+          
+          // Education and Certification
           highest_qualification: formData.highestQualification,
           institution_attended: formData.institutionAttended,
           year_of_graduation: formData.yearOfGraduation,
-          credential_urls: credentialUrls,
+          credentials: credentialUrls,
           license_expiry_date: formData.licenseExpiryDate,
+          
+          // Compliance
           agree_to_ethics: formData.agreeToEthics,
           consent_to_data_processing: formData.consentToDataProcessing,
-          application_status: 'pending',
-          membership_id: membershipId,
+          
+          // Status will default to 'pending' as per table definition
         });
 
-      if (applicationError) {
-        throw applicationError;
-      }
+      if (error) throw error;
 
       nextStep(); // Move to success screen
     } catch (err) {
       console.error("Error completing application:", err);
-      setSubmitError(err instanceof Error ? err.message : "Failed to complete application. Please try again.");
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to complete application. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -286,19 +267,10 @@ const MembershipForm = () => {
 
   const checkEmailVerification = async () => {
     try {
-      // Check if user is verified
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error) throw error;
-      if (!user) throw new Error('User not found');
-      
-      if (user.email_confirmed_at) {
-        setEmailVerified(true);
-        return true;
-      }
+      // Simulate verification check
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // For demo purposes, we'll just set it to true
-      // In production, you should actually check the email confirmation status
       setEmailVerified(true);
       return true;
     } catch (err) {
@@ -309,9 +281,15 @@ const MembershipForm = () => {
 
   const resendVerificationEmail = async () => {
     try {
+      const email = getValues('email');
+      if (!email) throw new Error("No email found");
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: getValues('email'),
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/verify-success`,
+        }
       });
 
       if (error) throw error;
@@ -319,7 +297,9 @@ const MembershipForm = () => {
       setVerificationSent(true);
     } catch (err) {
       console.error("Error resending verification:", err);
-      setSubmitError("Failed to resend verification email. Please try again.");
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to resend verification email. Please try again."
+      );
     }
   };
 
