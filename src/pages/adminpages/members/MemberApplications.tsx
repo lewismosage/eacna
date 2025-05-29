@@ -71,7 +71,7 @@ const professions = [
   "Lab Technician",
   "Radiologist",
   "Dentist",
-  "General Practitioner"
+  "General Practitioner",
 ];
 
 const qualifications = [
@@ -82,21 +82,26 @@ const qualifications = [
   "BSc Medicine",
   "MSc Medicine",
   "PhD",
-  "Diploma in Clinical Medicine"
+  "Diploma in Clinical Medicine",
 ];
 
 const Applications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [filteredApplications, setFilteredApplications] = useState<Application[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<
+    Application[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">(
+    "all"
+  );
   const [professionFilter, setProfessionFilter] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Application;
     direction: "ascending" | "descending";
   }>({ key: "created_at", direction: "descending" });
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<Application | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState<{
     type: "success" | "error" | "info";
@@ -113,7 +118,7 @@ const Applications = () => {
     cancelText?: string;
     customContent?: React.ReactNode;
   }
-  
+
   const [alert, setAlert] = useState<AlertState>({
     open: false,
     title: "",
@@ -124,7 +129,7 @@ const Applications = () => {
     total: 0,
     pending: 0,
     approved: 0,
-    rejected: 0
+    rejected: 0,
   });
 
   // Fetch applications
@@ -141,13 +146,16 @@ const Applications = () => {
       if (data) {
         setApplications(data);
         setFilteredApplications(data);
-        
+
         // Calculate stats
         setStats({
           total: data.length,
-          pending: data.filter(app => app.application_status === "pending").length,
-          approved: data.filter(app => app.application_status === "approved").length,
-          rejected: data.filter(app => app.application_status === "rejected").length
+          pending: data.filter((app) => app.application_status === "pending")
+            .length,
+          approved: data.filter((app) => app.application_status === "approved")
+            .length,
+          rejected: data.filter((app) => app.application_status === "rejected")
+            .length,
         });
       }
     } catch (err) {
@@ -176,9 +184,7 @@ const Applications = () => {
     }
 
     if (professionFilter !== "all") {
-      filtered = filtered.filter(
-        (app) => app.profession === professionFilter
-      );
+      filtered = filtered.filter((app) => app.profession === professionFilter);
     }
 
     if (searchTerm) {
@@ -188,8 +194,10 @@ const Applications = () => {
           app.first_name.toLowerCase().includes(term) ||
           app.last_name.toLowerCase().includes(term) ||
           app.email.toLowerCase().includes(term) ||
-          (app.current_employer && app.current_employer.toLowerCase().includes(term)) ||
-          (app.medical_registration_number && app.medical_registration_number.toLowerCase().includes(term))
+          (app.current_employer &&
+            app.current_employer.toLowerCase().includes(term)) ||
+          (app.medical_registration_number &&
+            app.medical_registration_number.toLowerCase().includes(term))
       );
     }
 
@@ -254,7 +262,10 @@ const Applications = () => {
     }
   };
 
-  const sendRejectionEmail = async (application: Application, reason?: string) => {
+  const sendRejectionEmail = async (
+    application: Application,
+    reason?: string
+  ) => {
     try {
       const templateParams = {
         to_name: `${application.first_name} ${application.last_name}`,
@@ -262,8 +273,10 @@ const Applications = () => {
         subject: "Your EACNA Membership Application Status",
         message: `
           <p>Dear ${application.first_name},</p>
-          <p>We regret to inform you that your application for ${application.profession} membership with EACNA could not be approved at this time.</p>
-          ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+          <p>We regret to inform you that your application for ${
+            application.profession
+          } membership with EACNA could not be approved at this time.</p>
+          ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
           <p>You may reapply after addressing the issues mentioned above.</p>
           <p>If you have any questions, please contact us at members@eacna.org.</p>
         `,
@@ -291,7 +304,8 @@ const Applications = () => {
       setAlert({
         open: true,
         title: "Approve Application",
-        message: "This will approve the application and notify the applicant. Continue?",
+        message:
+          "This will approve the application and notify the applicant. Continue?",
         type: "confirm",
         confirmText: "Approve",
         cancelText: "Cancel",
@@ -368,10 +382,14 @@ const Applications = () => {
           <textarea
             className="w-full mt-2 p-2 border border-gray-300 rounded-md"
             placeholder="Reason for rejection..."
-            onChange={(e) => setAlert(prev => ({
-              ...prev,
-              message: e.target.value || "Please provide a reason for rejection (optional):"
-            }))}
+            onChange={(e) =>
+              setAlert((prev) => ({
+                ...prev,
+                message:
+                  e.target.value ||
+                  "Please provide a reason for rejection (optional):",
+              }))
+            }
           />
         ),
         onConfirm: async () => {
@@ -396,9 +414,11 @@ const Applications = () => {
             if (error) throw error;
 
             // Send rejection email with reason
-            await sendRejectionEmail(applicationData, 
-              alert.message !== "Please provide a reason for rejection (optional):" 
-                ? alert.message 
+            await sendRejectionEmail(
+              applicationData,
+              alert.message !==
+                "Please provide a reason for rejection (optional):"
+                ? alert.message
                 : undefined
             );
 
@@ -498,10 +518,17 @@ const Applications = () => {
   };
 
   const getPublicUrl = (path: string) => {
+    // If the path already starts with http, return it as-is
+    if (path.startsWith('http')) {
+      return path;
+    }
+    
+    // Otherwise, construct the proper URL
     const { data: { publicUrl } } = supabase
       .storage
       .from('member-documents')
       .getPublicUrl(path);
+    
     return publicUrl;
   };
 
@@ -523,7 +550,9 @@ const Applications = () => {
           <CardContent className="p-4">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Applications</p>
+                <p className="text-sm font-medium text-gray-500">
+                  Total Applications
+                </p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-full">
@@ -639,8 +668,10 @@ const Applications = () => {
                 onChange={(e) => setProfessionFilter(e.target.value)}
               >
                 <option value="all">All Professions</option>
-                {professions.map(prof => (
-                  <option key={prof} value={prof}>{prof}</option>
+                {professions.map((prof) => (
+                  <option key={prof} value={prof}>
+                    {prof}
+                  </option>
                 ))}
               </select>
             </div>
@@ -749,7 +780,9 @@ const Applications = () => {
                           <td className="px-6 py-4 text-right text-sm font-medium">
                             <div className="flex justify-end space-x-2">
                               <button
-                                onClick={() => setSelectedApplication(application)}
+                                onClick={() =>
+                                  setSelectedApplication(application)
+                                }
                                 className="text-primary-600 hover:text-primary-900 p-1 rounded hover:bg-gray-100"
                                 title="View Details"
                               >
@@ -758,14 +791,24 @@ const Applications = () => {
                               {application.application_status === "pending" && (
                                 <>
                                   <button
-                                    onClick={() => handleStatusChange(application.id, "approved")}
+                                    onClick={() =>
+                                      handleStatusChange(
+                                        application.id,
+                                        "approved"
+                                      )
+                                    }
                                     className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-gray-100"
                                     title="Approve"
                                   >
                                     <Check className="h-5 w-5" />
                                   </button>
                                   <button
-                                    onClick={() => handleStatusChange(application.id, "rejected")}
+                                    onClick={() =>
+                                      handleStatusChange(
+                                        application.id,
+                                        "rejected"
+                                      )
+                                    }
                                     className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-gray-100"
                                     title="Reject"
                                   >
@@ -774,7 +817,9 @@ const Applications = () => {
                                 </>
                               )}
                               <button
-                                onClick={() => window.location.href = `mailto:${application.email}`}
+                                onClick={() =>
+                                  (window.location.href = `mailto:${application.email}`)
+                                }
                                 className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-gray-100"
                                 title="Send Email"
                               >
@@ -820,12 +865,15 @@ const Applications = () => {
                       <div>
                         <p className="text-xs text-gray-500">Full Name</p>
                         <p className="font-medium">
-                          {selectedApplication.first_name} {selectedApplication.last_name}
+                          {selectedApplication.first_name}{" "}
+                          {selectedApplication.last_name}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Gender</p>
-                        <p className="font-medium capitalize">{selectedApplication.gender}</p>
+                        <p className="font-medium capitalize">
+                          {selectedApplication.gender}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Date of Birth</p>
@@ -835,19 +883,29 @@ const Applications = () => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">National ID</p>
-                        <p className="font-medium">{selectedApplication.national_id}</p>
+                        <p className="font-medium">
+                          {selectedApplication.national_id}
+                        </p>
                       </div>
-                      <div>
+                      <div className="col-span-2 md:col-span-1">
                         <p className="text-xs text-gray-500">Email</p>
-                        <p className="font-medium">{selectedApplication.email}</p>
+                        <p className="font-medium break-all">
+                          {selectedApplication.email}
+                        </p>
                       </div>
-                      <div>
+                      <div className="col-span-2 md:col-span-1">
                         <p className="text-xs text-gray-500">Phone</p>
-                        <p className="font-medium">{selectedApplication.phone}</p>
+                        <p className="font-medium">
+                          {selectedApplication.phone}
+                        </p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Residential Address</p>
-                        <p className="font-medium">{selectedApplication.residential_address}</p>
+                        <p className="text-xs text-gray-500">
+                          Residential Address
+                        </p>
+                        <p className="font-medium">
+                          {selectedApplication.residential_address}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -860,30 +918,47 @@ const Applications = () => {
                   <div className="bg-gray-50 p-4 rounded-md">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-gray-500">Registration Number</p>
+                        <p className="text-xs text-gray-500">
+                          Registration Number
+                        </p>
                         <p className="font-medium">
-                          {selectedApplication.medical_registration_number || "N/A"}
+                          {selectedApplication.medical_registration_number ||
+                            "N/A"}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Profession</p>
-                        <p className="font-medium">{selectedApplication.profession}</p>
+                        <p className="font-medium">
+                          {selectedApplication.profession}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Specialization</p>
-                        <p className="font-medium">{selectedApplication.specialization}</p>
+                        <p className="font-medium">
+                          {selectedApplication.specialization}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Years of Experience</p>
-                        <p className="font-medium">{selectedApplication.years_of_experience}</p>
+                        <p className="text-xs text-gray-500">
+                          Years of Experience
+                        </p>
+                        <p className="font-medium">
+                          {selectedApplication.years_of_experience}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Current Employer</p>
-                        <p className="font-medium">{selectedApplication.current_employer}</p>
+                        <p className="text-xs text-gray-500">
+                          Current Employer
+                        </p>
+                        <p className="font-medium">
+                          {selectedApplication.current_employer}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Work Address</p>
-                        <p className="font-medium">{selectedApplication.work_address}</p>
+                        <p className="font-medium">
+                          {selectedApplication.work_address}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -898,22 +973,36 @@ const Applications = () => {
                   <div className="bg-gray-50 p-4 rounded-md">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-gray-500">Highest Qualification</p>
-                        <p className="font-medium">{selectedApplication.highest_qualification}</p>
+                        <p className="text-xs text-gray-500">
+                          Highest Qualification
+                        </p>
+                        <p className="font-medium">
+                          {selectedApplication.highest_qualification}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Institution Attended</p>
-                        <p className="font-medium">{selectedApplication.institution_attended}</p>
+                        <p className="text-xs text-gray-500">
+                          Institution Attended
+                        </p>
+                        <p className="font-medium">
+                          {selectedApplication.institution_attended}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Year of Graduation</p>
-                        <p className="font-medium">{selectedApplication.year_of_graduation}</p>
+                        <p className="text-xs text-gray-500">
+                          Year of Graduation
+                        </p>
+                        <p className="font-medium">
+                          {selectedApplication.year_of_graduation}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">License Expiry</p>
                         <p className="font-medium">
-                          {selectedApplication.license_expiry_date 
-                            ? formatDate(selectedApplication.license_expiry_date)
+                          {selectedApplication.license_expiry_date
+                            ? formatDate(
+                                selectedApplication.license_expiry_date
+                              )
                             : "N/A"}
                         </p>
                       </div>
@@ -927,20 +1016,26 @@ const Applications = () => {
                       Uploaded Credentials
                     </h4>
                     <div className="bg-gray-50 p-4 rounded-md">
-                      <div className="grid grid-cols-2 gap-4">
-                        {selectedApplication.credentials.map((credential, index) => (
-                          <div key={index} className="col-span-2 md:col-span-1">
-                            <a 
-                              href={getPublicUrl(credential)} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="flex items-center text-primary-600 hover:text-primary-800"
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Document {index + 1}
-                            </a>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-1 gap-2">
+                        {selectedApplication.credentials.map((credential, index) => {
+                          const url = getPublicUrl(credential);
+                          return (
+                            <div key={index} className="col-span-1">
+                              <a 
+                                href={url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center text-primary-600 hover:text-primary-800"
+                              >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Document {index + 1}
+                              </a>
+                              <p className="text-xs text-gray-500 mt-1 truncate">
+                                {url}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -958,7 +1053,9 @@ const Applications = () => {
                         ) : (
                           <X className="h-5 w-5 text-red-500" />
                         )}
-                        <span className="ml-2 text-sm">Agreed to Code of Ethics</span>
+                        <span className="ml-2 text-sm">
+                          Agreed to Code of Ethics
+                        </span>
                       </div>
                       <div className="flex items-center">
                         {selectedApplication.consent_to_data_processing ? (
@@ -966,7 +1063,9 @@ const Applications = () => {
                         ) : (
                           <X className="h-5 w-5 text-red-500" />
                         )}
-                        <span className="ml-2 text-sm">Consent to Data Processing</span>
+                        <span className="ml-2 text-sm">
+                          Consent to Data Processing
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -981,7 +1080,9 @@ const Applications = () => {
                       <div>
                         <p className="text-xs text-gray-500">Status</p>
                         <div className="mt-1">
-                          {getStatusBadge(selectedApplication.application_status)}
+                          {getStatusBadge(
+                            selectedApplication.application_status
+                          )}
                         </div>
                       </div>
                       <div>
@@ -1006,7 +1107,9 @@ const Applications = () => {
 
               <Button
                 variant="secondary"
-                onClick={() => window.location.href = `mailto:${selectedApplication.email}`}
+                onClick={() =>
+                  (window.location.href = `mailto:${selectedApplication.email}`)
+                }
                 className="flex items-center"
               >
                 <Mail className="h-4 w-4 mr-2" />
@@ -1017,7 +1120,9 @@ const Applications = () => {
                 <>
                   <Button
                     variant="danger"
-                    onClick={() => handleStatusChange(selectedApplication.id, "rejected")}
+                    onClick={() =>
+                      handleStatusChange(selectedApplication.id, "rejected")
+                    }
                     disabled={isProcessing}
                     className="flex items-center"
                   >
@@ -1030,7 +1135,9 @@ const Applications = () => {
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={() => handleStatusChange(selectedApplication.id, "approved")}
+                    onClick={() =>
+                      handleStatusChange(selectedApplication.id, "approved")
+                    }
                     disabled={isProcessing}
                     className="flex items-center"
                   >
