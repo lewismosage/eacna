@@ -11,6 +11,7 @@ interface AlertModalProps {
   type?: 'info' | 'success' | 'warning' | 'error' | 'confirm';
   confirmText?: string;
   cancelText?: string;
+  customContent?: React.ReactNode;
 }
 
 export default function AlertModal({

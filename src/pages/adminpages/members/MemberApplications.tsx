@@ -11,12 +11,17 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  Mail,
+  FileText,
+  ShieldCheck,
 } from "lucide-react";
 import Card, { CardContent } from "../../../components/common/Card";
 import Button from "../../../components/common/Button";
 import { createClient } from "@supabase/supabase-js";
 import emailjs from "@emailjs/browser";
 import AlertModal from "../../../components/common/AlertModal";
+import Badge from "../.././../components/common/Badge";
+import { format } from "date-fns";
 
 // Initialize emailjs
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
@@ -32,59 +37,72 @@ const supabase = createClient(
 interface Application {
   id: string;
   first_name: string;
-  middle_name: string;
   last_name: string;
   email: string;
   phone: string;
   gender: string;
-  nationality: string;
-  country_of_residence: string;
-  id_number: string;
-  membership_type: string;
-  current_profession: string;
-  institution: string;
+  national_id: string;
+  date_of_birth: string;
+  residential_address: string;
+  medical_registration_number: string;
+  profession: string;
+  specialization: string;
+  years_of_experience: number;
+  current_employer: string;
   work_address: string;
-  registration_number: string;
-  highest_degree: string;
-  university: string;
+  highest_qualification: string;
+  institution_attended: string;
+  year_of_graduation: string;
+  credentials: string[];
+  license_expiry_date: string;
+  agree_to_ethics: boolean;
+  consent_to_data_processing: boolean;
   created_at: string;
   application_status: ApplicationStatus;
-  certify_info: boolean;
-  consent_data: boolean;
+  user_id?: string;
 }
 
-interface User {
-  id: string;
-  email: string;
-  raw_user_meta_data: {
-    first_name?: string;
-    last_name?: string;
-  };
-}
+const professions = [
+  "Doctor",
+  "Nurse",
+  "Surgeon",
+  "Pharmacist",
+  "Neurologist",
+  "Lab Technician",
+  "Radiologist",
+  "Dentist",
+  "General Practitioner"
+];
+
+const qualifications = [
+  "MBChB",
+  "MD",
+  "BSc Nursing",
+  "PharmD",
+  "BSc Medicine",
+  "MSc Medicine",
+  "PhD",
+  "Diploma in Clinical Medicine"
+];
 
 const Applications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [filteredApplications, setFilteredApplications] = useState<
-    Application[]
-  >([]);
+  const [filteredApplications, setFilteredApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">(
-    "all"
-  );
-  const [membershipFilter, setMembershipFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
+  const [professionFilter, setProfessionFilter] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Application;
     direction: "ascending" | "descending";
   }>({ key: "created_at", direction: "descending" });
-  const [selectedApplication, setSelectedApplication] =
-    useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState<{
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
-  const [alert, setAlert] = useState<{
+  interface AlertState {
     open: boolean;
     title: string;
     message: string;
@@ -93,11 +111,20 @@ const Applications = () => {
     onCancel?: () => void;
     confirmText?: string;
     cancelText?: string;
-  }>({
+    customContent?: React.ReactNode;
+  }
+  
+  const [alert, setAlert] = useState<AlertState>({
     open: false,
     title: "",
     message: "",
     type: "info",
+  });
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0
   });
 
   // Fetch applications
@@ -114,6 +141,14 @@ const Applications = () => {
       if (data) {
         setApplications(data);
         setFilteredApplications(data);
+        
+        // Calculate stats
+        setStats({
+          total: data.length,
+          pending: data.filter(app => app.application_status === "pending").length,
+          approved: data.filter(app => app.application_status === "approved").length,
+          rejected: data.filter(app => app.application_status === "rejected").length
+        });
       }
     } catch (err) {
       console.error("Error fetching applications:", err);
@@ -140,9 +175,9 @@ const Applications = () => {
       );
     }
 
-    if (membershipFilter !== "all") {
+    if (professionFilter !== "all") {
       filtered = filtered.filter(
-        (app) => app.membership_type === membershipFilter
+        (app) => app.profession === professionFilter
       );
     }
 
@@ -153,7 +188,8 @@ const Applications = () => {
           app.first_name.toLowerCase().includes(term) ||
           app.last_name.toLowerCase().includes(term) ||
           app.email.toLowerCase().includes(term) ||
-          (app.institution && app.institution.toLowerCase().includes(term))
+          (app.current_employer && app.current_employer.toLowerCase().includes(term)) ||
+          (app.medical_registration_number && app.medical_registration_number.toLowerCase().includes(term))
       );
     }
 
@@ -175,7 +211,7 @@ const Applications = () => {
     }
 
     setFilteredApplications(filtered);
-  }, [applications, searchTerm, statusFilter, membershipFilter, sortConfig]);
+  }, [applications, searchTerm, statusFilter, professionFilter, sortConfig]);
 
   const handleSort = (key: keyof Application) => {
     let direction: "ascending" | "descending" = "ascending";
@@ -193,15 +229,12 @@ const Applications = () => {
         subject: "Your EACNA Membership Application Has Been Approved",
         message: `
           <p>Dear ${application.first_name},</p>
-          <p>We are pleased to inform you that your application for ${getMembershipLabel(
-            application.membership_type
-          )} membership with EACNA has been approved!</p>
+          <p>We are pleased to inform you that your application for ${application.profession} membership with EACNA has been approved!</p>
           <p>Next steps:</p>
           <ol>
             <li>Complete your membership payment (you will receive payment instructions separately)</li>
             <li>Once payment is confirmed, you will receive your membership details</li>
             <li>Access member resources on our portal</li>
-            <li>Connect with other members</li>
           </ol>
           <p>If you have any questions, please contact us at members@eacna.org.</p>
           <p>Welcome to EACNA!</p>
@@ -221,16 +254,44 @@ const Applications = () => {
     }
   };
 
+  const sendRejectionEmail = async (application: Application, reason?: string) => {
+    try {
+      const templateParams = {
+        to_name: `${application.first_name} ${application.last_name}`,
+        to_email: application.email,
+        subject: "Your EACNA Membership Application Status",
+        message: `
+          <p>Dear ${application.first_name},</p>
+          <p>We regret to inform you that your application for ${application.profession} membership with EACNA could not be approved at this time.</p>
+          ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+          <p>You may reapply after addressing the issues mentioned above.</p>
+          <p>If you have any questions, please contact us at members@eacna.org.</p>
+        `,
+      };
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending rejection email:", error);
+      return false;
+    }
+  };
+
   const handleStatusChange = async (
     id: string,
-    newStatus: ApplicationStatus
+    newStatus: ApplicationStatus,
+    reason?: string
   ) => {
     if (newStatus === "approved") {
       setAlert({
         open: true,
         title: "Approve Application",
-        message:
-          "This will approve the application.Continue?",
+        message: "This will approve the application and notify the applicant. Continue?",
         type: "confirm",
         confirmText: "Approve",
         cancelText: "Cancel",
@@ -257,7 +318,17 @@ const Applications = () => {
 
             if (error) throw error;
 
-            // Send approval email (without membership ID)
+            // If user exists, update their role
+            if (applicationData.user_id) {
+              const { error: profileError } = await supabase
+                .from("profiles")
+                .update({ role: "member" })
+                .eq("user_id", applicationData.user_id);
+
+              if (profileError) throw profileError;
+            }
+
+            // Send approval email
             await sendApprovalEmail({
               ...applicationData,
               application_status: "approved",
@@ -268,8 +339,7 @@ const Applications = () => {
 
             setNotification({
               type: "success",
-              message:
-                "Application approved!",
+              message: "Application approved and applicant notified!",
             });
           } catch (err) {
             console.error("Error approving application:", err);
@@ -280,6 +350,7 @@ const Applications = () => {
           } finally {
             setIsProcessing(false);
             setAlert({ ...alert, open: false });
+            setSelectedApplication(null);
           }
         },
         onCancel: () => setAlert({ ...alert, open: false }),
@@ -289,13 +360,31 @@ const Applications = () => {
       setAlert({
         open: true,
         title: "Reject Application",
-        message: "Are you sure you want to reject this application?",
+        message: "Please provide a reason for rejection (optional):",
         type: "confirm",
         confirmText: "Reject",
         cancelText: "Cancel",
+        customContent: (
+          <textarea
+            className="w-full mt-2 p-2 border border-gray-300 rounded-md"
+            placeholder="Reason for rejection..."
+            onChange={(e) => setAlert(prev => ({
+              ...prev,
+              message: e.target.value || "Please provide a reason for rejection (optional):"
+            }))}
+          />
+        ),
         onConfirm: async () => {
           setIsProcessing(true);
           try {
+            const { data: applicationData } = await supabase
+              .from("membership_applications")
+              .select("*")
+              .eq("id", id)
+              .single();
+
+            if (!applicationData) throw new Error("Application not found");
+
             const { error } = await supabase
               .from("membership_applications")
               .update({
@@ -306,12 +395,19 @@ const Applications = () => {
 
             if (error) throw error;
 
+            // Send rejection email with reason
+            await sendRejectionEmail(applicationData, 
+              alert.message !== "Please provide a reason for rejection (optional):" 
+                ? alert.message 
+                : undefined
+            );
+
             // Refresh applications
             await fetchApplications();
 
             setNotification({
               type: "success",
-              message: "Application has been rejected.",
+              message: "Application has been rejected and applicant notified.",
             });
           } catch (err) {
             console.error("Error rejecting application:", err);
@@ -322,6 +418,7 @@ const Applications = () => {
           } finally {
             setIsProcessing(false);
             setAlert({ ...alert, open: false });
+            setSelectedApplication(null);
           }
         },
         onCancel: () => setAlert({ ...alert, open: false }),
@@ -330,33 +427,18 @@ const Applications = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return format(new Date(dateString), "MMM dd, yyyy");
   };
 
-  const getStatusClass = (status: ApplicationStatus) => {
+  const getStatusBadge = (status: ApplicationStatus) => {
     switch (status) {
       case "approved":
-        return "bg-green-100 text-green-800";
+        return <Badge variant="success">Approved</Badge>;
       case "rejected":
-        return "bg-red-100 text-red-800";
+        return <Badge variant="danger">Rejected</Badge>;
       default:
-        return "bg-yellow-100 text-yellow-800";
+        return <Badge variant="warning">Pending</Badge>;
     }
-  };
-
-  const getMembershipLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      ordinary: "Full Member",
-      associate: "Associate Member",
-      student: "Student Member",
-      institutional: "Institutional Member",
-      honorary: "Honorary Member",
-    };
-    return labels[type] || type;
   };
 
   const handleExport = async () => {
@@ -366,10 +448,10 @@ const Applications = () => {
         "Name",
         "Email",
         "Phone",
-        "Membership Type",
-        "Nationality",
         "Profession",
-        "Institution",
+        "Specialization",
+        "Current Employer",
+        "Years of Experience",
         "Status",
         "Date Submitted",
       ].join(",");
@@ -377,15 +459,13 @@ const Applications = () => {
       const csvRows = filteredApplications.map((app) =>
         [
           app.id,
-          `"${app.first_name} ${app.middle_name ? app.middle_name + " " : ""}${
-            app.last_name
-          }"`,
+          `"${app.first_name} ${app.last_name}"`,
           app.email,
           app.phone,
-          getMembershipLabel(app.membership_type),
-          app.nationality,
-          app.current_profession,
-          app.institution,
+          app.profession,
+          app.specialization,
+          app.current_employer,
+          app.years_of_experience,
           app.application_status,
           formatDate(app.created_at),
         ].join(",")
@@ -398,7 +478,7 @@ const Applications = () => {
       link.href = url;
       link.setAttribute(
         "download",
-        `eacna-applications-${new Date().toISOString().slice(0, 10)}.csv`
+        `eacna-applications-${format(new Date(), "yyyy-MM-dd")}.csv`
       );
       document.body.appendChild(link);
       link.click();
@@ -417,6 +497,14 @@ const Applications = () => {
     }
   };
 
+  const getPublicUrl = (path: string) => {
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('member-documents')
+      .getPublicUrl(path);
+    return publicUrl;
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
@@ -427,6 +515,62 @@ const Applications = () => {
           <Download className="h-4 w-4 mr-2" />
           Export to CSV
         </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Applications</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Pending</p>
+                <p className="text-2xl font-bold">{stats.pending}</p>
+              </div>
+              <div className="bg-yellow-100 p-3 rounded-full">
+                <Loader2 className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Approved</p>
+                <p className="text-2xl font-bold">{stats.approved}</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Rejected</p>
+                <p className="text-2xl font-bold">{stats.rejected}</p>
+              </div>
+              <div className="bg-red-100 p-3 rounded-full">
+                <X className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {notification && (
@@ -464,7 +608,7 @@ const Applications = () => {
               <input
                 type="text"
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Search applications..."
+                placeholder="Search by name, email, or registration..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -491,15 +635,13 @@ const Applications = () => {
 
               <select
                 className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                value={membershipFilter}
-                onChange={(e) => setMembershipFilter(e.target.value)}
+                value={professionFilter}
+                onChange={(e) => setProfessionFilter(e.target.value)}
               >
-                <option value="all">All Memberships</option>
-                <option value="ordinary">Full Member</option>
-                <option value="associate">Associate</option>
-                <option value="student">Student</option>
-                <option value="institutional">Institutional</option>
-                <option value="honorary">Honorary</option>
+                <option value="all">All Professions</option>
+                {professions.map(prof => (
+                  <option key={prof} value={prof}>{prof}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -533,19 +675,19 @@ const Applications = () => {
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort("membership_type")}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
-                          <div className="flex items-center">
-                            Membership Type
-                            <ArrowUpDown className="h-4 w-4 ml-1" />
-                          </div>
+                          Contact
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort("profession")}
                         >
-                          Profession
+                          <div className="flex items-center">
+                            Profession
+                            <ArrowUpDown className="h-4 w-4 ml-1" />
+                          </div>
                         </th>
                         <th
                           scope="col"
@@ -579,73 +721,65 @@ const Applications = () => {
                               {application.first_name} {application.last_name}
                             </div>
                             <div className="text-sm text-gray-500">
+                              ID: {application.national_id}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">
                               {application.email}
                             </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
-                              {getMembershipLabel(application.membership_type)}
+                            <div className="text-sm text-gray-500">
+                              {application.phone}
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">
-                              {application.current_profession}
+                              {application.profession}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {application.institution}
+                              {application.specialization}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500">
                             {formatDate(application.created_at)}
                           </td>
                           <td className="px-6 py-4">
-                            <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
-                                application.application_status
-                              )}`}
-                            >
-                              {application.application_status
-                                .charAt(0)
-                                .toUpperCase() +
-                                application.application_status.slice(1)}
-                            </span>
+                            {getStatusBadge(application.application_status)}
                           </td>
                           <td className="px-6 py-4 text-right text-sm font-medium">
                             <div className="flex justify-end space-x-2">
                               <button
-                                onClick={() =>
-                                  setSelectedApplication(application)
-                                }
-                                className="text-primary-600 hover:text-primary-900"
+                                onClick={() => setSelectedApplication(application)}
+                                className="text-primary-600 hover:text-primary-900 p-1 rounded hover:bg-gray-100"
+                                title="View Details"
                               >
                                 <Eye className="h-5 w-5" />
                               </button>
                               {application.application_status === "pending" && (
                                 <>
                                   <button
-                                    onClick={() =>
-                                      handleStatusChange(
-                                        application.id,
-                                        "approved"
-                                      )
-                                    }
-                                    className="text-green-600 hover:text-green-900"
+                                    onClick={() => handleStatusChange(application.id, "approved")}
+                                    className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-gray-100"
+                                    title="Approve"
                                   >
                                     <Check className="h-5 w-5" />
                                   </button>
                                   <button
-                                    onClick={() =>
-                                      handleStatusChange(
-                                        application.id,
-                                        "rejected"
-                                      )
-                                    }
-                                    className="text-red-600 hover:text-red-900"
+                                    onClick={() => handleStatusChange(application.id, "rejected")}
+                                    className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-gray-100"
+                                    title="Reject"
                                   >
                                     <X className="h-5 w-5" />
                                   </button>
                                 </>
                               )}
+                              <button
+                                onClick={() => window.location.href = `mailto:${application.email}`}
+                                className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-gray-100"
+                                title="Send Email"
+                              >
+                                <Mail className="h-5 w-5" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -661,8 +795,8 @@ const Applications = () => {
 
       {/* Application Details Modal */}
       {selectedApplication && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4 z-50">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-auto p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-bold text-primary-800">
                 Application Details
@@ -678,111 +812,185 @@ const Applications = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
                     Personal Information
                   </h4>
-                  <div className="mt-2 space-y-1">
-                    <p>
-                      <span className="font-medium">Name:</span>{" "}
-                      {selectedApplication.first_name}{" "}
-                      {selectedApplication.middle_name}{" "}
-                      {selectedApplication.last_name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Email:</span>{" "}
-                      {selectedApplication.email}
-                    </p>
-                    <p>
-                      <span className="font-medium">Phone:</span>{" "}
-                      {selectedApplication.phone}
-                    </p>
-                    <p>
-                      <span className="font-medium">Gender:</span>{" "}
-                      {selectedApplication.gender}
-                    </p>
-                    <p>
-                      <span className="font-medium">Nationality:</span>{" "}
-                      {selectedApplication.nationality}
-                    </p>
-                    <p>
-                      <span className="font-medium">Country of Residence:</span>{" "}
-                      {selectedApplication.country_of_residence}
-                    </p>
-                    <p>
-                      <span className="font-medium">ID/Passport:</span>{" "}
-                      {selectedApplication.id_number}
-                    </p>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Full Name</p>
+                        <p className="font-medium">
+                          {selectedApplication.first_name} {selectedApplication.last_name}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Gender</p>
+                        <p className="font-medium capitalize">{selectedApplication.gender}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Date of Birth</p>
+                        <p className="font-medium">
+                          {formatDate(selectedApplication.date_of_birth)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">National ID</p>
+                        <p className="font-medium">{selectedApplication.national_id}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="font-medium">{selectedApplication.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Phone</p>
+                        <p className="font-medium">{selectedApplication.phone}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Residential Address</p>
+                        <p className="font-medium">{selectedApplication.residential_address}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">
-                    Membership Details
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                    Professional Information
                   </h4>
-                  <div className="mt-2 space-y-1">
-                    <p>
-                      <span className="font-medium">Type:</span>{" "}
-                      {getMembershipLabel(selectedApplication.membership_type)}
-                    </p>
-                    <p>
-                      <span className="font-medium">Status:</span>
-                      <span
-                        className={`ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
-                          selectedApplication.application_status
-                        )}`}
-                      >
-                        {selectedApplication.application_status
-                          .charAt(0)
-                          .toUpperCase() +
-                          selectedApplication.application_status.slice(1)}
-                      </span>
-                    </p>
-                    <p>
-                      <span className="font-medium">Submitted:</span>{" "}
-                      {formatDate(selectedApplication.created_at)}
-                    </p>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Registration Number</p>
+                        <p className="font-medium">
+                          {selectedApplication.medical_registration_number || "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Profession</p>
+                        <p className="font-medium">{selectedApplication.profession}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Specialization</p>
+                        <p className="font-medium">{selectedApplication.specialization}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Years of Experience</p>
+                        <p className="font-medium">{selectedApplication.years_of_experience}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Current Employer</p>
+                        <p className="font-medium">{selectedApplication.current_employer}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Work Address</p>
+                        <p className="font-medium">{selectedApplication.work_address}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">
-                    Professional Information
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                    Education and Certification
                   </h4>
-                  <div className="mt-2 space-y-1">
-                    <p>
-                      <span className="font-medium">Profession:</span>{" "}
-                      {selectedApplication.current_profession}
-                    </p>
-                    <p>
-                      <span className="font-medium">Institution:</span>{" "}
-                      {selectedApplication.institution}
-                    </p>
-                    <p>
-                      <span className="font-medium">Work Address:</span>{" "}
-                      {selectedApplication.work_address}
-                    </p>
-                    <p>
-                      <span className="font-medium">Registration Number:</span>{" "}
-                      {selectedApplication.registration_number || "N/A"}
-                    </p>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Highest Qualification</p>
+                        <p className="font-medium">{selectedApplication.highest_qualification}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Institution Attended</p>
+                        <p className="font-medium">{selectedApplication.institution_attended}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Year of Graduation</p>
+                        <p className="font-medium">{selectedApplication.year_of_graduation}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">License Expiry</p>
+                        <p className="font-medium">
+                          {selectedApplication.license_expiry_date 
+                            ? formatDate(selectedApplication.license_expiry_date)
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedApplication.credentials && selectedApplication.credentials.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">
+                      Uploaded Credentials
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <div className="grid grid-cols-2 gap-4">
+                        {selectedApplication.credentials.map((credential, index) => (
+                          <div key={index} className="col-span-2 md:col-span-1">
+                            <a 
+                              href={getPublicUrl(credential)} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center text-primary-600 hover:text-primary-800"
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              Document {index + 1}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                    Compliance
+                  </h4>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        {selectedApplication.agree_to_ethics ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <X className="h-5 w-5 text-red-500" />
+                        )}
+                        <span className="ml-2 text-sm">Agreed to Code of Ethics</span>
+                      </div>
+                      <div className="flex items-center">
+                        {selectedApplication.consent_to_data_processing ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <X className="h-5 w-5 text-red-500" />
+                        )}
+                        <span className="ml-2 text-sm">Consent to Data Processing</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">
-                    Education
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                    Application Status
                   </h4>
-                  <div className="mt-2 space-y-1">
-                    <p>
-                      <span className="font-medium">Highest Degree:</span>{" "}
-                      {selectedApplication.highest_degree}
-                    </p>
-                    <p>
-                      <span className="font-medium">University:</span>{" "}
-                      {selectedApplication.university}
-                    </p>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-500">Status</p>
+                        <div className="mt-1">
+                          {getStatusBadge(selectedApplication.application_status)}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Submitted On</p>
+                        <p className="font-medium">
+                          {formatDate(selectedApplication.created_at)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -796,14 +1004,22 @@ const Applications = () => {
                 Close
               </Button>
 
+              <Button
+                variant="secondary"
+                onClick={() => window.location.href = `mailto:${selectedApplication.email}`}
+                className="flex items-center"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email Applicant
+              </Button>
+
               {selectedApplication.application_status === "pending" && (
                 <>
                   <Button
-                    variant="secondary"
-                    onClick={() =>
-                      handleStatusChange(selectedApplication.id, "rejected")
-                    }
+                    variant="danger"
+                    onClick={() => handleStatusChange(selectedApplication.id, "rejected")}
                     disabled={isProcessing}
+                    className="flex items-center"
                   >
                     {isProcessing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -814,10 +1030,9 @@ const Applications = () => {
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={() =>
-                      handleStatusChange(selectedApplication.id, "approved")
-                    }
+                    onClick={() => handleStatusChange(selectedApplication.id, "approved")}
                     disabled={isProcessing}
+                    className="flex items-center"
                   >
                     {isProcessing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
