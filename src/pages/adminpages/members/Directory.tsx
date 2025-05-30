@@ -9,15 +9,32 @@ import {
   FileText,
   UserPlus,
   X,
-  CreditCard,
   Check,
   AlertCircle,
+  Mail,
+  User,
+  Briefcase,
+  CreditCard,
+  Calendar,
+  Flag,
+  MapPin,
+  BookOpen,
+  GraduationCap,
+  Building,
 } from "lucide-react";
-import Card from "../../../components/common/Card";
 import { createClient } from "@supabase/supabase-js";
+import { format } from "date-fns";
+import Card from "../../../components/common/Card";
+import Button from "../../../components/common/Button";
+import Badge from "../../../components/common/Badge";
 import { MembershipTier, membershipTiers } from "../../../types/membership";
 
-// Define the Member interface
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
+
 interface Member {
   id: string;
   user_id: string;
@@ -36,7 +53,6 @@ interface Member {
   current_profession: string;
 }
 
-// Define application details interface
 interface ApplicationDetails {
   id: string;
   first_name: string;
@@ -59,7 +75,6 @@ interface ApplicationDetails {
   created_at: string;
 }
 
-// Define payment details interface
 interface PaymentDetails {
   id: string;
   transaction_id: string;
@@ -74,39 +89,50 @@ interface PaymentDetails {
   membership_number: string;
 }
 
-// Define the status options
 const statusOptions = [
   { value: "active", label: "Active" },
   { value: "expired", label: "Expired" },
 ] as const;
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+type SortableMemberKeys =
+  | "first_name"
+  | "last_name"
+  | "email"
+  | "membership_type"
+  | "member_since"
+  | "expiry_date"
+  | "status";
 
-// Function to format date string
 const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
+  return format(new Date(dateStr), "MMM dd, yyyy");
 };
 
-// Calculate days until expiry
 const getDaysUntilExpiry = (expiryDate: string) => {
   const today = new Date();
   const expiry = new Date(expiryDate);
   const diffTime = expiry.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
-const MembershipStatusBadge = ({ status }: { status: Member["status"] }) => {
-  const bgColor = status === "active" ? "bg-green-100" : "bg-red-100";
-  const textColor = status === "active" ? "text-green-800" : "text-red-800";
+const MembershipStatusBadge = ({ 
+  status, 
+  expiryDate 
+}: { 
+  status: Member["status"];
+  expiryDate: string;
+}) => {
+  const isExpired = new Date(expiryDate) < new Date();
+  
+  if (isExpired) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        Expired
+      </span>
+    );
+  }
+
+  const bgColor = status === "active" ? "bg-green-100" : "bg-yellow-100";
+  const textColor = status === "active" ? "text-green-800" : "text-yellow-800";
 
   return (
     <span
@@ -128,7 +154,7 @@ const ExpiryBadge = ({ expiryDate }: { expiryDate: string }) => {
     );
   } else if (daysUntil <= 30) {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
         {daysUntil} days left
       </span>
     );
@@ -143,19 +169,30 @@ const ExpiryBadge = ({ expiryDate }: { expiryDate: string }) => {
 
 const MembershipTypeLabel = ({ type }: { type: MembershipTier }) => {
   const membershipType = membershipTiers[type];
-  return membershipType ? membershipType.name : type;
+
+  // Fallback for unknown membership types
+  if (!membershipType) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        {type} {/* Display the type if it's unknown */}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+      style={{
+        backgroundColor: `${membershipType.color}20`, // Lighten the color for background
+        color: membershipType.color,
+      }}
+    >
+      {membershipType.name}
+    </span>
+  );
 };
 
-type SortableMemberKeys =
-  | "first_name"
-  | "last_name"
-  | "email"
-  | "membership_type"
-  | "member_since"
-  | "expiry_date"
-  | "status";
-
-const AdminMembershipDirectory = () => {
+const Directory = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,78 +208,66 @@ const AdminMembershipDirectory = () => {
     key: SortableMemberKeys;
     direction: "ascending" | "descending";
   } | null>(null);
-  const [expandedMember, setExpandedMember] = useState<string | null>(null);
-  const [dropdownMenu, setDropdownMenu] = useState<string | null>(null);
-  const [viewDetailsModal, setViewDetailsModal] = useState<{
-    open: boolean;
-    memberId: string | null;
+  const [selectedMember, setSelectedMember] = useState<{
+    member: Member | null;
     applicationDetails: ApplicationDetails | null;
     paymentDetails: PaymentDetails | null;
-    loading: boolean;
   }>({
-    open: false,
-    memberId: null,
+    member: null,
     applicationDetails: null,
     paymentDetails: null,
-    loading: false,
   });
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  // Fetch members from Supabase
+  const fetchMembers = async () => {
+    try {
+      setLoading(true);
+      const { data: directoryData, error } = await supabase
+        .from("membership_directory")
+        .select("*")
+        .order("member_since", { ascending: false });
+
+      if (error) throw error;
+
+      const transformedData = directoryData.map(
+        (member): Member => ({
+          id: member.user_id,
+          user_id: member.user_id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          email: member.email,
+          phone: member.phone,
+          membership_type: member.membership_type as MembershipTier,
+          membership_number: member.membership_number,
+          member_since: member.member_since,
+          expiry_date: member.expiry_date,
+          status: member.status as "active" | "expired",
+          institution: member.institution,
+          nationality: member.nationality,
+          country_of_residence: member.country_of_residence,
+          current_profession: member.current_profession,
+        })
+      );
+
+      setMembers(transformedData);
+      setFilteredMembers(transformedData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch members");
+      console.error("Error fetching members:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        setLoading(true);
-
-        // Query the directory view directly
-        const { data: directoryData, error } = await supabase
-          .from("membership_directory")
-          .select("*")
-          .order("member_since", { ascending: false });
-
-        if (error) throw error;
-
-        const transformedData = directoryData.map(
-          (member): Member => ({
-            id: member.user_id, // Using user_id as the primary identifier
-            user_id: member.user_id,
-            first_name: member.first_name,
-            last_name: member.last_name,
-            email: member.email,
-            phone: member.phone,
-            membership_type: member.membership_type as MembershipTier,
-            membership_number: member.membership_number, // Using membership_number
-            member_since: member.member_since,
-            expiry_date: member.expiry_date,
-            status: member.status as "active" | "expired",
-            institution: member.institution,
-            nationality: member.nationality,
-            country_of_residence: member.country_of_residence,
-            current_profession: member.current_profession,
-          })
-        );
-
-        setMembers(transformedData);
-        setFilteredMembers(transformedData);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch members"
-        );
-        console.error("Error fetching members:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMembers();
   }, []);
 
-  // Handle search and filtering
   useEffect(() => {
     if (loading) return;
 
     let result = [...members];
 
-    // Apply search
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
       result = result.filter(
@@ -254,32 +279,27 @@ const AdminMembershipDirectory = () => {
       );
     }
 
-    // Apply membership type filter
     if (selectedMembershipType) {
       result = result.filter(
         (member) => member.membership_type === selectedMembershipType
       );
     }
 
-    // Apply status filter
     if (selectedStatus) {
       result = result.filter((member) => member.status === selectedStatus);
     }
 
-    // Apply sorting
     if (sortConfig !== null) {
       result.sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
 
-        // Handle cases where values might be undefined
         if (aValue == null && bValue == null) return 0;
         if (aValue == null)
           return sortConfig.direction === "ascending" ? 1 : -1;
         if (bValue == null)
           return sortConfig.direction === "ascending" ? -1 : 1;
 
-        // For date fields, convert to Date objects for proper comparison
         if (
           sortConfig.key === "member_since" ||
           sortConfig.key === "expiry_date"
@@ -295,7 +315,6 @@ const AdminMembershipDirectory = () => {
           return 0;
         }
 
-        // For all other fields
         if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
@@ -316,7 +335,6 @@ const AdminMembershipDirectory = () => {
     loading,
   ]);
 
-  // Update the requestSort function to use the new type
   const requestSort = (key: SortableMemberKeys) => {
     let direction: "ascending" | "descending" = "ascending";
     if (
@@ -329,7 +347,6 @@ const AdminMembershipDirectory = () => {
     setSortConfig({ key, direction });
   };
 
-  // Get sorting icon
   const getSortIcon = (key: SortableMemberKeys) => {
     if (!sortConfig || sortConfig.key !== key) {
       return null;
@@ -341,87 +358,45 @@ const AdminMembershipDirectory = () => {
     );
   };
 
-  // Handle dropdown menu toggle
-  const toggleDropdownMenu = (memberId: string) => {
-    if (dropdownMenu === memberId) {
-      setDropdownMenu(null);
-    } else {
-      setDropdownMenu(memberId);
-    }
-  };
-
-  // Handle member details toggle
-  const toggleMemberDetails = (memberId: string) => {
-    if (expandedMember === memberId) {
-      setExpandedMember(null);
-    } else {
-      setExpandedMember(memberId);
-    }
-  };
-
-  // Handle view details click
-  const handleViewDetails = async (memberId: string, userId: string) => {
-    setViewDetailsModal({
-      open: true,
-      memberId,
+  const handleViewDetails = async (member: Member) => {
+    setSelectedMember({
+      member,
       applicationDetails: null,
       paymentDetails: null,
-      loading: true,
     });
-
+    setIsLoadingDetails(true);
+  
     try {
       // Get the most recent payment for this user
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", member.user_id)
         .order("verified_at", { ascending: false })
         .limit(1);
-
+  
       if (paymentError) throw paymentError;
-      if (!paymentData || paymentData.length === 0)
-        throw new Error("No payment found");
-
-      const payment = paymentData[0];
-
-      // Get the associated application
+  
+      // Get the application for this user
       const { data: applicationData, error: applicationError } = await supabase
         .from("membership_applications")
         .select("*")
-        .eq("id", payment.application_id) // Using application_id to link
+        .eq("user_id", member.user_id)
         .single();
-
-      if (applicationError) throw applicationError;
-
-      // Calculate expiry date
-      const expiryDate = new Date(payment.verified_at);
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-
-      setViewDetailsModal({
-        open: true,
-        memberId,
-        applicationDetails: {
-          id: applicationData.id,
-          first_name: applicationData.first_name,
-          middle_name: applicationData.middle_name,
-          last_name: applicationData.last_name,
-          gender: applicationData.gender,
-          nationality: applicationData.nationality,
-          country_of_residence: applicationData.country_of_residence,
-          email: applicationData.email,
-          phone: applicationData.phone,
-          id_number: applicationData.id_number,
-          membership_type: applicationData.membership_type as MembershipTier,
-          membership_id: payment.membership_number, // Using membership_number from payment
-          current_profession: applicationData.current_profession,
-          institution: applicationData.institution,
-          work_address: applicationData.work_address,
-          registration_number: applicationData.registration_number,
-          highest_degree: applicationData.highest_degree,
-          university: applicationData.university,
-          created_at: applicationData.created_at,
-        },
-        paymentDetails: {
+  
+      if (applicationError) {
+        // If no application found, we'll just continue with payment data if it exists
+        console.log("No application found for user:", member.user_id);
+      }
+  
+      // Process payment data if exists
+      let paymentDetails = null;
+      if (paymentData && paymentData.length > 0) {
+        const payment = paymentData[0];
+        const expiryDate = new Date(payment.verified_at || new Date());
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+  
+        paymentDetails = {
           id: payment.id,
           transaction_id: payment.transaction_id,
           amount: payment.amount,
@@ -431,28 +406,106 @@ const AdminMembershipDirectory = () => {
           status: payment.status,
           verified_at: payment.verified_at,
           expiry_date: expiryDate.toISOString(),
-          membership_type: payment.membership_type,
-          membership_number: payment.membership_number, // Added membership_number
-        },
-        loading: false,
+          membership_type: payment.membership_tier,
+          membership_number: payment.membership_id,
+        };
+      }
+  
+      // Process application data if exists
+      let applicationDetails = null;
+      if (applicationData) {
+        applicationDetails = {
+          id: applicationData.id,
+          first_name: applicationData.first_name,
+          middle_name: applicationData.middle_name || undefined,
+          last_name: applicationData.last_name,
+          gender: applicationData.gender || undefined,
+          nationality: applicationData.country || undefined,
+          country_of_residence: applicationData.country || undefined,
+          email: applicationData.email,
+          phone: applicationData.phone,
+          id_number: applicationData.national_id || undefined,
+          membership_type: applicationData.membership_tier as MembershipTier,
+          membership_id: paymentDetails?.membership_number || undefined,
+          current_profession: applicationData.profession || undefined,
+          institution: applicationData.current_employer || undefined,
+          work_address: applicationData.residential_address || undefined,
+          registration_number: applicationData.medical_registration_number || undefined,
+          highest_degree: applicationData.highest_qualification || undefined,
+          university: applicationData.institution_attended || undefined,
+          created_at: applicationData.created_at || applicationData.application_date,
+        };
+      }
+  
+      setSelectedMember({
+        member,
+        applicationDetails,
+        paymentDetails,
       });
     } catch (err) {
       console.error("Error fetching member details:", err);
-      setViewDetailsModal((prev) => ({
-        ...prev,
-        loading: false,
-      }));
+      setError("Failed to load member details");
+      
+      // Still show basic member info even if details fail
+      setSelectedMember({
+        member,
+        applicationDetails: null,
+        paymentDetails: null,
+      });
+    } finally {
+      setIsLoadingDetails(false);
     }
   };
 
-  // Export members list as CSV
   const exportMembersCSV = () => {
-    // In a real application, you would generate and download a CSV file
-    console.log("Exporting members as CSV");
-    alert("Exporting members as CSV");
+    const headers = [
+      "Membership Number",
+      "First Name",
+      "Last Name",
+      "Email",
+      "Phone",
+      "Membership Type",
+      "Member Since",
+      "Expiry Date",
+      "Status",
+      "Institution",
+      "Profession",
+      "Nationality",
+      "Country of Residence",
+    ].join(",");
+
+    const csvRows = members.map((member) =>
+      [
+        member.membership_number,
+        member.first_name,
+        member.last_name,
+        member.email,
+        member.phone,
+        membershipTiers[member.membership_type].name,
+        formatDate(member.member_since),
+        formatDate(member.expiry_date),
+        member.status,
+        member.institution,
+        member.current_profession,
+        member.nationality || "",
+        member.country_of_residence || "",
+      ].join(",")
+    );
+
+    const csvContent = [headers, ...csvRows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `eacna-members-${format(new Date(), "yyyy-MM-dd")}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  // Add loading and error states
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -469,18 +522,7 @@ const AdminMembershipDirectory = () => {
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-red-400"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <AlertCircle className="h-5 w-5 text-red-400" />
             </div>
             <div className="ml-3">
               <p className="text-sm text-red-700">{error}</p>
@@ -630,141 +672,61 @@ const AdminMembershipDirectory = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredMembers.length > 0 ? (
                 filteredMembers.map((member) => (
-                  <>
-                    <tr
-                      key={member.id}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => toggleMemberDetails(member.id)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                            <span className="text-emerald-800 font-medium">
-                              {member.first_name.charAt(0)}
-                              {member.last_name.charAt(0)}
-                            </span>
+                  <tr key={member.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                          <span className="text-emerald-800 font-medium">
+                            {member.first_name.charAt(0)}
+                            {member.last_name.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {member.first_name} {member.last_name}
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {member.first_name} {member.last_name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {member.email}
-                            </div>
+                          <div className="text-sm text-gray-500">
+                            {member.email}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          <MembershipTypeLabel type={member.membership_type} />
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {member.country_of_residence ||
-                            member.nationality ||
-                            "N/A"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(member.member_since)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(member.expiry_date)}
-                        </div>
-                        <ExpiryBadge expiryDate={member.expiry_date} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <MembershipStatusBadge status={member.status} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div
-                          className="relative inline-block text-left"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            className="inline-flex justify-center w-full rounded-md px-2 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleDropdownMenu(member.id);
-                            }}
-                          >
-                            <MoreHorizontal className="h-5 w-5" />
-                          </button>
-
-                          {dropdownMenu === member.id && (
-                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                              <div className="py-1">
-                                <button
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleViewDetails(
-                                      member.id,
-                                      member.user_id
-                                    );
-                                    setDropdownMenu(null);
-                                  }}
-                                >
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  View Details
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Expanded member details */}
-                    {expandedMember === member.id && (
-                      <tr className="bg-gray-50">
-                        <td colSpan={6} className="px-6 py-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-900">
-                                Contact Information
-                              </h4>
-                              <p className="text-sm text-gray-600 mt-1">
-                                Phone: {member.phone}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Email: {member.email}
-                              </p>
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-900">
-                                Professional Details
-                              </h4>
-                              <p className="text-sm text-gray-600 mt-1">
-                                Institution: {member.institution}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Profession: {member.current_profession}
-                              </p>
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-900">
-                                Membership Details
-                              </h4>
-                              <p className="text-sm text-gray-600 mt-1">
-                                Type:{" "}
-                                <MembershipTypeLabel
-                                  type={member.membership_type}
-                                />
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Valid from: {formatDate(member.member_since)} to{" "}
-                                {formatDate(member.expiry_date)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        <MembershipTypeLabel type={member.membership_type} />
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {member.country_of_residence ||
+                          member.nationality ||
+                          "N/A"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {formatDate(member.member_since)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {formatDate(member.expiry_date)}
+                      </div>
+                      <ExpiryBadge expiryDate={member.expiry_date} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <MembershipStatusBadge 
+                        status={member.status} 
+                        expiryDate={member.expiry_date} 
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleViewDetails(member)}
+                        className="text-emerald-600 hover:text-emerald-900"
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
                 ))
               ) : (
                 <tr>
@@ -806,47 +768,17 @@ const AdminMembershipDirectory = () => {
               >
                 <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                   <span className="sr-only">Previous</span>
-                  <svg
-                    className="h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <ChevronDown className="h-5 w-5 rotate-90" />
                 </button>
-                <button
-                  aria-current="page"
-                  className="z-10 bg-emerald-50 border-emerald-500 text-emerald-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium"
-                >
+                <button className="z-10 bg-emerald-50 border-emerald-500 text-emerald-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
                   1
                 </button>
                 <button className="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
                   2
                 </button>
-                <button className="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-                  3
-                </button>
                 <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                   <span className="sr-only">Next</span>
-                  <svg
-                    className="h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <ChevronDown className="h-5 w-5 -rotate-90" />
                 </button>
               </nav>
             </div>
@@ -907,7 +839,7 @@ const AdminMembershipDirectory = () => {
         </Card>
       </div>
 
-      {/* Membership type distribution chart */}
+      {/* Membership type distribution */}
       <div className="mt-8 bg-white shadow rounded-lg p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">
           Membership Type Distribution
@@ -915,7 +847,6 @@ const AdminMembershipDirectory = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <div className="h-64">
-              {/* In a real app, you would use a charting library like Chart.js or Recharts */}
               <div className="flex items-center justify-center h-full bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-gray-500">
                   Pie chart visualization of membership types
@@ -971,249 +902,215 @@ const AdminMembershipDirectory = () => {
         </div>
       </div>
 
-      {/* View Details Modal */}
-      {viewDetailsModal.open && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-900">
+      {/* Member Details Modal */}
+      {selectedMember.member && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4 z-50">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-auto p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-xl font-bold text-gray-800">
                 Member Details
               </h3>
               <button
                 onClick={() =>
-                  setViewDetailsModal({
-                    open: false,
-                    memberId: null,
+                  setSelectedMember({
+                    member: null,
                     applicationDetails: null,
                     paymentDetails: null,
-                    loading: false,
                   })
                 }
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-600"
               >
-                <X className="w-5 h-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
-            <div className="p-6">
-              {viewDetailsModal.loading ? (
-                <div className="flex justify-center items-center h-64">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-                </div>
-              ) : (
-                <>
-                  {viewDetailsModal.applicationDetails?.membership_id && (
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                      <h4 className="text-lg font-medium text-gray-900">
-                        Membership Number:{" "}
-                        <span className="font-mono font-bold">
-                          {viewDetailsModal.paymentDetails?.membership_number ||
-                            viewDetailsModal.applicationDetails.membership_id}
-                        </span>
-                      </h4>
-                    </div>
-                  )}
 
-                  {viewDetailsModal.applicationDetails && (
-                    <>
-                      <div className="mb-8">
-                        <h4 className="text-lg font-medium text-gray-900 mb-4">
-                          Application Details
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-500">
-                                Personal Information
-                              </h5>
-                              <div className="mt-2 space-y-2">
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Membership ID:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .membership_id || "N/A"}
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">Name:</span>{" "}
-                                  {
-                                    viewDetailsModal.applicationDetails
-                                      .first_name
-                                  }{" "}
-                                  {
-                                    viewDetailsModal.applicationDetails
-                                      .middle_name
-                                  }{" "}
-                                  {
-                                    viewDetailsModal.applicationDetails
-                                      .last_name
-                                  }
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">Gender:</span>{" "}
-                                  {viewDetailsModal.applicationDetails.gender ||
-                                    "N/A"}
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Nationality:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .nationality || "N/A"}
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Country of Residence:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .country_of_residence || "N/A"}
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    ID Number:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .id_number || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-500">
-                                Contact Information
-                              </h5>
-                              <div className="mt-2 space-y-2">
-                                <p className="text-sm">
-                                  <span className="font-medium">Email:</span>{" "}
-                                  {viewDetailsModal.applicationDetails.email}
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">Phone:</span>{" "}
-                                  {viewDetailsModal.applicationDetails.phone}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-500">
-                                Professional Information
-                              </h5>
-                              <div className="mt-2 space-y-2">
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Current Profession:
-                                  </span>{" "}
-                                  {
-                                    viewDetailsModal.applicationDetails
-                                      .current_profession
-                                  }
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Institution:
-                                  </span>{" "}
-                                  {
-                                    viewDetailsModal.applicationDetails
-                                      .institution
-                                  }
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Work Address:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .work_address || "N/A"}
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Registration Number:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .registration_number || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-500">
-                                Education
-                              </h5>
-                              <div className="mt-2 space-y-2">
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    Highest Degree:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .highest_degree || "N/A"}
-                                </p>
-                                <p className="text-sm">
-                                  <span className="font-medium">
-                                    University:
-                                  </span>{" "}
-                                  {viewDetailsModal.applicationDetails
-                                    .university || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
+            {isLoadingDetails ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Member Information */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Member Information
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                          <p className="text-xs text-gray-500">Name</p>
+                          <p className="font-medium">
+                            {selectedMember.member.first_name}{" "}
+                            {selectedMember.member.last_name}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Email</p>
+                          <p className="font-medium break-all">
+                            {selectedMember.member.email}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Phone</p>
+                          <p className="font-medium">
+                            {selectedMember.member.phone}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Nationality</p>
+                          <p className="font-medium">
+                            {selectedMember.member.nationality || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">
+                            Country of Residence
+                          </p>
+                          <p className="font-medium">
+                            {selectedMember.member.country_of_residence ||
+                              "N/A"}
+                          </p>
                         </div>
                       </div>
-                    </>
-                  )}
+                    </div>
+                  </div>
 
-                  {viewDetailsModal.paymentDetails && (
-                    <div>
-                      <h4 className="text-lg font-medium text-gray-900 mb-4">
-                        Payment Details
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Professional Information */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Professional Information
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                          <p className="text-xs text-gray-500">Institution</p>
+                          <p className="font-medium">
+                            {selectedMember.member.institution}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-xs text-gray-500">Profession</p>
+                          <p className="font-medium">
+                            {selectedMember.member.current_profession}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Membership Information */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Membership Information
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <div className="space-y-2">
-                            <p className="text-sm">
-                              <span className="font-medium">
-                                Membership Type:
-                              </span>{" "}
-                              <MembershipTypeLabel
-                                type={
-                                  viewDetailsModal.paymentDetails
-                                    .membership_type as MembershipTier
-                                }
-                              />
-                            </p>
-                            <p className="text-sm">
-                              <span className="font-medium">
-                                Transaction ID:
-                              </span>{" "}
-                              {viewDetailsModal.paymentDetails.transaction_id}
-                            </p>
-                            <p className="text-sm">
-                              <span className="font-medium">Amount Paid:</span>{" "}
-                              {viewDetailsModal.paymentDetails.currency}{" "}
-                              {viewDetailsModal.paymentDetails.amount}
-                            </p>
-                          </div>
+                          <p className="text-xs text-gray-500">
+                            Membership Number
+                          </p>
+                          <p className="font-mono font-medium">
+                            {selectedMember.member.membership_number}
+                          </p>
                         </div>
                         <div>
-                          <div className="space-y-2">
-                            <p className="text-sm">
-                              <span className="font-medium">
-                                Payment Method:
-                              </span>{" "}
-                              {viewDetailsModal.paymentDetails.payment_method}
+                          <p className="text-xs text-gray-500">
+                            Membership Type
+                          </p>
+                          <p className="font-medium">
+                            <MembershipTypeLabel
+                              type={selectedMember.member.membership_type}
+                            />
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Member Since</p>
+                          <p className="font-medium">
+                            {formatDate(selectedMember.member.member_since)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Expiry Date</p>
+                          <p className="font-medium">
+                            {formatDate(selectedMember.member.expiry_date)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Status</p>
+                          <p className="font-medium">
+                          <MembershipStatusBadge
+                            status={selectedMember.member.status}
+                            expiryDate={selectedMember.member.expiry_date}
+                          />
+                        </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Expiry Status</p>
+                          <p className="font-medium">
+                            <ExpiryBadge
+                              expiryDate={selectedMember.member.expiry_date}
+                            />
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  {selectedMember.paymentDetails && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Payment Information
+                      </h4>
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Transaction ID
                             </p>
-                            <p className="text-sm">
-                              <span className="font-medium">Payment Type:</span>{" "}
-                              {viewDetailsModal.paymentDetails.payment_type}
+                            <p className="font-mono font-medium">
+                              {selectedMember.paymentDetails.transaction_id}
                             </p>
-                            <p className="text-sm">
-                              <span className="font-medium">Status:</span>{" "}
-                              {viewDetailsModal.paymentDetails.status}
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Amount</p>
+                            <p className="font-medium">
+                              {selectedMember.paymentDetails.currency}{" "}
+                              {selectedMember.paymentDetails.amount}
                             </p>
-                            <p className="text-sm">
-                              <span className="font-medium">Expiry Date:</span>{" "}
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Payment Method
+                            </p>
+                            <p className="font-medium capitalize">
+                              {selectedMember.paymentDetails.payment_method}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Payment Status
+                            </p>
+                            <p className="font-medium capitalize">
+                              {selectedMember.paymentDetails.status}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Verification Date
+                            </p>
+                            <p className="font-medium">
                               {formatDate(
-                                viewDetailsModal.paymentDetails.expiry_date
+                                selectedMember.paymentDetails.verified_at
                               )}
                             </p>
                           </div>
@@ -1221,8 +1118,33 @@ const AdminMembershipDirectory = () => {
                       </div>
                     </div>
                   )}
-                </>
-              )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-6">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setSelectedMember({
+                    member: null,
+                    applicationDetails: null,
+                    paymentDetails: null,
+                  })
+                }
+              >
+                Close
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  (window.location.href = `mailto:${selectedMember.member?.email}`)
+                }
+                className="flex items-center"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email Member
+              </Button>
             </div>
           </div>
         </div>
@@ -1231,4 +1153,4 @@ const AdminMembershipDirectory = () => {
   );
 };
 
-export default AdminMembershipDirectory;
+export default Directory;

@@ -37,7 +37,7 @@ type FormData = {
   specialization: string;
   yearsOfExperience: number;
   currentEmployer: string;
-  workAddress: string;
+  country: string;
 
   // Education and Certification
   highestQualification: string;
@@ -172,7 +172,7 @@ const MembershipForm = () => {
           "specialization",
           "yearsOfExperience",
           "currentEmployer",
-          "workAddress",
+          "country",
           "membershipTier",
         ];
       case 3:
@@ -298,7 +298,7 @@ const MembershipForm = () => {
         specialization: formData.specialization,
         years_of_experience: formData.yearsOfExperience,
         current_employer: formData.currentEmployer,
-        work_address: formData.workAddress,
+        country: formData.country,
         membership_tier: formData.membershipTier,
 
         // Education and Certification
@@ -907,75 +907,89 @@ const MembershipForm = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Current Employer / Hospital / Clinic*
-              </label>
-              <input
-                type="text"
-                className={`appearance-none block w-full px-3 py-2 border ${
-                  errors.currentEmployer ? "border-red-500" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                {...register("currentEmployer", {
-                  required: "Current employer is required",
-                })}
-              />
-              {errors.currentEmployer && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.currentEmployer.message}
-                </p>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Employer / Hospital / Clinic*
+                </label>
+                <input
+                  type="text"
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.currentEmployer
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("currentEmployer", {
+                    required: "Current employer is required",
+                  })}
+                />
+                {errors.currentEmployer && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.currentEmployer.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Country*
+                </label>
+                <select
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.country ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("country", {
+                    required: "Country is required",
+                  })}
+                >
+                  <option value="">Select Country</option>
+                  <option value="Kenya">Kenya</option>
+                  <option value="Tanzania">Tanzania</option>
+                  <option value="Uganda">Uganda</option>
+                  <option value="Rwanda">Rwanda</option>
+                  <option value="Burundi">Burundi</option>
+                  <option value="South Sudan">South Sudan</option>
+                  <option value="Other">Other</option>
+                </select>
+                {errors.country && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.country.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Work Address*
-              </label>
-              <textarea
-                rows={3}
-                className={`appearance-none block w-full px-3 py-2 border ${
-                  errors.workAddress ? "border-red-500" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                {...register("workAddress", {
-                  required: "Work address is required",
-                })}
-              />
-              {errors.workAddress && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.workAddress.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Membership Tier*
-              </label>
-              <select
-                className={`appearance-none block w-full px-3 py-2 border ${
-                  errors.membershipTier ? "border-red-500" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                {...register("membershipTier", {
-                  required: "Membership tier is required",
-                })}
-              >
-                <option value="">Select Membership Tier</option>
-                {membershipTierOptions.map((tier) => (
-                  <option key={tier.value} value={tier.value}>
-                    {tier.label}
-                  </option>
-                ))}
-              </select>
-              {errors.membershipTier && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.membershipTier.message}
-                </p>
-              )}
-              {watch("membershipTier") === "honorary" && (
-                <p className="mt-1 text-xs text-yellow-600">
-                  Note: Honorary membership requires special invitation
-                </p>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Membership Tier*
+                </label>
+                <select
+                  className={`appearance-none block w-full px-3 py-2 border ${
+                    errors.membershipTier ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                  {...register("membershipTier", {
+                    required: "Membership tier is required",
+                  })}
+                >
+                  <option value="">Select Membership Tier</option>
+                  {membershipTierOptions.map((tier) => (
+                    <option key={tier.value} value={tier.value}>
+                      {tier.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.membershipTier && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.membershipTier.message}
+                  </p>
+                )}
+                {watch("membershipTier") === "Honorary Membership" && (
+                  <p className="mt-1 text-xs text-yellow-600">
+                    Note: Honorary membership requires special invitation
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-between pt-4">
