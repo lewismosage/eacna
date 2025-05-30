@@ -49,7 +49,7 @@ interface Application {
   specialization: string;
   years_of_experience: number;
   current_employer: string;
-  work_address: string;
+  country: string;
   highest_qualification: string;
   institution_attended: string;
   year_of_graduation: string;
@@ -253,7 +253,7 @@ const Applications = () => {
         subject: `Your EACNA Membership Application Has Been Approved`,
         message: `
           <p>Dear ${application.first_name},</p>
-          <p>We are pleased to inform you that your application for ${application.membership_tier}membership with EACNA has been approved!</p>
+          <p>We are pleased to inform you that your application for ${application.membership_tier} membership with EACNA has been approved!</p>
           <p>Next steps:</p>
           <ol>
             <li>Complete your membership payment (you will receive payment instructions separately)</li>
@@ -997,9 +997,9 @@ const Applications = () => {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Work Address</p>
+                        <p className="text-xs text-gray-500">Country</p>
                         <p className="font-medium">
-                          {selectedApplication.work_address}
+                          {selectedApplication.country}
                         </p>
                       </div>
                       <div>

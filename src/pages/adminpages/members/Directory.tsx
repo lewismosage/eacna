@@ -43,7 +43,7 @@ interface Member {
   email: string;
   phone: string;
   membership_type: MembershipTier;
-  membership_number: string;
+  membership_id: string;
   member_since: string;
   expiry_date: string;
   status: "active" | "expired";
@@ -222,38 +222,77 @@ const Directory = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const { data: directoryData, error } = await supabase
-        .from("membership_directory")
-        .select("*")
-        .order("member_since", { ascending: false });
-
-      if (error) throw error;
-
-      const transformedData = directoryData.map(
-        (member): Member => ({
+      
+      // Query payments table to get users with completed payments
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('user_id, status, verified_at, membership_tier, membership_id')
+        .eq('status', 'completed')
+        .order('verified_at', { ascending: false });
+  
+      if (paymentsError) throw paymentsError;
+  
+      console.log('Completed payments:', paymentsData); // Debug log
+  
+      // Get unique user IDs from completed payments
+      const userIds = [...new Set(paymentsData.map(payment => payment.user_id))];
+  
+      console.log('User IDs with completed payments:', userIds); // Debug log
+  
+      if (userIds.length === 0) {
+        setMembers([]);
+        setFilteredMembers([]);
+        return;
+      }
+  
+      // Get user details for these users
+      const { data: directoryData, error: directoryError } = await supabase
+        .from('membership_directory')
+        .select('*')
+        .in('user_id', userIds);
+  
+      if (directoryError) throw directoryError;
+  
+      console.log('Directory data:', directoryData); // Debug log
+  
+      // Combine payment and directory data
+      const transformedData = directoryData.map((member): Member => {
+        const userPayment = paymentsData
+          .filter(p => p.user_id === member.user_id)
+          .sort((a, b) => new Date(b.verified_at).getTime() - new Date(a.verified_at).getTime())[0];
+      
+        const expiryDate = new Date(
+          new Date(userPayment.verified_at).setFullYear(
+            new Date(userPayment.verified_at).getFullYear() + 1
+          )
+        ).toISOString();
+      
+        return {
           id: member.user_id,
           user_id: member.user_id,
           first_name: member.first_name,
           last_name: member.last_name,
           email: member.email,
           phone: member.phone,
-          membership_type: member.membership_type as MembershipTier,
-          membership_number: member.membership_number,
-          member_since: member.member_since,
-          expiry_date: member.expiry_date,
-          status: member.status as "active" | "expired",
-          institution: member.institution,
-          nationality: member.nationality,
-          country_of_residence: member.country_of_residence,
-          current_profession: member.current_profession,
-        })
-      );
-
+          membership_type: userPayment.membership_tier as MembershipTier,
+          membership_id: userPayment.membership_id,
+          member_since: userPayment.verified_at,
+          expiry_date: expiryDate,
+          status: new Date(expiryDate) > new Date() ? "active" : "expired",
+          institution: member.institution || 'N/A',
+          nationality: member.nationality || 'N/A',
+          country_of_residence: member.country_of_residence || 'N/A',
+          current_profession: member.current_profession || 'N/A',
+        };
+      });
+  
+      console.log('Transformed data:', transformedData); // Debug log
+  
       setMembers(transformedData);
       setFilteredMembers(transformedData);
     } catch (err) {
+      console.error("Error details:", err); // More detailed error logging
       setError(err instanceof Error ? err.message : "Failed to fetch members");
-      console.error("Error fetching members:", err);
     } finally {
       setLoading(false);
     }
@@ -476,7 +515,7 @@ const Directory = () => {
 
     const csvRows = members.map((member) =>
       [
-        member.membership_number,
+        member.membership_id,
         member.first_name,
         member.last_name,
         member.email,
@@ -1018,7 +1057,7 @@ const Directory = () => {
                             Membership Number
                           </p>
                           <p className="font-mono font-medium">
-                            {selectedMember.member.membership_number}
+                            {selectedMember.member.membership_id}
                           </p>
                         </div>
                         <div>
