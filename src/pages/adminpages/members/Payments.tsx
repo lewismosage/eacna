@@ -47,20 +47,15 @@ interface Payment {
   currency: string;
   payment_method: PaymentMethod;
   status: PaymentStatus;
-  membership_id: string;
-  membership_formatted_id?: string;
-  applicant_key: string;
-  application_id: string | null;
-  renewal_id: string | null;
-  first_name: string;  // Changed from member_name
-  last_name: string;   // Changed from member_name
-  email: string;       // Changed from member_email
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  email: string;
   payment_type: PaymentType;
   membership_tier: MembershipTier;
   new_tier: MembershipTier | null;
   created_at: string;
   verified_at: string | null;
-  verified_by: string | null;
   notes: string | null;
 }
 
@@ -280,7 +275,7 @@ const Payments = () => {
   const sendPaymentConfirmationEmail = async (payment: Payment) => {
     try {
       const templateParams = {
-        to_name: payment.first_name,
+        to_name: `${payment.first_name} ${payment.last_name}`,
         to_email: payment.email,
         subject: `Your EACNA ${payment.membership_tier} Payment Has Been Verified`,
         message: `
@@ -338,8 +333,9 @@ const Payments = () => {
     try {
       const headers = [
         "Transaction ID",
-        "Member Name",
-        "Member Email",
+        "First Name",
+        "Last Name",
+        "Email",
         "Amount",
         "Currency",
         "Payment Type",
@@ -353,7 +349,8 @@ const Payments = () => {
       const csvRows = filteredPayments.map((payment) =>
         [
           payment.transaction_id,
-          `"${payment.first_name}"`,
+          payment.first_name,
+          payment.last_name,
           payment.email,
           payment.amount,
           payment.currency,
@@ -625,17 +622,13 @@ const Payments = () => {
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
-                          Contact
+                          Transaction ID
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort("amount")}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
-                          <div className="flex items-center">
-                            Amount
-                            <ArrowUpDown className="h-4 w-4 ml-1" />
-                          </div>
+                          Amount
                         </th>
                         <th
                           scope="col"
@@ -675,16 +668,6 @@ const Payments = () => {
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort("created_at")}
-                        >
-                          <div className="flex items-center">
-                            Date
-                            <ArrowUpDown className="h-4 w-4 ml-1" />
-                          </div>
-                        </th>
-                        <th
-                          scope="col"
                           className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
                           Actions
@@ -696,15 +679,15 @@ const Payments = () => {
                         <tr key={payment.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
                             <div className="font-medium text-gray-900">
-                              {payment.first_name}
+                              {payment.first_name} {payment.last_name}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {payment.transaction_id}
+                              {payment.email}
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">
-                              {payment.email}
+                              {payment.transaction_id}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
@@ -737,53 +720,14 @@ const Payments = () => {
                           <td className="px-6 py-4">
                             {getStatusBadge(payment.status)}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {formatDate(payment.created_at)}
-                          </td>
                           <td className="px-6 py-4 text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
-                              <button
-                                onClick={() => setSelectedPayment(payment)}
-                                className="text-primary-600 hover:text-primary-900 p-1 rounded hover:bg-gray-100"
-                                title="View Details"
-                              >
-                                <Eye className="h-5 w-5" />
-                              </button>
-                              {payment.status === "pending" && (
-                                <>
-                                  <button
-                                    onClick={() =>
-                                      updatePaymentStatus(
-                                        payment.id,
-                                        "completed"
-                                      )
-                                    }
-                                    className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-gray-100"
-                                    title="Mark as Completed"
-                                  >
-                                    <Check className="h-5 w-5" />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      updatePaymentStatus(payment.id, "failed")
-                                    }
-                                    className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-gray-100"
-                                    title="Mark as Failed"
-                                  >
-                                    <X className="h-5 w-5" />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() =>
-                                  (window.location.href = `mailto:${payment.email}`)
-                                }
-                                className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-gray-100"
-                                title="Send Email"
-                              >
-                                <Mail className="h-5 w-5" />
-                              </button>
-                            </div>
+                            <Button
+                              variant="outline"
+                              className="border border-gray-300 text-gray-700 hover:bg-gray-100"
+                              onClick={() => setSelectedPayment(payment)}
+                            >
+                              View Details
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -824,6 +768,8 @@ const Payments = () => {
                         <p className="text-xs text-gray-500">Name</p>
                         <p className="font-medium">
                           {selectedPayment.first_name}
+                          {selectedPayment.middle_name}
+                          {selectedPayment.last_name}
                         </p>
                       </div>
                       <div className="col-span-2">
@@ -923,7 +869,7 @@ const Payments = () => {
                   </div>
                 </div>
 
-                <div>
+                {/*<div>
                   <h4 className="text-sm font-medium text-gray-500 mb-2">
                     Related Records
                   </h4>
@@ -949,7 +895,7 @@ const Payments = () => {
                       )}
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {selectedPayment.notes && (
                   <div>

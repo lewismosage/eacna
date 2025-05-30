@@ -228,15 +228,15 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
       const { data: paymentData, error: paymentError } = await supabase
       .from("payments")
       .insert({
+        user_id: memberData.user_id,
         transaction_id: transactionId,
         amount: tier.price,
         currency: "KES",
         payment_method: dbPaymentMethod,
         status: "pending",
-        application_id: memberData.id,
-        first_name: memberData.first_name,  // Changed from member_name
-        last_name: memberData.last_name,    // Changed from member_name
-        email: memberData.email,            // Changed from member_email
+        first_name: memberData.first_name,
+        last_name: memberData.last_name,
+        email: memberData.email,
         payment_type: "application",
         membership_tier: memberData.membership_tier,
         notes: "Payment submitted through member portal",
