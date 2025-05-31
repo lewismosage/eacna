@@ -69,7 +69,9 @@ interface MemberData {
   phone: string;
   email: string;
   membership_tier: MembershipTier;
+  membership_id: string;
   status: string;
+  expiry_date: string;
 }
 
 export default function PaymentModal({ onClose }: PaymentModalProps) {
@@ -176,6 +178,8 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
           email: application.email,
           membership_tier: application.membership_tier as MembershipTier,
           status: application.application_status,
+          membership_id: application.membership_id,
+          expiry_date: application.expiry_date,
         });
         setStep(2); // Move to payment step
       } else {
@@ -238,6 +242,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         last_name: memberData.last_name,
         email: memberData.email,
         payment_type: "application",
+        membership_id: memberData.membership_id,
         membership_tier: memberData.membership_tier,
         notes: "Payment submitted through member portal",
       })

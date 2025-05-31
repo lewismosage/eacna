@@ -253,7 +253,7 @@ const Applications = () => {
         subject: `Your EACNA Membership Application Has Been Approved`,
         message: `
           <p>Dear ${application.first_name},</p>
-          <p>We are pleased to inform you that your application for ${application.membership_tier} membership with EACNA has been approved!</p>
+          <p>We are pleased to inform you that your application for ${application.membership_tier} with EACNA has been approved!</p>
           <p>Next steps:</p>
           <ol>
             <li>Complete your membership payment (you will receive payment instructions separately)</li>

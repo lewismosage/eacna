@@ -42,21 +42,24 @@ type PaymentMethod = "mpesa" | "bank_transfer" | "credit_card" | "other";
 
 interface Payment {
   id: string;
+  user_id: string;
   transaction_id: string;
   amount: number;
   currency: string;
-  payment_method: PaymentMethod;
-  status: PaymentStatus;
+  payment_method: "mpesa" | "bank_transfer" | "credit_card" | "other";
+  status: "pending" | "completed" | "failed" | "refunded";
   first_name: string;
-  middle_name: string;
   last_name: string;
   email: string;
-  payment_type: PaymentType;
+  phone?: string;
+  payment_type: "application" | "renewal" | "upgrade" | "other";
   membership_tier: MembershipTier;
-  new_tier: MembershipTier | null;
-  created_at: string;
+  membership_id?: string; // Optional for renewals/upgrades
+  previous_tier?: MembershipTier | null; // Only for upgrades
+  expiry_date?: string; // New field
   verified_at: string | null;
-  notes: string | null;
+  notes?: string;
+  created_at: string;
 }
 
 const membershipTierOptions = Object.keys(tierData) as MembershipTier[];
@@ -231,7 +234,13 @@ const Payments = () => {
             .update({
               status,
               verified_at: new Date().toISOString(),
-              verified_by: (await supabase.auth.getUser()).data.user?.id,
+              expiry_date:
+                status === "completed"
+                  ? paymentData.expiry_date ||
+                    new Date(
+                      Date.now() + 365 * 24 * 60 * 60 * 1000
+                    ).toISOString()
+                  : paymentData.expiry_date,
             })
             .eq("id", id);
 
@@ -768,7 +777,6 @@ const Payments = () => {
                         <p className="text-xs text-gray-500">Name</p>
                         <p className="font-medium">
                           {selectedPayment.first_name}
-                          {selectedPayment.middle_name}
                           {selectedPayment.last_name}
                         </p>
                       </div>
@@ -790,14 +798,25 @@ const Payments = () => {
                           )}
                         </p>
                       </div>
-                      {selectedPayment.new_tier && (
-                        <div>
-                          <p className="text-xs text-gray-500">Upgrading To</p>
-                          <p className="font-medium">
-                            {selectedPayment.new_tier}
-                          </p>
-                        </div>
-                      )}
+                      {selectedPayment.payment_type === "upgrade" &&
+                        selectedPayment.previous_tier && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500">
+                                Previous Tier
+                              </p>
+                              <p className="font-medium">
+                                {selectedPayment.previous_tier}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">New Tier</p>
+                              <p className="font-medium">
+                                {selectedPayment.membership_tier}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -865,37 +884,17 @@ const Payments = () => {
                             : "Not verified"}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Expiry Date</p>
+                        <p className="font-medium">
+                          {selectedPayment.expiry_date
+                            ? formatDate(selectedPayment.expiry_date)
+                            : "No expiry date"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/*<div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">
-                    Related Records
-                  </h4>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedPayment.application_id && (
-                        <div>
-                          <p className="text-xs text-gray-500">
-                            Application ID
-                          </p>
-                          <p className="font-mono">
-                            {selectedPayment.application_id}
-                          </p>
-                        </div>
-                      )}
-                      {selectedPayment.renewal_id && (
-                        <div>
-                          <p className="text-xs text-gray-500">Renewal ID</p>
-                          <p className="font-mono">
-                            {selectedPayment.renewal_id}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div> */}
 
                 {selectedPayment.notes && (
                   <div>

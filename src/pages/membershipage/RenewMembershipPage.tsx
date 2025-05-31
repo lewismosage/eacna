@@ -34,13 +34,55 @@ interface MemberData {
   current_profession: string;
 }
 
+// Add payment methods array
+const paymentMethods = [
+  {
+    id: "bank",
+    name: "Bank Transfer",
+    description: "Direct bank transfer to our account",
+    instructions: [
+      "Bank: Kenya Commercial Bank",
+      "Account Name: EACNA",
+      "Account Number: 1234567890",
+      "Branch: Nairobi CBD",
+      "Swift Code: KCBKENYA",
+    ],
+  },
+  {
+    id: "mobile",
+    name: "Mobile Money",
+    description: "Pay via M-Pesa or other mobile money",
+    instructions: [
+      "Go to M-Pesa on your phone",
+      'Select "Lipa na M-Pesa"',
+      'Select "Pay Bill"',
+      "Enter Business Number: 123456",
+      "Enter Account Number: EACNA[YourID]",
+      "Enter the amount",
+      "Enter your PIN and confirm",
+    ],
+  },
+  {
+    id: "online",
+    name: "Credit/Debit Card",
+    description: "Pay via credit/debit card",
+    instructions: [
+      "You will be redirected to a secure payment gateway",
+      "Enter your card details",
+      "Complete the payment",
+    ],
+  },
+];
+
 export default function MembershipRenewalPage() {
   // Member data state
   const [memberData, setMemberData] = useState<MemberData | null>(null);
-  const [membershipTier, setMembershipTier] =
-  useState<MembershipTier>("Associate Membership");
-const [originalTier, setOriginalTier] =
-  useState<MembershipTier>("Associate Membership");
+  const [membershipTier, setMembershipTier] = useState<MembershipTier>(
+    "Associate Membership"
+  );
+  const [originalTier, setOriginalTier] = useState<MembershipTier>(
+    "Associate Membership"
+  );
   const [transactionId, setTransactionId] = useState("");
 
   // UI state
@@ -62,6 +104,9 @@ const [originalTier, setOriginalTier] =
     phone: "",
     email: "",
   });
+
+  // Add payment method state variable
+  const [paymentMethod, setPaymentMethod] = useState("");
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,6 +173,21 @@ const [originalTier, setOriginalTier] =
         throw new Error("Member data not found");
       }
 
+      if (!paymentMethod) {
+        throw new Error("Please select a payment method");
+      }
+
+      // Map frontend payment method to database values
+      const paymentMethodMap = {
+        bank: "bank_transfer",
+        mobile: "mpesa",
+        online: "credit_card",
+      };
+
+      const dbPaymentMethod =
+        paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] ||
+        "other";
+
       // Calculate new expiry date (365 days from current expiry or from now if no expiry)
       const currentExpiry = memberData.expiry_date
         ? new Date(memberData.expiry_date)
@@ -142,7 +202,7 @@ const [originalTier, setOriginalTier] =
         transaction_id: transactionId,
         amount: membershipTiers[membershipTier].price,
         currency: "KES",
-        payment_method: "mpesa",
+        payment_method: dbPaymentMethod, // mapped from frontend
         status: "pending",
         user_id: memberData.user_id,
         first_name: memberData.first_name,
@@ -151,13 +211,9 @@ const [originalTier, setOriginalTier] =
         phone: memberData.phone,
         payment_type: actionType === "renew" ? "renewal" : "upgrade",
         membership_tier: membershipTier,
-        membership_id: memberData.membership_id,
-        is_renewal: actionType === "renew",
-        is_upgrade: actionType === "upgrade",
+        membership_id: memberData.membership_id, // Existing ID for renewals
         previous_tier: actionType === "upgrade" ? originalTier : null,
-        previous_expiry: memberData.expiry_date,
-        verified_at: null,
-        new_expiry: newExpiryDate.toISOString(),
+        expiry_date: newExpiryDate.toISOString(),
       })
       .select()
       .single();
@@ -427,50 +483,76 @@ const [originalTier, setOriginalTier] =
             </h2>
 
             <form onSubmit={handleSubmitPayment} className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
-                <h3 className="font-medium text-blue-800 mb-2">
-                  Payment Instructions
-                </h3>
-                <ol className="list-decimal pl-5 space-y-2 text-blue-700">
-                  <li>Go to M-Pesa on your phone</li>
-                  <li>Select "Lipa na M-Pesa"</li>
-                  <li>Select "Pay Bill"</li>
-                  <li>
-                    Enter Business Number:{" "}
-                    <span className="font-semibold">123456</span>
-                  </li>
-                  <li>
-                    Enter Account Number:{" "}
-                    <span className="font-semibold">
-                      EACNA{memberData.phone.slice(-4)}
-                    </span>
-                  </li>
-                  <li>Enter Amount: KES {price.toLocaleString()}</li>
-                  <li>Enter your M-Pesa PIN and confirm payment</li>
-                  <li>Enter the transaction ID below</li>
-                </ol>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Method
+                </label>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {paymentMethods.map((method) => (
+                    <div
+                      key={method.id}
+                      className={`border-2 rounded-lg p-4 cursor-pointer ${
+                        paymentMethod === method.id
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200"
+                      }`}
+                      onClick={() => setPaymentMethod(method.id)}
+                    >
+                      <h3 className="font-medium">{method.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {method.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div>
-                <label
-                  htmlFor="transactionId"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  M-Pesa Transaction ID
-                </label>
-                <input
-                  id="transactionId"
-                  type="text"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  placeholder="e.g. QJI23R4TYH"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter the transaction ID from your M-Pesa confirmation message
-                </p>
-              </div>
+              {paymentMethod && (
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                    <h3 className="font-medium text-blue-800 mb-2">
+                      Payment Instructions
+                    </h3>
+                    <ol className="list-decimal pl-5 space-y-2 text-blue-700">
+                      {paymentMethods
+                        .find((m) => m.id === paymentMethod)
+                        ?.instructions.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                    </ol>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="transactionId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      {paymentMethod === "online" ? "Payment" : "Transaction"}{" "}
+                      ID
+                    </label>
+                    <input
+                      id="transactionId"
+                      type="text"
+                      value={transactionId}
+                      onChange={(e) => setTransactionId(e.target.value)}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                      placeholder={
+                        paymentMethod === "online"
+                          ? "Enter payment reference"
+                          : "Enter transaction ID"
+                      }
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter the{" "}
+                      {paymentMethod === "online"
+                        ? "payment reference"
+                        : "transaction ID"}{" "}
+                      from your confirmation
+                    </p>
+                  </div>
+                </>
+              )}
 
               {submitStatus && (
                 <div
@@ -496,7 +578,7 @@ const [originalTier, setOriginalTier] =
                 <button
                   type="submit"
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center"
-                  disabled={submitLoading || submitted}
+                  disabled={submitLoading || submitted || !paymentMethod}
                 >
                   {submitLoading ? (
                     <>
