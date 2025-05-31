@@ -39,23 +39,24 @@ const supabase = createClient(
 interface Member {
   id: string;
   user_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  membership_type: MembershipTier;
-  membership_id: string;
-  member_since: string; // Payment verification date
-  expiry_date: string; // Direct from payment record
-  status: "active" | "expired";
-  institution: string;
-  nationality?: string;
-  country_of_residence?: string;
-  current_profession: string;
+  first_name: string;        // From applications
+  last_name: string;         // From applications
+  email: string;             // From applications
+  phone: string;             // From applications
+  membership_type: MembershipTier; // From payments or applications
+  membership_id: string;     // From payments
+  member_since: string;      // From payments or applications
+  expiry_date: string;       // From payments
+  status: "active" | "expired"; // Calculated from expiry_date
+  institution: string;       // From applications (current_employer)
+  nationality?: string;      // From applications (country)
+  country_of_residence?: string; // From applications (country)
+  current_profession: string; // From applications (profession)
 }
 
 interface ApplicationDetails {
   id: string;
+  user_id: string;
   first_name: string;
   middle_name?: string;
   last_name: string;
@@ -66,9 +67,9 @@ interface ApplicationDetails {
   phone: string;
   id_number?: string;
   membership_type: MembershipTier;
-  membership_id: string;
-  current_profession: string;
-  institution: string;
+  membership_id?: string;
+  current_profession?: string;
+  institution?: string;
   work_address?: string;
   registration_number?: string;
   highest_degree?: string;
@@ -96,13 +97,9 @@ interface Payment {
   user_id: string;
   status: string;
   verified_at: string;
-  membership_tier: string;
+  membership_tier: MembershipTier;
   membership_id: string;
   expiry_date: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
 }
 
 const statusOptions = [
@@ -238,8 +235,15 @@ const Directory = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-
-      // Get all completed payments with their expiry dates
+  
+      // First get all membership applications
+      const { data: applicationsData, error: applicationsError } = await supabase
+        .from("membership_applications")
+        .select("*");
+  
+      if (applicationsError) throw applicationsError;
+  
+      // Get all completed payments to get membership status and expiry
       const { data: paymentsData, error: paymentsError } = await supabase
         .from("payments")
         .select(
@@ -250,25 +254,20 @@ const Directory = () => {
           verified_at,
           membership_tier,
           membership_id,
-          expiry_date,
-          first_name,
-          last_name,
-          email,
-          phone
-        `
+          expiry_date
+          `
         )
         .eq("status", "completed")
         .order("verified_at", { ascending: false });
-
+  
       if (paymentsError) throw paymentsError;
-
-      // Get unique users with their latest payment
-      const latestPayments = paymentsData.reduce(
-        (acc: Record<string, Payment>, payment: Payment) => {
+  
+      // Create a map of latest payments by user_id
+      const latestPayments = paymentsData.reduce<Record<string, Payment>>(
+        (acc, payment) => {
           if (
             !acc[payment.user_id] ||
-            new Date(payment.verified_at) >
-              new Date(acc[payment.user_id].verified_at)
+            new Date(payment.verified_at) > new Date(acc[payment.user_id].verified_at)
           ) {
             acc[payment.user_id] = payment;
           }
@@ -276,52 +275,32 @@ const Directory = () => {
         },
         {}
       );
-
-      const userIds = Object.keys(latestPayments);
-
-      if (userIds.length === 0) {
-        setMembers([]);
-        setFilteredMembers([]);
-        return;
-      }
-
-      // Get additional member details from directory
-      const { data: directoryData, error: directoryError } = await supabase
-        .from("membership_directory")
-        .select("*")
-        .in("user_id", userIds);
-
-      if (directoryError) throw directoryError;
-
-      // Transform data
-      const transformedData = Object.values(latestPayments).map(
-        (payment): Member => {
-          const directoryEntry =
-            directoryData.find((d) => d.user_id === payment.user_id) || {};
-
-          return {
-            id: payment.user_id,
-            user_id: payment.user_id,
-            first_name: payment.first_name || directoryEntry.first_name,
-            last_name: payment.last_name || directoryEntry.last_name,
-            email: payment.email || directoryEntry.email,
-            phone: payment.phone || directoryEntry.phone,
-            membership_type: payment.membership_tier as MembershipTier,
-            membership_id: payment.membership_id,
-            member_since: payment.verified_at,
-            expiry_date: payment.expiry_date,
-            status:
-              payment.expiry_date && new Date(payment.expiry_date) > new Date()
-                ? "active"
-                : "expired",
-            institution: directoryEntry.institution || "N/A",
-            nationality: directoryEntry.nationality || "N/A",
-            country_of_residence: directoryEntry.country_of_residence || "N/A",
-            current_profession: directoryEntry.current_profession || "N/A",
-          };
-        }
-      );
-
+  
+      // Transform data combining applications with payment info
+      const transformedData = applicationsData.map((application): Member => {
+        const payment = latestPayments[application.user_id] || null;
+  
+        return {
+          id: application.user_id,
+          user_id: application.user_id,
+          first_name: application.first_name,
+          last_name: application.last_name,
+          email: application.email,
+          phone: application.phone,
+          membership_type: payment?.membership_tier || application.membership_tier,
+          membership_id: payment?.membership_id || "N/A",
+          member_since: payment?.verified_at || application.created_at,
+          expiry_date: payment?.expiry_date || "N/A",
+          status: payment?.expiry_date && new Date(payment.expiry_date) > new Date()
+            ? "active"
+            : "expired",
+          institution: application.current_employer || "N/A",
+          nationality: application.country || "N/A",
+          country_of_residence: application.country || "N/A",
+          current_profession: application.profession || "N/A",
+        };
+      });
+  
       setMembers(transformedData);
       setFilteredMembers(transformedData);
     } catch (err) {
@@ -476,36 +455,35 @@ const Directory = () => {
 
       // Process application data if exists
       const applicationDetails = applicationData
-        ? {
-            id: applicationData.id,
-            first_name: applicationData.first_name,
-            middle_name: applicationData.middle_name || undefined,
-            last_name: applicationData.last_name,
-            gender: applicationData.gender || undefined,
-            nationality: applicationData.country || undefined,
-            country_of_residence: applicationData.country || undefined,
-            email: applicationData.email,
-            phone: applicationData.phone,
-            id_number: applicationData.national_id || undefined,
-            membership_type: applicationData.membership_tier as MembershipTier,
-            membership_id: paymentDetails?.membership_number || undefined,
-            current_profession: applicationData.profession || undefined,
-            institution: applicationData.current_employer || undefined,
-            work_address: applicationData.residential_address || undefined,
-            registration_number:
-              applicationData.medical_registration_number || undefined,
-            highest_degree: applicationData.highest_qualification || undefined,
-            university: applicationData.institution_attended || undefined,
-            created_at:
-              applicationData.created_at || applicationData.application_date,
-          }
-        : null;
+      ? {
+          id: applicationData.id,
+          user_id: applicationData.user_id,
+          first_name: applicationData.first_name,
+          middle_name: applicationData.middle_name || undefined,
+          last_name: applicationData.last_name,
+          gender: applicationData.gender || undefined,
+          nationality: applicationData.country || undefined,
+          country_of_residence: applicationData.country || undefined,
+          email: applicationData.email,
+          phone: applicationData.phone,
+          id_number: applicationData.national_id || undefined,
+          membership_type: applicationData.membership_tier,
+          membership_id: paymentDetails?.membership_number || undefined,
+          current_profession: applicationData.profession || undefined,
+          institution: applicationData.current_employer || undefined,
+          work_address: applicationData.residential_address || undefined,
+          registration_number: applicationData.medical_registration_number || undefined,
+          highest_degree: applicationData.highest_qualification || undefined,
+          university: applicationData.institution_attended || undefined,
+          created_at: applicationData.created_at
+        }
+      : null;
 
-      setSelectedMember({
-        member,
-        applicationDetails,
-        paymentDetails,
-      });
+        setSelectedMember({
+          member,
+          applicationDetails,
+          paymentDetails,
+        });
     } catch (err) {
       console.error("Error fetching details:", err);
       setError("Failed to load member details");
