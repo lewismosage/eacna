@@ -19,29 +19,34 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface MemberData {
   id: string;
+  user_id: string;
   first_name: string;
   last_name: string;
   phone: string;
   email: string;
   membership_type: MembershipTier;
+  membership_id: string;
   status: string;
   expiry_date: string;
-  user_id: string;
+  institution: string;
+  nationality: string;
+  country_of_residence: string;
+  current_profession: string;
 }
 
 export default function MembershipRenewalPage() {
   // Member data state
   const [memberData, setMemberData] = useState<MemberData | null>(null);
   const [membershipTier, setMembershipTier] =
-    useState<MembershipTier>("Associate Member");
-  const [originalTier, setOriginalTier] =
-    useState<MembershipTier>("Associate Member");
+  useState<MembershipTier>("Associate Membership");
+const [originalTier, setOriginalTier] =
+  useState<MembershipTier>("Associate Membership");
   const [transactionId, setTransactionId] = useState("");
 
   // UI state
-  const [isModalOpen, setIsModalOpen] = useState(true); // Open search modal by default
+  const [isModalOpen, setIsModalOpen] = useState(true);
   const [actionType, setActionType] = useState<"renew" | "upgrade">("renew");
-  const [step, setStep] = useState(1); // 1: find record, 2: select plan, 3: payment
+  const [step, setStep] = useState(1);
 
   // Loading and error states
   const [searchLoading, setSearchLoading] = useState(false);
@@ -76,7 +81,7 @@ export default function MembershipRenewalPage() {
     }
 
     try {
-      let query = supabase.from("directory").select("*");
+      let query = supabase.from("membership_directory").select("*");
 
       if (searchQuery.firstName)
         query = query.ilike("first_name", `%${searchQuery.firstName}%`);
@@ -92,12 +97,11 @@ export default function MembershipRenewalPage() {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // If multiple results, we'll take the first one (could be improved with better matching)
         const member = data[0];
         setMemberData(member);
         setMembershipTier(member.membership_type as MembershipTier);
         setOriginalTier(member.membership_type as MembershipTier);
-        setStep(2); // Move to plan selection
+        setStep(2);
         setIsModalOpen(false);
       } else {
         setSearchError("No matching membership record found");
@@ -133,40 +137,37 @@ export default function MembershipRenewalPage() {
 
       // Create payment record with all required fields
       const { data: paymentData, error: paymentError } = await supabase
-        .from("payments")
-        .insert({
-          transaction_id: transactionId,
-          amount: membershipTiers[membershipTier].price,
-          currency: "KES",
-          payment_method: "mpesa",
-          status: "pending",
-          member_id: memberData.id,
-          user_id: memberData.user_id,
-          member_name: `${memberData.first_name} ${memberData.last_name}`,
-          member_email: memberData.email,
-          payment_type: actionType === "renew" ? "renewal" : "upgrade",
-          previous_tier: originalTier,
-          new_tier: actionType === "upgrade" ? membershipTier : originalTier,
-          previous_expiry_date: memberData.expiry_date,
-          new_expiry_date: newExpiryDate.toISOString(),
-          // Include any other fields your payments table requires
-        })
-        .select()
-        .single();
+      .from("payments")
+      .insert({
+        transaction_id: transactionId,
+        amount: membershipTiers[membershipTier].price,
+        currency: "KES",
+        payment_method: "mpesa",
+        status: "pending",
+        user_id: memberData.user_id,
+        first_name: memberData.first_name,
+        last_name: memberData.last_name,
+        email: memberData.email,
+        phone: memberData.phone,
+        payment_type: actionType === "renew" ? "renewal" : "upgrade",
+        membership_tier: membershipTier,
+        membership_id: memberData.membership_id,
+        is_renewal: actionType === "renew",
+        is_upgrade: actionType === "upgrade",
+        previous_tier: actionType === "upgrade" ? originalTier : null,
+        previous_expiry: memberData.expiry_date,
+        verified_at: null,
+        new_expiry: newExpiryDate.toISOString(),
+      })
+      .select()
+      .single();
 
       if (paymentError) throw paymentError;
       if (!paymentData) throw new Error("Payment record not created");
 
-      // For immediate feedback, we'll set status to pending verification
       setSubmitStatus("PAYMENT VERIFICATION IN PROGRESS");
       setSubmitted(true);
 
-      // In a real app, you might want to:
-      // 1. Send this to a webhook for verification
-      // 2. Or schedule a background job to verify
-      // 3. Or have admin manually verify
-
-      // For demo purposes, we'll proceed to success
       setTimeout(() => {
         setStep(4);
       }, 1000);

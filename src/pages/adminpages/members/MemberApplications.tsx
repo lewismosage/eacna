@@ -57,7 +57,7 @@ interface Application {
   license_expiry_date: string;
   agree_to_ethics: boolean;
   consent_to_data_processing: boolean;
-  created_at: string;
+  application_date: string;
   application_status: ApplicationStatus;
   user_id?: string;
   membership_tier: string;
@@ -100,7 +100,7 @@ const Applications = () => {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Application;
     direction: "ascending" | "descending";
-  }>({ key: "created_at", direction: "descending" });
+  }>({ key: "application_date", direction: "descending" });
   const [selectedApplication, setSelectedApplication] =
     useState<Application | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -505,7 +505,7 @@ const Applications = () => {
           app.current_employer,
           app.years_of_experience,
           app.application_status,
-          formatDate(app.created_at),
+          formatDate(app.application_date),
         ].join(",")
       );
 
@@ -752,7 +752,7 @@ const Applications = () => {
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort("created_at")}
+                          onClick={() => handleSort("application_date")}
                         >
                           <div className="flex items-center">
                             Submitted On
@@ -811,7 +811,7 @@ const Applications = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500">
-                            {formatDate(application.created_at)}
+                            {formatDate(application.application_date)}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500">
                             {application.membership_tier}
@@ -1139,7 +1139,7 @@ const Applications = () => {
                       <div>
                         <p className="text-xs text-gray-500">Submitted On</p>
                         <p className="font-medium">
-                          {formatDate(selectedApplication.created_at)}
+                          {formatDate(selectedApplication.application_date)}
                         </p>
                       </div>
                     </div>
