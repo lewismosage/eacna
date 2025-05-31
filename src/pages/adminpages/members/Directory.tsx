@@ -232,54 +232,90 @@ const Directory = () => {
   });
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  const fetchMembers = async () => {
+  const upsertMembersToDirectory = async (members: Member[]) => {
     try {
-      setLoading(true);
+      // Transform the members data to match the table structure
+      const directoryData = members.map(member => ({
+        user_id: member.user_id,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        email: member.email,
+        phone: member.phone,
+        membership_type: member.membership_type,
+        membership_id: member.membership_id,
+        member_since: member.member_since,
+        expiry_date: member.expiry_date === "N/A" ? null : member.expiry_date,
+        status: member.status,
+        institution: member.institution,
+        nationality: member.nationality,
+        country_of_residence: member.country_of_residence,
+        current_profession: member.current_profession,
+        updated_at: new Date().toISOString() // Explicitly set updated_at
+      }));
   
-      // First get all membership applications
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from("membership_applications")
-        .select("*");
+      // Upsert the data (insert or update if exists)
+      const { error } = await supabase
+        .from('membership_directory')
+        .upsert(directoryData, {
+          onConflict: 'user_id', // This will update existing records based on user_id
+          ignoreDuplicates: false
+        });
   
-      if (applicationsError) throw applicationsError;
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error syncing members to directory:', err);
+      // Don't throw the error here as we don't want to break the main fetch
+    }
+  };
+
+  const fetchMembers = async () => {
+  try {
+    setLoading(true);
   
-      // Get all completed payments to get membership status and expiry
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from("payments")
-        .select(
-          `
-          id,
-          user_id,
-          status,
-          verified_at,
-          membership_tier,
-          membership_id,
-          expiry_date
-          `
-        )
-        .eq("status", "completed")
-        .order("verified_at", { ascending: false });
+    // First get all membership applications
+    const { data: applicationsData, error: applicationsError } = await supabase
+      .from("membership_applications")
+      .select("*");
   
-      if (paymentsError) throw paymentsError;
+    if (applicationsError) throw applicationsError;
   
-      // Create a map of latest payments by user_id
-      const latestPayments = paymentsData.reduce<Record<string, Payment>>(
-        (acc, payment) => {
-          if (
-            !acc[payment.user_id] ||
-            new Date(payment.verified_at) > new Date(acc[payment.user_id].verified_at)
-          ) {
-            acc[payment.user_id] = payment;
-          }
-          return acc;
-        },
-        {}
-      );
+    // Get all completed payments to get membership status and expiry
+    const { data: paymentsData, error: paymentsError } = await supabase
+      .from("payments")
+      .select(
+        `
+        id,
+        user_id,
+        status,
+        verified_at,
+        membership_tier,
+        membership_id,
+        expiry_date
+        `
+      )
+      .eq("status", "completed")
+      .order("verified_at", { ascending: false });
+  
+    if (paymentsError) throw paymentsError;
+  
+    // Create a map of latest payments by user_id
+    const latestPayments = paymentsData.reduce<Record<string, Payment>>(
+      (acc, payment) => {
+        if (
+          !acc[payment.user_id] ||
+          new Date(payment.verified_at) > new Date(acc[payment.user_id].verified_at)
+        ) {
+          acc[payment.user_id] = payment;
+        }
+        return acc;
+      },
+      {}
+    );
   
       // Transform data combining applications with payment info
       const transformedData = applicationsData.map((application): Member => {
         const payment = latestPayments[application.user_id] || null;
-  
+    
         return {
           id: application.user_id,
           user_id: application.user_id,
@@ -300,7 +336,10 @@ const Directory = () => {
           current_profession: application.profession || "N/A",
         };
       });
-  
+    
+      // Sync to membership_directory table
+      await upsertMembersToDirectory(transformedData);
+    
       setMembers(transformedData);
       setFilteredMembers(transformedData);
     } catch (err) {

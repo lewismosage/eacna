@@ -208,7 +208,7 @@ export default function MembershipRenewalPage() {
         first_name: memberData.first_name,
         last_name: memberData.last_name,
         email: memberData.email,
-        phone: memberData.phone,
+        
         payment_type: actionType === "renew" ? "renewal" : "upgrade",
         membership_tier: membershipTier,
         membership_id: memberData.membership_id, // Existing ID for renewals
