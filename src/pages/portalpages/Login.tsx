@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -28,14 +34,43 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call for login
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulated delay
+      // 1. Sign in the user
+      const { data: { user }, error: signInError } = 
+        await supabase.auth.signInWithPassword({ email, password });
 
-      // Navigate to the member portal after successful login
+      if (signInError) throw signInError;
+      if (!user) throw new Error('No user returned from sign in');
+
+      // 2. Check if user exists in membership_directory with active status
+      const { data: member, error: memberError } = await supabase
+        .from('membership_directory')
+        .select('status, expiry_date')
+        .eq('email', email)
+        .single();
+
+      if (memberError) throw memberError;
+      if (!member) throw new Error('No membership record found');
+
+      // 3. Verify membership status
+      const isActive = member.status === 'active' && 
+                      new Date(member.expiry_date) > new Date();
+
+      if (!isActive) {
+        await supabase.auth.signOut();
+        throw new Error('Your account is inactive. Please contact support if you believe this is an error.');
+      }
+
+      // 4. Redirect to member portal after successful login
       navigate("/member-portal");
-    } catch (error) {
-      console.error("Login failed:", error);
-      setError("Invalid email or password. Please try again.");
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError(
+        err instanceof Error 
+          ? err.message.includes('Invalid login credentials')
+            ? 'Invalid email or password'
+            : err.message
+          : 'An unexpected error occurred'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -68,6 +103,9 @@ const Login = () => {
           {error && (
             <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
               <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                </div>
                 <div className="ml-3">
                   <p className="text-sm text-red-700">{error}</p>
                 </div>
@@ -163,7 +201,15 @@ const Login = () => {
                   isLoading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </>
+                ) : "Sign in"}
               </button>
             </div>
           </form>

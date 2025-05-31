@@ -1212,24 +1212,7 @@ const TrainingEvents: React.FC<TrainingEventsProps> = ({ supabase }) => {
                     </div>
                   </div>
 
-                  <div className="p-4 border border-gray-200 rounded-md">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Registration</h3>
-                    <p className="text-gray-700 mb-4">
-                      {selectedEvent.is_full 
-                        ? "This training is currently full." 
-                        : "Register for this training event to secure your spot."}
-                    </p>
-                    <button 
-                      className={`w-full py-2 px-4 rounded-md ${
-                        selectedEvent.is_full 
-                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
-                          : 'bg-primary-600 text-white hover:bg-primary-700'
-                      }`}
-                      disabled={selectedEvent.is_full}
-                    >
-                      {selectedEvent.is_full ? "Registration Closed" : "Register Now"}
-                    </button>
-                  </div>
+                  
                 </div>
               </div>
             </div>

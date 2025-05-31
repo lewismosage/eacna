@@ -232,10 +232,20 @@ const Directory = () => {
   });
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  const upsertMembersToDirectory = async (members: Member[]) => {
+  const fetchMembers = async () => {
     try {
-      // Transform the members data to match the table structure
-      const directoryData = members.map(member => ({
+      setLoading(true);
+      
+      // Directly query the membership_directory table
+      const { data: directoryData, error } = await supabase
+        .from('membership_directory')
+        .select('*')
+        .order('member_since', { ascending: false });
+  
+      if (error) throw error;
+  
+      const transformedData = directoryData.map((member): Member => ({
+        id: member.user_id,
         user_id: member.user_id,
         first_name: member.first_name,
         last_name: member.last_name,
@@ -244,102 +254,14 @@ const Directory = () => {
         membership_type: member.membership_type,
         membership_id: member.membership_id,
         member_since: member.member_since,
-        expiry_date: member.expiry_date === "N/A" ? null : member.expiry_date,
+        expiry_date: member.expiry_date,
         status: member.status,
         institution: member.institution,
         nationality: member.nationality,
         country_of_residence: member.country_of_residence,
-        current_profession: member.current_profession,
-        updated_at: new Date().toISOString() // Explicitly set updated_at
+        current_profession: member.current_profession
       }));
   
-      // Upsert the data (insert or update if exists)
-      const { error } = await supabase
-        .from('membership_directory')
-        .upsert(directoryData, {
-          onConflict: 'user_id', // This will update existing records based on user_id
-          ignoreDuplicates: false
-        });
-  
-      if (error) throw error;
-    } catch (err) {
-      console.error('Error syncing members to directory:', err);
-      // Don't throw the error here as we don't want to break the main fetch
-    }
-  };
-
-  const fetchMembers = async () => {
-  try {
-    setLoading(true);
-  
-    // First get all membership applications
-    const { data: applicationsData, error: applicationsError } = await supabase
-      .from("membership_applications")
-      .select("*");
-  
-    if (applicationsError) throw applicationsError;
-  
-    // Get all completed payments to get membership status and expiry
-    const { data: paymentsData, error: paymentsError } = await supabase
-      .from("payments")
-      .select(
-        `
-        id,
-        user_id,
-        status,
-        verified_at,
-        membership_tier,
-        membership_id,
-        expiry_date
-        `
-      )
-      .eq("status", "completed")
-      .order("verified_at", { ascending: false });
-  
-    if (paymentsError) throw paymentsError;
-  
-    // Create a map of latest payments by user_id
-    const latestPayments = paymentsData.reduce<Record<string, Payment>>(
-      (acc, payment) => {
-        if (
-          !acc[payment.user_id] ||
-          new Date(payment.verified_at) > new Date(acc[payment.user_id].verified_at)
-        ) {
-          acc[payment.user_id] = payment;
-        }
-        return acc;
-      },
-      {}
-    );
-  
-      // Transform data combining applications with payment info
-      const transformedData = applicationsData.map((application): Member => {
-        const payment = latestPayments[application.user_id] || null;
-    
-        return {
-          id: application.user_id,
-          user_id: application.user_id,
-          first_name: application.first_name,
-          last_name: application.last_name,
-          email: application.email,
-          phone: application.phone,
-          membership_type: payment?.membership_tier || application.membership_tier,
-          membership_id: payment?.membership_id || "N/A",
-          member_since: payment?.verified_at || application.created_at,
-          expiry_date: payment?.expiry_date || "N/A",
-          status: payment?.expiry_date && new Date(payment.expiry_date) > new Date()
-            ? "active"
-            : "expired",
-          institution: application.current_employer || "N/A",
-          nationality: application.country || "N/A",
-          country_of_residence: application.country || "N/A",
-          current_profession: application.profession || "N/A",
-        };
-      });
-    
-      // Sync to membership_directory table
-      await upsertMembersToDirectory(transformedData);
-    
       setMembers(transformedData);
       setFilteredMembers(transformedData);
     } catch (err) {
