@@ -127,7 +127,7 @@ const EventsSection = () => {
 
     return {
       label: "Upcoming",
-      className: "bg-primary-100 text-primary-800",
+      className: "bg-green-100 text-green-800",
       icon: <Calendar className="h-4 w-4 mr-1" />,
     };
   };

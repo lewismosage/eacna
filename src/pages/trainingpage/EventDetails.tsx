@@ -220,7 +220,7 @@ const EventDetails = () => {
           <div>
             <h3 className="font-medium">Registration Successful!</h3>
             <p className="text-sm">
-              Thank you for registering for "{event.title}". A confirmation has been sent to {formData.email}.
+              Thank you for registering for "{event.title}". 
             </p>
           </div>
           <button 
