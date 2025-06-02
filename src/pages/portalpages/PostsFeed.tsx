@@ -28,7 +28,7 @@ interface PostsFeedProps {
 
 const PostsFeed = ({ user, posts }: PostsFeedProps) => {
   return (
-    <div className="flex-1 h-[calc(128.5vh-180px)] overflow-y-auto"> {/* Fixed height with scroll */}
+    <div className="flex-1 h-[calc(154.5vh-180px)] overflow-y-auto"> {/* Fixed height with scroll */}
       <CreatePostCard user={user} />
       
       {posts.map((post) => (
