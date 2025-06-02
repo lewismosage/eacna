@@ -97,29 +97,28 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     // Validate at least one field is filled
     if (!firstName && !lastName && !phone && !email) {
       setSearchError("Please fill at least one search field");
       return;
     }
-
+  
     setSearchLoading(true);
     setSearchError("");
-
+  
     try {
       // Clean search terms
       const cleanFirstName = firstName.trim();
       const cleanLastName = lastName.trim();
       const cleanPhone = phone.trim();
       const cleanEmail = email.trim();
-
+  
       // Start building the query
       let query = supabase
         .from("membership_applications")
-        .select("*")
-        .eq("application_status", "approved");
-
+        .select("*");
+  
       // Add conditions for each provided field
       if (cleanFirstName) {
         query = query.ilike("first_name", `%${cleanFirstName}%`);
@@ -133,16 +132,16 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
       if (cleanEmail) {
         query = query.ilike("email", `%${cleanEmail}%`);
       }
-
+  
       // Execute the query
       const { data, error } = await query;
-
+  
       if (error) throw error;
-
+  
       if (data && data.length > 0) {
         // Find the best match - prioritize exact matches
         let bestMatch = data[0];
-
+  
         if (cleanFirstName || cleanLastName) {
           const exactMatch = data.find(
             (app) =>
@@ -151,40 +150,49 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
               (cleanLastName &&
                 app.last_name?.toLowerCase() === cleanLastName.toLowerCase())
           );
-
+  
           if (exactMatch) {
             bestMatch = exactMatch;
           }
         }
-
+  
         const application = bestMatch;
-
-        // Validate membership tier exists and is valid
-        if (!application.membership_tier) {
-          throw new Error("Membership tier is missing from application");
+  
+        // Check if application is approved
+        if (application.application_status === "approved") {
+          // Validate membership tier exists and is valid
+          if (!application.membership_tier) {
+            throw new Error("Membership tier is missing from application");
+          }
+  
+          // Check if the tier exists in our membershipTiers
+          if (!membershipTiers[application.membership_tier as MembershipTier]) {
+            throw new Error(`Invalid membership tier: ${application.membership_tier}`);
+          }
+  
+          setMemberData({
+            id: application.id,
+            user_id: application.user_id,
+            first_name: application.first_name,
+            last_name: application.last_name,
+            phone: application.phone,
+            email: application.email,
+            membership_tier: application.membership_tier as MembershipTier,
+            status: application.application_status,
+            membership_id: application.membership_id,
+            expiry_date: application.expiry_date,
+          });
+          setStep(2); // Move to payment step
+        } else {
+          // Application exists but not approved
+          setSearchError(
+            "Your application is pending approval. Once approved, you will be able to continue with payment. Please check your email for updates."
+          );
         }
-
-        // Check if the tier exists in our membershipTiers
-        if (!membershipTiers[application.membership_tier as MembershipTier]) {
-          throw new Error(`Invalid membership tier: ${application.membership_tier}`);
-        }
-
-        setMemberData({
-          id: application.id,
-          user_id: application.user_id,
-          first_name: application.first_name,
-          last_name: application.last_name,
-          phone: application.phone,
-          email: application.email,
-          membership_tier: application.membership_tier as MembershipTier,
-          status: application.application_status,
-          membership_id: application.membership_id,
-          expiry_date: application.expiry_date,
-        });
-        setStep(2); // Move to payment step
       } else {
+        // No application found at all
         setSearchError(
-          "No matching approved membership application found. Please check your information or submit a new application."
+          "No matching membership application found. Please check your information or submit a new application."
         );
       }
     } catch (error) {
