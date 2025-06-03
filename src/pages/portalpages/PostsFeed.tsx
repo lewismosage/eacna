@@ -17,19 +17,25 @@ interface Post {
   attachments: { type: string; name: string; size: string }[];
 }
 
+interface User {
+  first_name: string;
+  last_name: string;
+  profile_image?: string | null;
+}
+
 interface PostsFeedProps {
-  user: {
-    firstName: string;
-    lastName: string;
-    profileImage: string | null;
-  };
+  user: User;
   posts: Post[];
 }
 
 const PostsFeed = ({ user, posts }: PostsFeedProps) => {
   return (
-    <div className="flex-1 h-[calc(154.5vh-180px)] overflow-y-auto"> {/* Fixed height with scroll */}
-      <CreatePostCard user={user} />
+    <div className="flex-1 h-[calc(154.5vh-180px)] overflow-y-auto">
+      <CreatePostCard user={{
+        firstName: user.first_name,
+        lastName: user.last_name,
+        profileImage: user.profile_image || null
+      }} />
       
       {posts.map((post) => (
         <Post key={post.id} post={post} />
@@ -149,21 +155,17 @@ const CreatePostCard = ({ user }: { user: { firstName: string; lastName: string;
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle textarea input and Ctrl+Enter for new line
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && e.ctrlKey) {
-      // Insert a newline at the cursor position
       const { selectionStart, selectionEnd } = e.currentTarget;
       const value = postText;
       setPostText(
         value.substring(0, selectionStart) + '\n' + value.substring(selectionEnd)
       );
-      // Prevent default to avoid form submission
       e.preventDefault();
     }
   };
 
-  // Handle file selection
   const handleAttachClick = () => {
     fileInputRef.current?.click();
   };

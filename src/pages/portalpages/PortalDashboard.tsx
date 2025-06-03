@@ -16,11 +16,18 @@ import {
   User,
   LogOut,
   Calendar,
+  AlertCircle,
 } from "lucide-react";
 import WritePublication from "./WritePublicationPage";
 import Notification from "./Notifications";
 import PostsFeed from "./PostsFeed";
 import EventsSidebar from "./EventsSidebar";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
 
 // Mock data for demonstration purposes
 const MOCK_USER = {
@@ -105,6 +112,19 @@ const MOCK_POSTS = [
   },
 ];
 
+interface UserData {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  membership_type: string;
+  member_since: string;
+  nationality: string;
+  profile_image?: string | null;
+  country_of_residence?: string;
+  current_profession?: string;
+  institution?: string;
+}
 
 // Custom components
 const Avatar = ({
@@ -393,7 +413,49 @@ const MemberPortal = () => {
   const [currentTab, setCurrentTab] = useState("home");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarDropdownOpen, setIsSidebarDropdownOpen] = useState(false); // New state for sidebar dropdown
+  const [isSidebarDropdownOpen, setIsSidebarDropdownOpen] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // Get the current authenticated user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          navigate("/login");
+          return;
+        }
+
+        // Fetch user data from membership_directory
+        const { data, error } = await supabase
+          .from("membership_directory")
+          .select("*")
+          .eq("email", user.email)
+          .single();
+
+        if (error) throw error;
+        if (!data) throw new Error("User not found in membership directory");
+
+        setUserData(data);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred"
+        );
+        navigate("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]);
 
   // Set the current tab based on location
   useEffect(() => {
@@ -418,35 +480,44 @@ const MemberPortal = () => {
     },
   ];
 
-  // Toggle profile dropdown (for mobile)
-  const toggleProfileDropdown = () => {
-    setIsProfileDropdownOpen(!isProfileDropdownOpen);
-  };
-
-  // Toggle sidebar dropdown (for desktop)
-  const toggleSidebarDropdown = () => {
-    setIsSidebarDropdownOpen(!isSidebarDropdownOpen);
-  };
-
-  // Toggle mobile menu
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  // Handle navigation
-  const handleNavigation = (path: string) => {
-    if (path !== "home") {
-      navigate(`/portal/${path}`);
-    }
-    setIsMobileMenuOpen(false);
-    setCurrentTab(path);
+  // Format member since date
+  const formatMemberSince = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
   // Handle logout
-  const handleLogout = () => {
-    // Implement actual logout logic here
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/login");
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (error || !userData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">
+                {error || "User data not available"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -476,18 +547,32 @@ const MemberPortal = () => {
             {/* Mobile menu button */}
             <button
               className="md:hidden focus:outline-none"
-              onClick={toggleProfileDropdown}
+              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
             >
-              <Avatar user={MOCK_USER} />
+              <Avatar
+                user={{
+                  firstName: userData.first_name,
+                  lastName: userData.last_name,
+                  profileImage: userData.profile_image || null,
+                }}
+              />
             </button>
 
             {/* User profile - only show name and avatar on desktop */}
             <div className="hidden md:flex items-center gap-3">
               <div className="flex flex-col items-end mr-2">
-                <span className="font-medium text-gray-800">{`${MOCK_USER.firstName} ${MOCK_USER.lastName}`}</span>
-                <span className="text-xs text-gray-500">{MOCK_USER.email}</span>
+                <span className="font-medium text-gray-800">
+                  {`${userData.first_name} ${userData.last_name}`}
+                </span>
+                <span className="text-xs text-gray-500">{userData.email}</span>
               </div>
-              <Avatar user={MOCK_USER} />
+              <Avatar
+                user={{
+                  firstName: userData.first_name,
+                  lastName: userData.last_name,
+                  profileImage: userData.profile_image || null,
+                }}
+              />
             </div>
           </div>
         </div>
@@ -499,12 +584,21 @@ const MemberPortal = () => {
           <div className="px-4 py-3 space-y-1">
             {/* User info */}
             <div className="flex items-center gap-3 px-4 py-2">
-              <Avatar user={MOCK_USER} size="lg" />
+              <Avatar
+                user={{
+                  firstName: userData.first_name,
+                  lastName: userData.last_name,
+                  profileImage: userData.profile_image || null,
+                }}
+                size="lg"
+              />
               <div>
-                <div className="font-medium text-gray-800">{`${MOCK_USER.firstName} ${MOCK_USER.lastName}`}</div>
-                <div className="text-xs text-gray-500">{MOCK_USER.email}</div>
+                <div className="font-medium text-gray-800">
+                  {`${userData.first_name} ${userData.last_name}`}
+                </div>
+                <div className="text-xs text-gray-500">{userData.email}</div>
                 <div className="text-xs text-primary-600 mt-1">
-                  {MOCK_USER.role}
+                  {userData.membership_type}
                 </div>
               </div>
             </div>
@@ -551,18 +645,29 @@ const MemberPortal = () => {
           <aside className="hidden md:block w-64 space-y-1">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4 relative">
               <div className="flex items-center gap-3 mb-3">
-                <Avatar user={MOCK_USER} size="lg" />
+                <Avatar
+                  user={{
+                    firstName: userData.first_name,
+                    lastName: userData.last_name,
+                    profileImage: userData.profile_image || null,
+                  }}
+                  size="lg"
+                />
                 <div>
-                  <h3 className="font-semibold text-gray-800">{`${MOCK_USER.firstName} ${MOCK_USER.lastName}`}</h3>
-                  <p className="text-sm text-primary-600">{MOCK_USER.role}</p>
+                  <h3 className="font-semibold text-gray-800">
+                    {`${userData.first_name} ${userData.last_name}`}
+                  </h3>
+                  <p className="text-sm text-primary-600">
+                    {userData.membership_type}
+                  </p>
                 </div>
               </div>
               <div className="text-sm text-gray-500">
-                <p>Member since {MOCK_USER.joinDate}</p>
-                <p>{MOCK_USER.country}</p>
+                <p>Member since {formatMemberSince(userData.member_since)}</p>
+                <p>{userData.nationality}</p>
               </div>
               <button
-                onClick={toggleSidebarDropdown}
+                onClick={() => setIsSidebarDropdownOpen(!isSidebarDropdownOpen)}
                 className="mt-3 text-primary-600 text-sm font-medium hover:text-primary-700 block"
               >
                 View Profile
@@ -613,7 +718,12 @@ const MemberPortal = () => {
                   to={`/portal/${item.path}`}
                   active={currentTab === item.path}
                   badge={item.badge}
-                  onClick={() => handleNavigation(item.path)}
+                  onClick={() => {
+                    if (item.path !== "home") {
+                      navigate(`/portal/${item.path}`);
+                    }
+                    setCurrentTab(item.path);
+                  }}
                 />
               ))}
             </nav>
@@ -697,8 +807,7 @@ const MemberPortal = () => {
             {/* Dynamic Content based on current tab */}
             {currentTab === "home" && (
               <div className="flex flex-col lg:flex-row gap-6">
-                <PostsFeed user={MOCK_USER} posts={MOCK_POSTS} />
-
+                <PostsFeed user={userData} posts={MOCK_POSTS} />
                 <div className="lg:w-72">
                   <EventsSidebar />
                 </div>
