@@ -7,14 +7,17 @@ export type MembershipTier =
 
 export interface MembershipTierData {
   name: string;
+  description: string;
   price: number;
   features: string[];
   color: string;
+  rank:number;
 }
 
 export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
   "Full Membership": {
     name: "Full Membership",
+    description: 'For fully qualified child neurologists and senior professionals',
     price: 15000,
     color: "#10B981",
     features: [
@@ -24,9 +27,11 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
       'Priority registration for events',
       'Full conference participation rights'
     ],
+    rank: 3
   },
   "Associate Membership": {
     name: "Associate Membership",
+    description: 'For junior professionals and those in training programs',
     price: 10000,
     color: "#3B82F6",
     features: [
@@ -35,9 +40,11 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
       'Eligibility to participate in research collaborations',
       'Networking opportunities with professionals'
     ],
+    rank: 2
   },
   "Student Membership": {
     name: "Student Membership",
+    description: 'For medical students and residents interested in child neurology',
     price: 5000,
     color: "#3B82F6",
     features: ["Basic resource access", 
@@ -48,9 +55,11 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
       'Mentorship opportunities',
       'Student newsletter subscription'
     ],
+    rank: 1
   },
   "Institutional Membership": {
     name: "Institutional Membership",
+    description: 'For hospitals, universities, and research institutions',
     price: 50000,
     color: "#3B82F6",
     features: [
@@ -62,9 +71,11 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
       'Collaboration opportunities',
       'Customized training programs'
     ],
+    rank: 4
   },
   "Honorary Membership": {
     name: "Honorary Membership",
+    description: 'For distinguished contributors to child neurology',
     price: 0,
     color: "#3B82F6",
     features: [
@@ -76,5 +87,6 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
       'Invitation to advisory committees',
       'All Full Membership benefits'
     ],
+    rank: 5
   },
 };

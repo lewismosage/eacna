@@ -36,6 +36,8 @@ import AbstractGuidelines from './pages/trainingpage/AbstractGuidelines';
 
 // Member Portal Components
 import Login from './pages/portalpages/Login';
+import ForgotPassword from './pages/portalpages/ForgotPassword';
+import ResetPassword from './pages/portalpages/ResetPassword';
 import MemberPortal from './pages/portalpages/PortalDashboard';
 import WritePublicationPage from './pages/portalpages/WritePublicationPage';
 import Notifications from './pages/portalpages/Notifications';
@@ -135,6 +137,8 @@ function App() {
 
           {/* Member Login */}
           <Route path="login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Protected Member Portal */}
           <Route element={<ProtectedRoute />}>

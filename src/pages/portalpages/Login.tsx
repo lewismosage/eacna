@@ -1,7 +1,9 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { useState, FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, AlertCircle, Mail, Lock } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+import Card, { CardContent } from '../../components/common/Card';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -9,16 +11,16 @@ const supabase = createClient(
 );
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     // Validate email format
     const validateEmail = (email: string) => {
@@ -27,7 +29,7 @@ const Login = () => {
     };
 
     if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
+      setError('Please enter a valid email address.');
       return;
     }
 
@@ -61,9 +63,9 @@ const Login = () => {
       }
 
       // 4. Redirect to member portal after successful login
-      navigate("/member-portal");
+      navigate('/member-portal');
     } catch (err) {
-      console.error("Login failed:", err);
+      console.error('Login failed:', err);
       setError(
         err instanceof Error 
           ? err.message.includes('Invalid login credentials')
@@ -76,93 +78,88 @@ const Login = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <Link to="/" className="flex items-center">
-            <span className="text-2xl font-bold text-primary-700">EACNA</span>
-          </Link>
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Welcome to the Member Portal
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{" "}
-          <Link
-            to="/membership"
-            className="font-medium text-primary-700 hover:text-primary-600"
-          >
-            Apply for membership
-          </Link>
-        </p>
-      </div>
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <Card className="w-full max-w-md">
+        <CardContent>
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-block mb-2">
+              <span className="text-2xl font-bold text-primary-700">EACNA</span>
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">Member Portal</h1>
+            <p className="mt-2 text-gray-600">
+              Sign in to access your member dashboard
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              Or{' '}
+              <Link
+                to="/membership"
+                className="font-medium text-primary-700 hover:text-primary-600"
+              >
+                apply for membership
+              </Link>
+            </p>
+          </div>
+          
           {error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              </div>
+            <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
-
+          
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email address
               </label>
-              <div className="mt-1">
+              <div className="relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   id="email"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="member@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                 />
               </div>
             </div>
-
+            
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
-              <div className="mt-1 relative">
+              <div className="relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
+                  className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 focus:outline-none"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -183,7 +180,7 @@ const Login = () => {
                 </label>
               </div>
 
-              <div className="text-sm">
+              <div className="text-sm text-center mt-4">
                 <Link
                   to="/forgot-password"
                   className="font-medium text-primary-700 hover:text-primary-600"
@@ -197,9 +194,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
-                }`}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -209,12 +204,12 @@ const Login = () => {
                     </svg>
                     Signing in...
                   </>
-                ) : "Sign in"}
+                ) : 'Sign in'}
               </button>
             </div>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
