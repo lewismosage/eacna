@@ -18,7 +18,7 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
   "Full Membership": {
     name: "Full Membership",
     description: 'For fully qualified child neurologists and senior professionals',
-    price: 15000,
+    price: 8000,
     color: "#10B981",
     features: [
       'Voting rights in EACNA elections',
@@ -32,7 +32,7 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
   "Associate Membership": {
     name: "Associate Membership",
     description: 'For junior professionals and those in training programs',
-    price: 10000,
+    price: 5000,
     color: "#3B82F6",
     features: [
       'Access to online resources and clinical guidelines',
@@ -45,7 +45,7 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
   "Student Membership": {
     name: "Student Membership",
     description: 'For medical students and residents interested in child neurology',
-    price: 5000,
+    price: 1500,
     color: "#3B82F6",
     features: ["Basic resource access", 
       "Student networking", 
@@ -60,7 +60,7 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
   "Institutional Membership": {
     name: "Institutional Membership",
     description: 'For hospitals, universities, and research institutions',
-    price: 50000,
+    price: 15000,
     color: "#3B82F6",
     features: [
       "Resource sharing",
@@ -90,3 +90,4 @@ export const membershipTiers: Record<MembershipTier, MembershipTierData> = {
     rank: 5
   },
 };
+

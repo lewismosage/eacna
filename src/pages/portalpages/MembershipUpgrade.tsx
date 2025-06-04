@@ -7,39 +7,11 @@ import {
   CheckCircle,
   Loader2,
   BadgeCheck,
+  CreditCard,
+  Banknote,
+  Landmark,
 } from "lucide-react";
 import { membershipTiers, MembershipTier } from "../../types/membership";
-
-
-type MembershipTierKey = MembershipTier;
-
-// Helper function to get current membership tier key from type string
-const getCurrentMembershipTierKey = (
-  membershipType: string
-): MembershipTierKey => {
-  const type = membershipType.replace(" Member", "");
-  return `${type} Membership` as MembershipTierKey;
-};
-
-// Helper function to calculate upgrade fee
-const calculateUpgradeFee = (
-  currentTier: MembershipTierKey,
-  targetTier: MembershipTierKey
-): number => {
-  const currentFee =membershipTiers[currentTier].price;
-  const targetFee = membershipTiers[targetTier].price;
-  return targetFee - currentFee;
-};
-
-// Helper function to determine rank based on price
-const getTierRank = (tier: MembershipTierKey): number => {
-  const price = membershipTiers[tier].price;
-  if (tier === "Honorary Membership") return 5; // Highest rank
-  if (tier === "Institutional Membership") return 4;
-  if (tier === "Full Membership") return 3;
-  if (tier === "Associate Membership") return 2;
-  return 1; // Student Membership
-};
 
 type MembershipUpgradeProps = {
   currentMembership: {
@@ -48,8 +20,10 @@ type MembershipUpgradeProps = {
     expiryDate: string;
   };
   onClose: () => void;
-  selectedTierFromStatus?: MembershipTierKey; // New prop for preselected tier
+  selectedTierFromStatus?: MembershipTier;
 };
+
+type PaymentMethod = 'mpesa' | 'bank_transfer' | 'credit_card';
 
 const MembershipUpgrade = ({
   currentMembership,
@@ -57,26 +31,43 @@ const MembershipUpgrade = ({
   selectedTierFromStatus,
 }: MembershipUpgradeProps) => {
   // Payment process state
-  const [step, setStep] = useState(selectedTierFromStatus ? 2 : 1); // Start at payment if tier is preselected
-  const [selectedTier, setSelectedTier] = useState<MembershipTierKey | null>(
+  const [step, setStep] = useState(selectedTierFromStatus ? 2 : 1);
+  const [selectedTier, setSelectedTier] = useState<MembershipTier | null>(
     selectedTierFromStatus || null
   );
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [upgradeFee, setUpgradeFee] = useState(0);
   const [transactionId, setTransactionId] = useState("");
+  const [cardDetails, setCardDetails] = useState({
+    number: '',
+    name: '',
+    expiry: '',
+    cvv: ''
+  });
+  const [bankTransferDetails, setBankTransferDetails] = useState({
+    reference: '',
+    bankName: '',
+    date: ''
+  });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  // Get current membership tier key and rank
-  const currentTierKey = getCurrentMembershipTierKey(currentMembership.type);
-  const currentTierRank = membershipTiers[currentTierKey].rank;
+  // Get current membership tier
+  const currentTier = currentMembership.type as MembershipTier;
+  const currentTierData = membershipTiers[currentTier];
 
-  // Filter available tiers based on current membership
+  // Filter available tiers based on current membership rank
   const availableTiers = (
-    Object.keys(membershipTiers) as MembershipTierKey[]
+    Object.keys(membershipTiers) as MembershipTier[]
   ).filter((tier) => {
-    const tierRank = getTierRank(tier);
-    return tierRank > currentTierRank && tier !== "Honorary Membership";
+    const tierData = membershipTiers[tier];
+    // Only show higher ranked AND higher priced tiers (except Honorary)
+    return (
+      tierData.rank > currentTierData.rank &&
+      tierData.price > currentTierData.price &&
+      tier !== "Honorary Membership"
+    );
   });
 
   // If we have a preselected tier from status page, filter to just that tier
@@ -87,18 +78,17 @@ const MembershipUpgrade = ({
   // Effect to calculate fee when tier is selected
   useEffect(() => {
     if (selectedTier) {
-      const fee = calculateUpgradeFee(currentTierKey, selectedTier);
+      const fee = membershipTiers[selectedTier].price - currentTierData.price;
       setUpgradeFee(fee);
     }
-  }, [selectedTier, currentTierKey]);
+  }, [selectedTier, currentTierData.price]);
 
   // Calculate days remaining to expiry
   const calculateDaysRemaining = () => {
     const today = new Date();
     const expiryDate = new Date(currentMembership.expiryDate);
     const diffTime = expiryDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const daysRemaining = calculateDaysRemaining();
@@ -109,9 +99,21 @@ const MembershipUpgrade = ({
     setSubmitLoading(true);
 
     try {
-      // Validate transaction ID
-      if (!transactionId || transactionId.length < 8) {
+      // Validate based on payment method
+      if (selectedMethod === 'mpesa' && (!transactionId || transactionId.length < 8)) {
         setSubmitStatus("Please enter a valid M-Pesa transaction ID");
+        setSubmitLoading(false);
+        return;
+      }
+      
+      if (selectedMethod === 'bank_transfer' && (!bankTransferDetails.reference || !bankTransferDetails.date)) {
+        setSubmitStatus("Please provide all bank transfer details");
+        setSubmitLoading(false);
+        return;
+      }
+      
+      if (selectedMethod === 'credit_card' && (!cardDetails.number || !cardDetails.name || !cardDetails.expiry || !cardDetails.cvv)) {
+        setSubmitStatus("Please provide all credit card details");
         setSubmitLoading(false);
         return;
       }
@@ -124,7 +126,7 @@ const MembershipUpgrade = ({
 
       // Show success message after a brief delay
       setTimeout(() => {
-        setStep(3); // Move to success step
+        setStep(4); // Move to success step
       }, 1000);
     } catch (error) {
       console.error("Error submitting payment:", error);
@@ -136,7 +138,7 @@ const MembershipUpgrade = ({
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center space-x-2 mb-6">
-      {[1, 2, 3].map((s) => (
+      {[1, 2, 3, 4].map((s) => (
         <div
           key={s}
           className={`flex items-center ${
@@ -158,7 +160,7 @@ const MembershipUpgrade = ({
           >
             {s < step ? <CheckCircle className="w-5 h-5" /> : s}
           </div>
-          {s < 3 && (
+          {s < 4 && (
             <div
               className={`w-10 h-0.5 ${
                 s < step ? "bg-green-500" : "bg-gray-300"
@@ -326,7 +328,100 @@ const MembershipUpgrade = ({
     </div>
   );
 
-  const renderPaymentStep = () => (
+  const renderPaymentMethodStep = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h2 className="text-xl font-bold text-primary-800 mb-6">Select Payment Method</h2>
+      
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
+        {/* M-Pesa Option */}
+        <button
+          onClick={() => {
+            setSelectedMethod('mpesa');
+            setStep(3);
+          }}
+          className={`border rounded-lg p-4 hover:shadow-md transition-all ${
+            selectedMethod === 'mpesa' 
+              ? 'border-primary-600 bg-primary-50' 
+              : 'border-gray-200 hover:border-primary-300'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-2 rounded-lg">
+              <CreditCard className="w-6 h-6 text-green-600" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-medium">M-Pesa</h3>
+              <p className="text-sm text-gray-600">Mobile Money Payment</p>
+            </div>
+          </div>
+        </button>
+        
+        {/* Bank Transfer Option */}
+        <button
+          onClick={() => {
+            setSelectedMethod('bank_transfer');
+            setStep(3);
+          }}
+          className={`border rounded-lg p-4 hover:shadow-md transition-all ${
+            selectedMethod === 'bank_transfer' 
+              ? 'border-primary-600 bg-primary-50' 
+              : 'border-gray-200 hover:border-primary-300'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <Landmark className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-medium">Bank Transfer</h3>
+              <p className="text-sm text-gray-600">Direct Bank Deposit</p>
+            </div>
+          </div>
+        </button>
+        
+        {/* Credit Card Option */}
+        <button
+          onClick={() => {
+            setSelectedMethod('credit_card');
+            setStep(3);
+          }}
+          className={`border rounded-lg p-4 hover:shadow-md transition-all ${
+            selectedMethod === 'credit_card' 
+              ? 'border-primary-600 bg-primary-50' 
+              : 'border-gray-200 hover:border-primary-300'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-100 p-2 rounded-lg">
+              <Banknote className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-medium">Credit Card</h3>
+              <p className="text-sm text-gray-600">Visa, Mastercard, etc.</p>
+            </div>
+          </div>
+        </button>
+      </div>
+      
+      <div className="flex justify-between">
+        <button
+          onClick={() => setStep(1)}
+          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+        >
+          Back
+        </button>
+        <button
+          onClick={() => selectedMethod && setStep(3)}
+          disabled={!selectedMethod}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderMpesaPaymentForm = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <h2 className="text-xl font-bold text-primary-800 mb-6">
         Membership Upgrade Payment
@@ -393,15 +488,13 @@ const MembershipUpgrade = ({
             )}
 
             <div className="flex justify-between items-center pt-4">
-              {!selectedTierFromStatus && (
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Back
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Back
+              </button>
 
               <button
                 type="submit"
@@ -427,45 +520,267 @@ const MembershipUpgrade = ({
         </div>
 
         <div className="md:col-span-1">
-          <div className="bg-gray-50 rounded-lg p-5 border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-3">
-              Upgrade Summary
-            </h3>
+          <OrderSummary 
+            currentMembership={currentMembership} 
+            selectedTier={selectedTier}
+            upgradeFee={upgradeFee}
+          />
+        </div>
+      </div>
+    </div>
+  );
 
-            <div className="space-y-3 mb-4">
-              <div>
-                <span className="text-gray-600">Current Membership:</span>
-                <div className="font-medium">{currentMembership.type}</div>
-              </div>
-
-              <div>
-                <span className="text-gray-600">Upgrading to:</span>
-                <div className="font-medium">{selectedTier}</div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-3 flex justify-between items-center font-semibold">
-                <span>Total upgrade fee</span>
-                <span>KSH {upgradeFee}</span>
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              <h4 className="font-medium text-gray-800 mb-2">
-                Membership Period
-              </h4>
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  <span>Current Expiry: {currentMembership.expiryDate}</span>
+  const renderBankTransferForm = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h2 className="text-xl font-bold text-primary-800 mb-6">Bank Transfer Payment</h2>
+      
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <form onSubmit={handleSubmitPayment} className="space-y-4">
+            <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6">
+              <h3 className="font-medium text-blue-800 mb-2">Payment Instructions</h3>
+              <div className="space-y-3 text-blue-700">
+                <div>
+                  <h4 className="font-medium">Bank Details:</h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Bank Name: <span className="font-semibold">Equity Bank</span></li>
+                    <li>Account Name: <span className="font-semibold">EACNA Membership</span></li>
+                    <li>Account Number: <span className="font-semibold">1234567890</span></li>
+                    <li>Branch: <span className="font-semibold">Nairobi CBD</span></li>
+                    <li>SWIFT Code: <span className="font-semibold">EQBLKENA</span></li>
+                  </ul>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Your upgraded membership will maintain the same expiry date.
-                  For future renewals, you'll pay the full rate for your new
-                  membership tier.
-                </p>
+                <p>Please include your membership ID (<span className="font-semibold">{currentMembership.membershipId}</span>) in the reference.</p>
               </div>
             </div>
-          </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label htmlFor="bankReference" className="block text-sm font-medium text-gray-700 mb-1">
+                  Bank Reference Number
+                </label>
+                <input
+                  id="bankReference"
+                  type="text"
+                  value={bankTransferDetails.reference}
+                  onChange={(e) => setBankTransferDetails({...bankTransferDetails, reference: e.target.value})}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="e.g. EACNA12345"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="bankName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Bank Name
+                </label>
+                <input
+                  id="bankName"
+                  type="text"
+                  value={bankTransferDetails.bankName}
+                  onChange={(e) => setBankTransferDetails({...bankTransferDetails, bankName: e.target.value})}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="e.g. KCB"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="transferDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Transfer Date
+                </label>
+                <input
+                  id="transferDate"
+                  type="date"
+                  value={bankTransferDetails.date}
+                  onChange={(e) => setBankTransferDetails({...bankTransferDetails, date: e.target.value})}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  required
+                />
+              </div>
+            </div>
+            
+            {submitStatus && (
+              <div className={`text-center p-3 rounded-md ${
+                submitStatus === "PAYMENT VERIFICATION IN PROGRESS" 
+                  ? "bg-green-50 text-green-700 border border-green-200" 
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}>
+                {submitStatus}
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center pt-4">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Back
+              </button>
+              
+              <button
+                type="submit"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center"
+                disabled={submitLoading || submitted}
+              >
+                {submitLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : submitted ? (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Submitted
+                  </>
+                ) : (
+                  "Submit Payment"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <div className="md:col-span-1">
+          <OrderSummary 
+            currentMembership={currentMembership} 
+            selectedTier={selectedTier}
+            upgradeFee={upgradeFee}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCreditCardForm = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h2 className="text-xl font-bold text-primary-800 mb-6">Credit Card Payment</h2>
+      
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <form onSubmit={handleSubmitPayment} className="space-y-4">
+            <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6">
+              <h3 className="font-medium text-blue-800 mb-2">Secure Payment</h3>
+              <p className="text-blue-700">
+                All transactions are secure and encrypted. We do not store your credit card details.
+              </p>
+            </div>
+            
+            <div>
+              <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                Card Number
+              </label>
+              <input
+                id="cardNumber"
+                type="text"
+                value={cardDetails.number}
+                onChange={(e) => setCardDetails({...cardDetails, number: e.target.value})}
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                placeholder="1234 5678 9012 3456"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="cardName" className="block text-sm font-medium text-gray-700 mb-1">
+                Name on Card
+              </label>
+              <input
+                id="cardName"
+                type="text"
+                value={cardDetails.name}
+                onChange={(e) => setCardDetails({...cardDetails, name: e.target.value})}
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                placeholder="John Doe"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="cardExpiry" className="block text-sm font-medium text-gray-700 mb-1">
+                  Expiry Date
+                </label>
+                <input
+                  id="cardExpiry"
+                  type="text"
+                  value={cardDetails.expiry}
+                  onChange={(e) => setCardDetails({...cardDetails, expiry: e.target.value})}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="MM/YY"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="cardCvv" className="block text-sm font-medium text-gray-700 mb-1">
+                  CVV
+                </label>
+                <input
+                  id="cardCvv"
+                  type="text"
+                  value={cardDetails.cvv}
+                  onChange={(e) => setCardDetails({...cardDetails, cvv: e.target.value})}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="123"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <LockIcon />
+              <span>Your payment is secured with 256-bit SSL encryption</span>
+            </div>
+            
+            {submitStatus && (
+              <div className={`text-center p-3 rounded-md ${
+                submitStatus === "PAYMENT VERIFICATION IN PROGRESS" 
+                  ? "bg-green-50 text-green-700 border border-green-200" 
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}>
+                {submitStatus}
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center pt-4">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Back
+              </button>
+              
+              <button
+                type="submit"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center"
+                disabled={submitLoading || submitted}
+              >
+                {submitLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : submitted ? (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Submitted
+                  </>
+                ) : (
+                  "Pay KSH " + upgradeFee
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <div className="md:col-span-1">
+          <OrderSummary 
+            currentMembership={currentMembership} 
+            selectedTier={selectedTier}
+            upgradeFee={upgradeFee}
+          />
         </div>
       </div>
     </div>
@@ -496,8 +811,10 @@ const MembershipUpgrade = ({
           <div>{selectedTier}</div>
           <div className="text-gray-500">Amount Paid:</div>
           <div>KSH {upgradeFee}</div>
-          <div className="text-gray-500">Transaction ID:</div>
-          <div>{transactionId}</div>
+          <div className="text-gray-500">Payment Method:</div>
+          <div className="capitalize">
+            {selectedMethod?.replace('_', ' ') || 'Unknown'}
+          </div>
           <div className="text-gray-500">Status:</div>
           <div className="text-orange-600 font-medium">
             Verification in Progress
@@ -534,15 +851,81 @@ const MembershipUpgrade = ({
     </svg>
   );
 
+  // Helper component for lock icon
+  const LockIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.6667 7.33333H3.33333C2.59695 7.33333 2 7.93028 2 8.66666V13.3333C2 14.0697 2.59695 14.6667 3.33333 14.6667H12.6667C13.403 14.6667 14 14.0697 14 13.3333V8.66666C14 7.93028 13.403 7.33333 12.6667 7.33333Z" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4.66663 7.33333V4.66666C4.66663 3.78261 5.01782 2.93476 5.64294 2.30964C6.26806 1.68452 7.11591 1.33333 7.99996 1.33333C8.88401 1.33333 9.73186 1.68452 10.357 2.30964C10.9821 2.93476 11.3333 3.78261 11.3333 4.66666V7.33333" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+
   return (
     <div className="space-y-6">
       {renderStepIndicator()}
 
       {step === 1 && renderSelectTierStep()}
-      {step === 2 && renderPaymentStep()}
-      {step === 3 && renderSuccessStep()}
+      {step === 2 && renderPaymentMethodStep()}
+      {step === 3 && selectedMethod === 'mpesa' && renderMpesaPaymentForm()}
+      {step === 3 && selectedMethod === 'bank_transfer' && renderBankTransferForm()}
+      {step === 3 && selectedMethod === 'credit_card' && renderCreditCardForm()}
+      {step === 4 && renderSuccessStep()}
     </div>
   );
 };
+
+// Helper component for order summary
+const OrderSummary = ({ 
+  currentMembership,
+  selectedTier,
+  upgradeFee
+}: { 
+  currentMembership: {
+    type: string;
+    membershipId: string;
+    expiryDate: string;
+  };
+  selectedTier: MembershipTier | null;
+  upgradeFee: number;
+}) => (
+  <div className="bg-gray-50 rounded-lg p-5 border border-gray-100">
+    <h3 className="font-semibold text-gray-800 mb-3">
+      Upgrade Summary
+    </h3>
+
+    <div className="space-y-3 mb-4">
+      <div>
+        <span className="text-gray-600">Current Membership:</span>
+        <div className="font-medium">{currentMembership.type}</div>
+      </div>
+
+      <div>
+        <span className="text-gray-600">Upgrading to:</span>
+        <div className="font-medium">{selectedTier}</div>
+      </div>
+
+      <div className="border-t border-gray-200 pt-3 flex justify-between items-center font-semibold">
+        <span>Total upgrade fee</span>
+        <span>KSH {upgradeFee}</span>
+      </div>
+    </div>
+
+    <div className="border-t border-gray-200 pt-4 mt-4">
+      <h4 className="font-medium text-gray-800 mb-2">
+        Membership Period
+      </h4>
+      <div className="space-y-2 text-sm text-gray-600">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gray-500" />
+          <span>Current Expiry: {currentMembership.expiryDate}</span>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Your upgraded membership will maintain the same expiry date.
+          For future renewals, you'll pay the full rate for your new
+          membership tier.
+        </p>
+      </div>
+    </div>
+  </div>
+);
 
 export default MembershipUpgrade;

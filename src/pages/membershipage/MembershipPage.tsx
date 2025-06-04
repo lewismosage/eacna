@@ -12,7 +12,7 @@ import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import Accordion from "../../components/common/Accordion";
 import MembershipForm from "./MembershipForm";
-import PaymentComponent from "./PaymentModal";
+
 
 interface MembershipPageProps {
   setShowPaymentModal: (value: boolean) => void;
@@ -32,7 +32,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
             status if certification currency expires or lapses.
           </p>
           <p>
-            <span className="font-semibold">Annual Fee:</span> KSH 15,000
+            <span className="font-semibold">Annual Fee:</span> KSH 8,000
           </p>
         </div>
       ),
@@ -51,7 +51,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
             but do not have voting rights.
           </p>
           <p>
-            <span className="font-semibold">Annual Fee:</span> KSH 10,000
+            <span className="font-semibold">Annual Fee:</span> KSH 5,000
           </p>
         </div>
       ),
@@ -70,7 +70,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
             activities and mentorship programs.
           </p>
           <p>
-            <span className="font-semibold">Annual Fee:</span> KSH 5,000
+            <span className="font-semibold">Annual Fee:</span> KSH 1,500
           </p>
         </div>
       ),
@@ -89,7 +89,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
             voting rights.
           </p>
           <p>
-            <span className="font-semibold">Annual Fee:</span> KSH 5,000
+            <span className="font-semibold">Annual Fee:</span> KSH 15,000
           </p>
         </div>
       ),
