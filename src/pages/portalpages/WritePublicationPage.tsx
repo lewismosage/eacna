@@ -947,9 +947,17 @@ const WritePublicationPage = () => {
       {/* Main Content */}
       <Section>
         <motion.div variants={fadeIn} initial="hidden" animate="visible">
-          <h1 className="text-3xl font-bold mb-6 text-primary-800">
-            Write New Publication
-          </h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-primary-800">
+              Write New Publication
+            </h1>
+            <Link to="/portal/my-publications">
+              <Button variant="outline" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                View My Publications
+              </Button>
+            </Link>
+          </div>
 
           {submitStatus === "success" ? (
             renderSuccessMessage()

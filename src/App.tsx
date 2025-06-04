@@ -40,6 +40,7 @@ import ForgotPassword from './pages/portalpages/ForgotPassword';
 import ResetPassword from './pages/portalpages/ResetPassword';
 import MemberPortal from './pages/portalpages/PortalDashboard';
 import WritePublicationPage from './pages/portalpages/WritePublicationPage';
+import MyPublications from './pages/portalpages/MyPublications';
 import Notifications from './pages/portalpages/Notifications';
 import ViewProfile from './pages/portalpages/ViewProfile';
 import MembershipStatus from './pages/portalpages/MembershipStatus';
@@ -143,6 +144,7 @@ function App() {
           {/* Protected Member Portal */}
           <Route element={<ProtectedRoute />}>
             <Route path="portal/publications" element={<WritePublicationPage />} />
+            <Route path="portal/my-publications" element={<MyPublications />} />
             <Route path="portal/notifications" element={<Notifications />} />
             <Route path="member-portal" element={<MemberPortal />} />
             <Route path="/portal/profile" element={<ViewProfile />} /> 
