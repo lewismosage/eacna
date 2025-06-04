@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Brain, Search } from 'lucide-react';
-import { search } from '../utils/search';
-import { SearchItem } from '../utils/searchIndex';
+import { useState, useEffect, useRef } from "react";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, Search } from "lucide-react";
+import { search } from "../utils/search";
+import { SearchItem } from "../utils/searchIndex";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -28,21 +28,24 @@ const Header = () => {
       setScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setShowSearchResults(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -50,7 +53,7 @@ const Header = () => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-    
+
     if (query.length > 0) {
       const { results } = search(query);
       setSearchResults(results);
@@ -64,7 +67,7 @@ const Header = () => {
   // Handle search result selection
   const handleResultClick = (url: string) => {
     navigate(url);
-    setSearchQuery('');
+    setSearchQuery("");
     setSearchResults([]);
     setShowSearchResults(false);
     closeMenu();
@@ -79,26 +82,38 @@ const Header = () => {
   };
 
   const navLinks = [
-    { to: '/', label: 'Home' },
-    { to: '/about', label: 'About Us' },
-    { to: '/training', label: 'Training & Conferences' },
-    { to: '/membership', label: 'Membership' },
-    { to: '/resources', label: 'Resources' },
-    { to: '/gallery', label: 'Gallery' },
-    { to: '/find-specialist', label: 'Find a Specialist' },
-    { to: '/contact', label: 'Contact Us' },
+    { to: "/", label: "Home" },
+    { to: "/about", label: "About Us" },
+    { to: "/training", label: "Training & Conferences" },
+    { to: "/membership", label: "Membership" },
+    { to: "/resources", label: "Resources" },
+    { to: "/gallery", label: "Gallery" },
+    { to: "/find-specialist", label: "Find a Specialist" },
+    { to: "/contact", label: "Contact Us" },
   ];
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white shadow-md' : 'bg-transparent'}`}>
+    <header
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        scrolled ? "bg-white shadow-md" : "bg-transparent"
+      }`}
+    >
       <div className="container-custom">
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 text-primary-700">
-            <Brain className="h-8 w-8" />
+            <img
+              src="/eacnaLogo.jpg"
+              alt="EACNA Logo"
+              className="h-12 w-auto"
+            />
             <div>
-              <span className="text-xl font-bold font-display tracking-tight block">EACNA</span>
-              <span className="text-xs text-primary-600 tracking-wider block">East African Child Neurology Association</span>
+              <span className="text-xl font-bold font-display tracking-tight block">
+                EACNA
+              </span>
+              <span className="text-xs text-primary-600 tracking-wider block">
+                East African Child Neurology Association
+              </span>
             </div>
           </Link>
 
@@ -111,8 +126,8 @@ const Header = () => {
                 className={({ isActive }) =>
                   `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive
-                      ? 'text-primary-700 bg-primary-50'
-                      : 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
+                      ? "text-primary-700 bg-primary-50"
+                      : "text-gray-700 hover:text-primary-600 hover:bg-gray-100"
                   }`
                 }
               >
@@ -128,10 +143,15 @@ const Header = () => {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  onFocus={() => searchQuery.length > 0 && setShowSearchResults(true)}
+                  onFocus={() =>
+                    searchQuery.length > 0 && setShowSearchResults(true)
+                  }
                   className="w-48 px-3 py-1.5 text-xs text-gray-900 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
-                <button type="submit" className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                >
                   <Search className="h-4 w-4 text-gray-500" />
                 </button>
               </form>
@@ -144,8 +164,12 @@ const Header = () => {
                       className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                       onClick={() => handleResultClick(result.url)}
                     >
-                      <div className="font-medium text-primary-600">{result.title}</div>
-                      <div className="text-xs text-gray-500">{result.description}</div>
+                      <div className="font-medium text-primary-600">
+                        {result.title}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {result.description}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -155,14 +179,14 @@ const Header = () => {
 
           {/* Button group */}
           <div className="hidden lg:flex items-center space-x-2">
-            <Link 
-              to="/membership" 
+            <Link
+              to="/membership"
               className="btn btn-primary px-3 py-1.5 text-xs"
             >
               Join/Renew
             </Link>
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="btn border-primary-600 text-primary-600 hover:bg-primary-50 px-3 py-1.5 text-xs"
             >
               Login
@@ -183,7 +207,7 @@ const Header = () => {
         {/* Mobile menu */}
         <div
           className={`lg:hidden transition-all duration-300 overflow-hidden ${
-            isOpen ? 'max-h-screen opacity-100 pb-6' : 'max-h-0 opacity-0'
+            isOpen ? "max-h-screen opacity-100 pb-6" : "max-h-0 opacity-0"
           }`}
         >
           <nav className="flex flex-col space-y-1 mt-2">
@@ -194,8 +218,8 @@ const Header = () => {
                 className={({ isActive }) =>
                   `px-4 py-3 rounded-md text-base font-medium ${
                     isActive
-                      ? 'text-primary-700 bg-primary-50'
-                      : 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
+                      ? "text-primary-700 bg-primary-50"
+                      : "text-gray-700 hover:text-primary-600 hover:bg-gray-100"
                   }`
                 }
                 onClick={closeMenu}
@@ -213,10 +237,15 @@ const Header = () => {
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    onFocus={() => searchQuery.length > 0 && setShowSearchResults(true)}
+                    onFocus={() =>
+                      searchQuery.length > 0 && setShowSearchResults(true)
+                    }
                     className="w-full px-4 py-2 text-sm text-gray-900 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <button type="submit" className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <button
+                    type="submit"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  >
                     <Search className="h-4 w-4 text-gray-500" />
                   </button>
                 </div>
@@ -230,8 +259,12 @@ const Header = () => {
                       className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                       onClick={() => handleResultClick(result.url)}
                     >
-                      <div className="font-medium text-primary-600">{result.title}</div>
-                      <div className="text-xs text-gray-500">{result.description}</div>
+                      <div className="font-medium text-primary-600">
+                        {result.title}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {result.description}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -239,15 +272,15 @@ const Header = () => {
             </div>
 
             <div className="flex flex-col space-y-2 pt-4">
-              <Link 
-                to="/membership" 
+              <Link
+                to="/membership"
                 className="btn btn-primary"
                 onClick={closeMenu}
               >
                 Join/Renew
               </Link>
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 className="btn border-primary-600 text-primary-600 hover:bg-primary-50"
                 onClick={closeMenu}
               >

@@ -103,7 +103,12 @@ const validatePassword = (password: string) => {
   };
 };
 
-const MembershipForm = () => {
+// Update the MembershipForm component interface
+interface MembershipFormProps {
+  onComplete?: (data: any) => void;
+}
+
+const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
@@ -319,6 +324,11 @@ const MembershipForm = () => {
         .insert(applicationData);
 
       if (error) throw error;
+
+      // Call onComplete with the application data
+      if (onComplete) {
+        onComplete(applicationData);
+      }
 
       nextStep(); // Move to success screen
     } catch (err) {
