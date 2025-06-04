@@ -18,7 +18,7 @@ import {
   Calendar,
   AlertCircle,
 } from "lucide-react";
-import WritePublication from "./WritePublicationPage";
+import WritePublication from "./MyPublications";
 import Notification from "./Notifications";
 import PostsFeed from "./PostsFeed";
 import EventsSidebar from "./EventsSidebar";
@@ -469,7 +469,7 @@ const MemberPortal = () => {
     {
       icon: BookOpen,
       label: "Publications",
-      path: "publications",
+      path: "my-publications",
       badge: null,
     },
     {

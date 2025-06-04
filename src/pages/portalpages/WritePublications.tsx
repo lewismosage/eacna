@@ -74,7 +74,7 @@ export const savePublication = async (
   return data?.[0];
 };
 
-const WritePublicationPage = () => {
+const WritePublications = () => {
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -920,11 +920,8 @@ const WritePublicationPage = () => {
         review it and get back to you within 5-7 working days.
       </p>
       <div className="flex flex-wrap justify-center gap-4">
-        <Link to="/dashboard/publications">
+      <Link to="/portal/my-publications">
           <Button variant="outline">View My Publications</Button>
-        </Link>
-        <Link to="/resources">
-          <Button variant="primary">Back to Resources</Button>
         </Link>
       </div>
     </motion.div>
@@ -936,10 +933,10 @@ const WritePublicationPage = () => {
       <div className="bg-white border-b">
         <div className="container-custom py-4">
           <Link
-            to="/member-portal"
+            to="/portal/my-publications"
             className="inline-flex items-center text-gray-600 hover:text-primary-700 mb-4"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Member Portal
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back to My Publications
           </Link>
         </div>
       </div>
@@ -951,12 +948,6 @@ const WritePublicationPage = () => {
             <h1 className="text-3xl font-bold text-primary-800">
               Write New Publication
             </h1>
-            <Link to="/portal/my-publications">
-              <Button variant="outline" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                View My Publications
-              </Button>
-            </Link>
           </div>
 
           {submitStatus === "success" ? (
@@ -1022,4 +1013,4 @@ const WritePublicationPage = () => {
   );
 };
 
-export default WritePublicationPage;
+export default WritePublications;

@@ -39,7 +39,7 @@ import Login from './pages/portalpages/Login';
 import ForgotPassword from './pages/portalpages/ForgotPassword';
 import ResetPassword from './pages/portalpages/ResetPassword';
 import MemberPortal from './pages/portalpages/PortalDashboard';
-import WritePublicationPage from './pages/portalpages/WritePublicationPage';
+import WritePublicationPage from './pages/portalpages/WritePublications';
 import MyPublications from './pages/portalpages/MyPublications';
 import Notifications from './pages/portalpages/Notifications';
 import ViewProfile from './pages/portalpages/ViewProfile';

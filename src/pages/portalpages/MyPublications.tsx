@@ -23,6 +23,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from "../../components/common/AlertModal";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 // Define types for your publication data
@@ -69,6 +70,17 @@ const MyPublicationsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    type: "info" | "success" | "warning" | "error" | "confirm";
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    type: "info",
+    title: "",
+    message: "",
+  });
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -105,13 +117,11 @@ const MyPublicationsPage = () => {
       filtered = filtered.filter((pub) => pub.status === statusFilter);
     }
 
-    // Sort
+    // Sort with type-safe comparison
     filtered.sort((a, b) => {
-      const aValue = a[sortBy as keyof Publication];
-      const bValue = b[sortBy as keyof Publication];
-      if (typeof aValue === "undefined" || typeof bValue === "undefined") {
-        return 0;
-      }
+      const aValue = a[sortBy as keyof Publication] || "";
+      const bValue = b[sortBy as keyof Publication] || "";
+
       if (sortOrder === "asc") {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -160,12 +170,34 @@ const MyPublicationsPage = () => {
       if (error) throw error;
 
       setPublications((prev) => prev.filter((pub) => pub.id !== id));
-      setShowDeleteModal(false);
+      setShowAlertModal(false);
+      setAlertConfig({
+        type: "success",
+        title: "Success",
+        message: "Publication deleted successfully",
+      });
+      setShowAlertModal(true);
     } catch (error) {
       console.error("Error deleting publication:", error);
+      setAlertConfig({
+        type: "error",
+        title: "Error",
+        message: "Failed to delete publication. Please try again.",
+      });
+      setShowAlertModal(true);
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const confirmDelete = (publication: Publication) => {
+    setAlertConfig({
+      type: "confirm",
+      title: "Delete Publication",
+      message: `Are you sure you want to delete "${publication.title}"? This will permanently remove the publication and all associated data.`,
+      onConfirm: () => handleDelete(publication.id),
+    });
+    setShowAlertModal(true);
   };
 
   const getStatusBadge = (status: PublicationStatus) => {
@@ -292,6 +324,51 @@ const MyPublicationsPage = () => {
             )}
           </header>
 
+          {/* Main Content Sections */}
+          <div className="prose max-w-none">
+            {publication.sections?.map((section, index) => {
+              if (section.type === "heading") {
+                switch (section.level) {
+                  case 1:
+                    return (
+                      <h2 key={index} className="text-2xl font-bold mt-8 mb-4">
+                        {section.content}
+                      </h2>
+                    );
+                  case 2:
+                    return (
+                      <h3
+                        key={index}
+                        className="text-xl font-semibold mt-6 mb-3"
+                      >
+                        {section.content}
+                      </h3>
+                    );
+                  case 3:
+                    return (
+                      <h4 key={index} className="text-lg font-medium mt-4 mb-2">
+                        {section.content}
+                      </h4>
+                    );
+                  default:
+                    return (
+                      <h2 key={index} className="text-2xl font-bold mt-8 mb-4">
+                        {section.content}
+                      </h2>
+                    );
+                }
+              } else {
+                return (
+                  <p key={index} className="mb-4 text-gray-700">
+                    {section.content || (
+                      <span className="text-gray-400">[Empty paragraph]</span>
+                    )}
+                  </p>
+                );
+              }
+            })}
+          </div>
+
           {publication.publication_references?.length > 0 && (
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h2 className="text-xl font-bold mb-4">References</h2>
@@ -309,65 +386,6 @@ const MyPublicationsPage = () => {
     </div>
   );
 
-  const DeleteModal = ({
-    publication,
-    onConfirm,
-    onCancel,
-    isDeleting,
-  }: {
-    publication: Publication;
-    onConfirm: (id: string) => void;
-    onCancel: () => void;
-    isDeleting: boolean;
-  }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <div className="flex items-center mb-4">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
-            <Trash2 className="h-6 w-6 text-red-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Delete Publication
-            </h3>
-            <p className="text-sm text-gray-500">
-              This action cannot be undone
-            </p>
-          </div>
-        </div>
-
-        <p className="text-gray-700 mb-6">
-          Are you sure you want to delete "{publication?.title}"? This will
-          permanently remove the publication and all associated data.
-        </p>
-
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={onCancel}
-            disabled={isDeleting}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onConfirm(publication.id)}
-            disabled={isDeleting}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
-          >
-            {isDeleting ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              "Delete"
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -378,7 +396,7 @@ const MyPublicationsPage = () => {
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/member-portal")}
             className="inline-flex items-center text-gray-600 hover:text-blue-700 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Member Portal
@@ -398,6 +416,13 @@ const MyPublicationsPage = () => {
                 Manage your research publications and track their status
               </p>
             </div>
+            <button
+              className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              onClick={() => navigate("/portal/publications")}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Publication
+            </button>
           </div>
 
           {/* Stats Cards */}
@@ -504,8 +529,17 @@ const MyPublicationsPage = () => {
               <p className="text-gray-500 mb-6">
                 {searchQuery || statusFilter !== "all"
                   ? "Try adjusting your search or filter criteria"
-                  : ""}
+                  : "Start by creating your first publication"}
               </p>
+              {!searchQuery && statusFilter === "all" && (
+                <button
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  onClick={() => navigate("/portal/publications")}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Publication
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -623,7 +657,7 @@ const MyPublicationsPage = () => {
                       <button
                         onClick={() => {
                           setSelectedPublication(publication);
-                          setShowDeleteModal(true);
+                          confirmDelete(publication);
                         }}
                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete"
@@ -727,17 +761,16 @@ const MyPublicationsPage = () => {
         />
       )}
 
-      {showDeleteModal && selectedPublication && (
-        <DeleteModal
-          publication={selectedPublication}
-          onConfirm={handleDelete}
-          onCancel={() => {
-            setShowDeleteModal(false);
-            setSelectedPublication(null);
-          }}
-          isDeleting={deletingId === selectedPublication.id}
-        />
-      )}
+      <AlertModal
+        isOpen={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        onConfirm={alertConfig.onConfirm}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText={alertConfig.type === "confirm" ? "Delete" : "OK"}
+        cancelText={alertConfig.type === "confirm" ? "Cancel" : undefined}
+      />
     </div>
   );
 };
