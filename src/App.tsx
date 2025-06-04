@@ -145,6 +145,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="portal/publications" element={<WritePublicationPage />} />
             <Route path="portal/my-publications" element={<MyPublications />} />
+            <Route path="portal/publications/edit/:id" element={<WritePublicationPage />}/>
             <Route path="portal/notifications" element={<Notifications />} />
             <Route path="member-portal" element={<MemberPortal />} />
             <Route path="/portal/profile" element={<ViewProfile />} /> 
@@ -188,7 +189,7 @@ function App() {
             <Route path="events/webinars" element={<Webinars supabase={supabase}/>} />
             <Route path="specialists/applications" element={<Applications supabase={supabase} />} />
             <Route path="specialists/directory" element={<SpecialistsDirectory supabase={supabase} />} />
-            <Route path="publications/review" element={<PublicationReview supabase={supabase} />} />
+            <Route path="publications/review" element={<PublicationReview />} />
             <Route path="publications/published" element={<PublishedArticles supabase={supabase} />} />
             <Route path="events/abstracts" element={<AbtractSubmissions />} /> 
           </Route>

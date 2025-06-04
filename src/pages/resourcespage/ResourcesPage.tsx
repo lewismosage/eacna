@@ -1,13 +1,41 @@
-import React from 'react';
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Book, Link as LinkIcon, Download, ExternalLink, Play } from 'lucide-react';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
 import Card, { CardContent } from '../../components/common/Card';
+import { createClient } from '@supabase/supabase-js';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+interface Publication {
+  id: string;
+  title: string;
+  authors: string;
+  abstract: string;
+  journal?: string;
+  year?: number;
+  keywords: string[];
+  status: string;
+  created_at: string;
+  updated_at: string;
+  sections: any[];
+  publication_references: string[];
+  user_id: string;
+  submitted_by?: string;
+  profiles?: {
+    first_name: string;
+    last_name: string;
+  };
+}
 
 const ResourcesPage = () => {
+  const location = useLocation();
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -16,7 +44,52 @@ const ResourcesPage = () => {
       transition: { duration: 0.6 }
     }
   };
-useEffect(() => {
+
+  // State for publications
+  const [publications, setPublications] = useState<Publication[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch publications from Supabase
+  useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const { data, error: supabaseError } = await supabase
+          .from('publications')
+          .select(`
+            *,
+            profiles:user_id (first_name, last_name)
+          `)
+          .eq('status', 'published')
+          .order('created_at', { ascending: false })
+          .limit(4); // Limit to 4 most recent publications
+
+        if (supabaseError) throw supabaseError;
+
+        // Map the data to include the submitter's name
+        const publicationsWithSubmitter = data.map((pub: any) => ({
+          ...pub,
+          submitted_by: pub.profiles
+            ? `${pub.profiles.first_name} ${pub.profiles.last_name}`
+            : "Unknown Author",
+        }));
+
+        setPublications(publicationsWithSubmitter || []);
+      } catch (err) {
+        console.error('Error fetching publications:', err);
+        setError('Failed to load publications. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPublications();
+  }, []);
+
+  useEffect(() => {
     if (location.hash) {
       const id = location.hash.replace('#', '');
       const el = document.getElementById(id);
@@ -36,43 +109,7 @@ useEffect(() => {
     }
   };
 
-  // Publications
-  const publications = [
-    {
-      id: 1,
-      title: "Epilepsy Management Guidelines for East Africa",
-      authors: "Njeri S, Omondi B, et al.",
-      journal: "East African Medical Journal",
-      year: "2023",
-      link: "/read-publication/:1"
-    },
-    {
-      id: 2,
-      title: "Prevalence of Neurodevelopmental Disorders in Eastern Africa: A Systematic Review",
-      authors: "Mueni F, Kimathi L, et al.",
-      journal: "Journal of Child Neurology",
-      year: "2022",
-      link: "/read-publication/:2"
-    },
-    {
-      id: 3,
-      title: "Challenges in Diagnosing Pediatric Epilepsy in Resource-Limited Settings",
-      authors: "Mwangi L, Njeri S, et al.",
-      journal: "Seizure: European Journal of Epilepsy",
-      year: "2023",
-      link: "/read-publication/:3"
-    },
-    {
-      id: 4,
-      title: "Training Needs Assessment for Pediatric Neurology in East Africa",
-      authors: "Omondi B, Mueni F, et al.",
-      journal: "Annals of Global Health",
-      year: "2022",
-      link: "/read-publication/:4"
-    }
-  ];
-
-  // Clinical Resources
+  // Clinical Resources (unchanged)
   const clinicalResources = [
     {
       id: 1,
@@ -104,7 +141,7 @@ useEffect(() => {
     }
   ];
 
-  // Educational Videos
+  // Educational Videos (unchanged)
   const videos = [
     {
       id: 1,
@@ -125,6 +162,28 @@ useEffect(() => {
       thumbnail: "https://images.pexels.com/photos/6823802/pexels-photo-6823802.jpeg?auto=compress&cs=tinysrgb&w=600"
     }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
+        <span className="ml-2">Loading resources...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Section>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start">
+          <div>
+            <p className="font-medium">Error loading resources</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <>
@@ -169,9 +228,9 @@ useEffect(() => {
             </p>
 
             <Link to={`/all-publications`}>
-            <Button variant="primary">
-              View All Publications
-            </Button>
+              <Button variant="primary">
+                View All Publications
+              </Button>
             </Link>
           </div>
           
@@ -191,13 +250,16 @@ useEffect(() => {
                 >
                   <h3 className="text-lg font-semibold mb-2 text-primary-800">{publication.title}</h3>
                   <p className="text-gray-600 mb-2">{publication.authors}</p>
-                  <p className="text-gray-500 text-sm mb-3">{publication.journal}, {publication.year}</p>
-                  <a 
-                    href={publication.link}
+                  <p className="text-gray-500 text-sm mb-3">
+                    {publication.journal && `${publication.journal}, `}
+                    {publication.year}
+                  </p>
+                  <Link 
+                    to={`/read-publication/${publication.id}`}
                     className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
                   >
                     Read Paper <ExternalLink className="ml-1 h-4 w-4" />
-                  </a>
+                  </Link>
                 </motion.div>
               ))}
             </motion.div>
@@ -207,42 +269,42 @@ useEffect(() => {
       
       {/* Clinical Resources */}
       <div id="clinical-resources">
-       <Section background="light">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">Clinical Resources</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Evidence-based tools and guidelines for clinical practice in pediatric neurology designed for 
-            the East African context.
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {clinicalResources.map((resource) => (
-            <Card key={resource.id}>
-              <CardContent>
-                <div className="flex justify-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                    {resource.icon}
+        <Section background="light">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">Clinical Resources</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Evidence-based tools and guidelines for clinical practice in pediatric neurology designed for 
+              the East African context.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {clinicalResources.map((resource) => (
+              <Card key={resource.id}>
+                <CardContent>
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
+                      {resource.icon}
+                    </div>
                   </div>
-                </div>
-                <h3 className="text-lg font-semibold mb-1 text-primary-800 text-center">{resource.title}</h3>
-                <p className="text-secondary-600 text-sm text-center mb-3">{resource.type}</p>
-                <p className="text-gray-600 text-sm mb-4 text-center">{resource.description}</p>
-                <div className="flex justify-center">
-                  <Button variant="outline" size="sm">
-                    <Download className="mr-1 h-4 w-4" /> Download
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
-        <div className="text-center mt-8">
-          <Button variant="secondary">View All Resources</Button>
-        </div>
-      </Section>
-    </div>
+                  <h3 className="text-lg font-semibold mb-1 text-primary-800 text-center">{resource.title}</h3>
+                  <p className="text-secondary-600 text-sm text-center mb-3">{resource.type}</p>
+                  <p className="text-gray-600 text-sm mb-4 text-center">{resource.description}</p>
+                  <div className="flex justify-center">
+                    <Button variant="outline" size="sm">
+                      <Download className="mr-1 h-4 w-4" /> Download
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          <div className="text-center mt-8">
+            <Button variant="secondary">View All Resources</Button>
+          </div>
+        </Section>
+      </div>
       
       {/* Educational Videos */}
       <Section>

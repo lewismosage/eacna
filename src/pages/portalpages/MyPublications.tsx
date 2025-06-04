@@ -21,6 +21,7 @@ import {
   X,
   RefreshCw,
   ChevronDown,
+  User,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "../../components/common/AlertModal";
@@ -40,9 +41,14 @@ interface Publication {
   keywords: string[];
   created_at: string;
   updated_at: string;
-  sections: any[]; // Replace with proper type if needed
+  sections: any[];
   publication_references: string[];
   user_id: string;
+  submitted_by?: string;
+  profiles?: {
+    first_name: string;
+    last_name: string;
+  };
 }
 
 // Initialize Supabase client
@@ -144,14 +150,29 @@ const MyPublicationsPage = () => {
         return;
       }
 
+      // Get publications with user profile information
       const { data, error } = await supabase
         .from("publications")
-        .select("*")
+        .select(
+          `
+          *,
+          profiles:user_id (first_name, last_name)
+        `
+        )
         .eq("user_id", user.id)
         .order(sortBy, { ascending: sortOrder === "asc" });
 
       if (error) throw error;
-      setPublications(data || []);
+
+      // Map the data to include the submitter's name
+      const publicationsWithSubmitter = data.map((pub: any) => ({
+        ...pub,
+        submitted_by: pub.profiles
+          ? `${pub.profiles.first_name} ${pub.profiles.last_name}`
+          : "Unknown User",
+      }));
+
+      setPublications(publicationsWithSubmitter || []);
     } catch (error) {
       console.error("Error loading publications:", error);
     } finally {
@@ -288,8 +309,12 @@ const MyPublicationsPage = () => {
 
             <div className="flex flex-wrap items-center text-sm text-gray-500 mb-6 gap-4">
               <div className="flex items-center">
+                <User className="h-4 w-4 mr-1" />
+                <span>Submitted by: {publication.submitted_by}</span>
+              </div>
+              <div className="flex items-center">
                 <Users className="h-4 w-4 mr-1" />
-                <span>By {publication.authors}</span>
+                <span>{publication.authors}</span>
               </div>
               {publication.journal && (
                 <div className="flex items-center">
@@ -564,6 +589,10 @@ const MyPublicationsPage = () => {
 
                       <div className="flex flex-wrap items-center text-sm text-gray-500 mb-3 gap-4">
                         <div className="flex items-center">
+                          <User className="h-4 w-4 mr-1" />
+                          <span>Submitted by: {publication.submitted_by}</span>
+                        </div>
+                        <div className="flex items-center">
                           <Users className="h-4 w-4 mr-1" />
                           <span>{publication.authors}</span>
                         </div>
@@ -630,7 +659,9 @@ const MyPublicationsPage = () => {
                           className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Edit"
                           onClick={() =>
-                            navigate(`/publications/edit/${publication.id}`)
+                            navigate(
+                              `/portal/publications/edit/${publication.id}`
+                            )
                           }
                         >
                           <Edit className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -14,10 +14,11 @@ import {
   BookOpen,
   Clock,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import { createClient } from "@supabase/supabase-js";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -44,33 +45,41 @@ interface Publication {
 export const savePublication = async (
   publication: Publication,
   userId: string,
-  isDraft = true
+  isDraft = true,
+  publicationId?: string
 ) => {
-  const { data, error } = await supabase
-    .from("publications")
-    .insert([
-      {
-        user_id: userId,
-        title: publication.title,
-        authors: publication.authors,
-        abstract: publication.abstract,
-        journal: publication.journal,
-        year: publication.year ? parseInt(publication.year) : null,
-        pages: publication.pages,
-        keywords: publication.keywords,
-        sections: publication.sections,
-        publication_references: publication.references.filter((ref) =>
-          ref.trim()
-        ),
-        status: isDraft ? "draft" : "submitted",
-      },
-    ])
-    .select();
+  const publicationData = {
+    user_id: userId,
+    title: publication.title,
+    authors: publication.authors,
+    abstract: publication.abstract,
+    journal: publication.journal,
+    year: publication.year ? parseInt(publication.year) : null,
+    pages: publication.pages,
+    keywords: publication.keywords,
+    sections: publication.sections,
+    publication_references: publication.references.filter((ref) => ref.trim()),
+    status: isDraft ? "draft" : "submitted",
+    updated_at: new Date().toISOString(),
+  };
 
-  if (error) {
-    throw error;
+  if (publicationId) {
+    const { data, error } = await supabase
+      .from("publications")
+      .update(publicationData)
+      .eq("id", publicationId)
+      .select();
+
+    if (error) throw error;
+    return data?.[0];
   }
 
+  const { data, error } = await supabase
+    .from("publications")
+    .insert([publicationData])
+    .select();
+
+  if (error) throw error;
   return data?.[0];
 };
 
@@ -83,6 +92,8 @@ const WritePublications = () => {
       transition: { duration: 0.6 },
     },
   };
+
+  const { id } = useParams();
 
   // Publication form state
   const [publication, setPublication] = useState<Publication>({
@@ -143,6 +154,47 @@ const WritePublications = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Load publication if editing
+  useEffect(() => {
+    const loadPublication = async () => {
+      if (!id) return;
+
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("publications")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+        if (!data) throw new Error("Publication not found");
+
+        setPublication({
+          title: data.title,
+          authors: data.authors,
+          abstract: data.abstract,
+          journal: data.journal || "",
+          year: data.year?.toString() || "",
+          pages: data.pages || "",
+          keywords: data.keywords || [],
+          sections: data.sections || [],
+          references: data.publication_references || [""],
+        });
+
+        setSections(data.sections || []);
+        setReferences(data.publication_references || [""]);
+      } catch (error) {
+        console.error("Error loading publication:", error);
+        setErrorMessage("Failed to load publication. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPublication();
+  }, [id]);
+
   // Handle basic input changes
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -153,7 +205,6 @@ const WritePublications = () => {
       [name]: value,
     });
 
-    // Clear error for this field if it exists
     if (formErrors[name as keyof typeof formErrors]) {
       setFormErrors({
         ...formErrors,
@@ -297,7 +348,8 @@ const WritePublications = () => {
           references: references.filter((ref) => ref.trim()),
         },
         user.id,
-        false // Not a draft
+        false, // Not a draft
+        id // Pass the ID if editing
       );
 
       console.log("Publication submitted:", savedPublication);
@@ -334,7 +386,8 @@ const WritePublications = () => {
           references: references.filter((ref) => ref.trim()),
         },
         user.id,
-        true // Is draft
+        true, // Is draft
+        id // Pass the ID if editing
       );
 
       console.log("Draft saved:", savedPublication);
@@ -351,7 +404,6 @@ const WritePublications = () => {
   const togglePreview = () => {
     setShowPreview(!showPreview);
     if (!showPreview) {
-      // Scroll to top when entering preview
       window.scrollTo(0, 0);
     }
   };
@@ -913,19 +965,29 @@ const WritePublications = () => {
         <Check className="h-8 w-8 text-green-600" />
       </div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">
-        Publication Submitted!
+        {id ? "Publication Updated!" : "Publication Submitted!"}
       </h2>
       <p className="text-gray-600 mb-6">
-        Your publication has been submitted for review. Our editorial team will
-        review it and get back to you within 5-7 working days.
+        {id
+          ? "Your changes have been saved."
+          : "Your publication has been submitted for review. Our editorial team will review it and get back to you within 5-7 working days."}
       </p>
       <div className="flex flex-wrap justify-center gap-4">
-      <Link to="/portal/my-publications">
+        <Link to="/portal/my-publications">
           <Button variant="outline">View My Publications</Button>
         </Link>
       </div>
     </motion.div>
   );
+
+  if (isLoading && id) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
+        <span className="ml-2">Loading publication...</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -946,7 +1008,7 @@ const WritePublications = () => {
         <motion.div variants={fadeIn} initial="hidden" animate="visible">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-primary-800">
-              Write New Publication
+              {id ? "Edit Publication" : "Write New Publication"}
             </h1>
           </div>
 
@@ -978,7 +1040,7 @@ const WritePublications = () => {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">
-                    New Publication Draft
+                    {id ? "Edit Publication" : "New Publication Draft"}
                   </h2>
                   <p className="text-gray-500 text-sm">
                     Last saved: {formatDate(new Date()) || "N/A"}
