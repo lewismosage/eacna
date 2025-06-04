@@ -17,6 +17,62 @@ import {
 import { Link } from "react-router-dom";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
+
+interface Publication {
+  title: string;
+  authors: string;
+  abstract: string;
+  journal?: string;
+  year?: string;
+  pages?: string;
+  keywords: string[];
+  sections: {
+    id: number;
+    type: "heading" | "paragraph";
+    content: string;
+    level?: number | null;
+  }[];
+  references: string[];
+}
+
+export const savePublication = async (
+  publication: Publication,
+  userId: string,
+  isDraft = true
+) => {
+  const { data, error } = await supabase
+    .from("publications")
+    .insert([
+      {
+        user_id: userId,
+        title: publication.title,
+        authors: publication.authors,
+        abstract: publication.abstract,
+        journal: publication.journal,
+        year: publication.year ? parseInt(publication.year) : null,
+        pages: publication.pages,
+        keywords: publication.keywords,
+        sections: publication.sections,
+        publication_references: publication.references.filter((ref) =>
+          ref.trim()
+        ),
+        status: isDraft ? "draft" : "submitted",
+      },
+    ])
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0];
+};
 
 const WritePublicationPage = () => {
   const fadeIn = {
@@ -29,17 +85,6 @@ const WritePublicationPage = () => {
   };
 
   // Publication form state
-  interface Publication {
-    title: string;
-    authors: string;
-    abstract: string;
-    journal: string;
-    year: string;
-    pages: string;
-    keywords: string[];
-    references?: string[];
-  }
-
   const [publication, setPublication] = useState<Publication>({
     title: "",
     authors: "",
@@ -48,6 +93,19 @@ const WritePublicationPage = () => {
     year: new Date().getFullYear().toString(),
     pages: "",
     keywords: [],
+    sections: [
+      { id: 1, type: "heading", level: 1, content: "Introduction" },
+      { id: 2, type: "paragraph", content: "" },
+      { id: 3, type: "heading", level: 1, content: "Methods" },
+      { id: 4, type: "paragraph", content: "" },
+      { id: 5, type: "heading", level: 1, content: "Results" },
+      { id: 6, type: "paragraph", content: "" },
+      { id: 7, type: "heading", level: 1, content: "Discussion" },
+      { id: 8, type: "paragraph", content: "" },
+      { id: 9, type: "heading", level: 1, content: "Conclusion" },
+      { id: 10, type: "paragraph", content: "" },
+    ],
+    references: [""],
   });
 
   // Form sections state
@@ -75,11 +133,15 @@ const WritePublicationPage = () => {
   const [references, setReferences] = useState([""]);
   const [showPreview, setShowPreview] = useState(false);
   const [formErrors, setFormErrors] = useState<
-    Partial<Record<keyof Publication | "sections", string | null>>
+    Partial<
+      Record<keyof Publication | "sections" | "references", string | null>
+    >
   >({});
   const [submitStatus, setSubmitStatus] = useState<
     "submitting" | "success" | "error" | null
-  >(null); // null, 'submitting', 'success', 'error'
+  >(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Handle basic input changes
   const handleInputChange = (
@@ -206,7 +268,7 @@ const WritePublicationPage = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -215,38 +277,74 @@ const WritePublicationPage = () => {
     }
 
     setSubmitStatus("submitting");
+    setIsLoading(true);
 
-    // Here you would normally send the data to your backend
-    // Simulating API call with timeout
-    setTimeout(() => {
-      console.log("Publication submitted:", {
-        ...publication,
-        sections,
-        references: references.filter((ref) => ref.trim()),
-      });
+    try {
+      // Get the current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // Save the publication
+      const savedPublication = await savePublication(
+        {
+          ...publication,
+          sections,
+          references: references.filter((ref) => ref.trim()),
+        },
+        user.id,
+        false // Not a draft
+      );
+
+      console.log("Publication submitted:", savedPublication);
       setSubmitStatus("success");
-
-      // Redirect after successful submission (simulated)
-      setTimeout(() => {
-        // You would typically redirect to a confirmation page or dashboard
-        // window.location.href = '/dashboard/publications';
-      }, 2000);
-    }, 1500);
+    } catch (error) {
+      console.error("Error submitting publication:", error);
+      setSubmitStatus("error");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to submit publication"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Save draft functionality
-  const handleSaveDraft = () => {
-    // Here you would save to localStorage or to backend as a draft
-    const draft = {
-      ...publication,
-      sections,
-      references,
-      lastSaved: new Date().toISOString(),
-    };
+  const handleSaveDraft = async () => {
+    setIsLoading(true);
+    try {
+      // Get the current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    localStorage.setItem("publicationDraft", JSON.stringify(draft));
-    alert("Draft saved successfully!");
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // Save the publication as draft
+      const savedPublication = await savePublication(
+        {
+          ...publication,
+          sections,
+          references: references.filter((ref) => ref.trim()),
+        },
+        user.id,
+        true // Is draft
+      );
+
+      console.log("Draft saved:", savedPublication);
+      alert("Draft saved successfully!");
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert("Failed to save draft. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Toggle preview mode
@@ -767,19 +865,20 @@ const WritePublicationPage = () => {
               type="button"
               variant="outline"
               onClick={handleSaveDraft}
-              className="w-full sm:w-auto"
+              disabled={isLoading}
             >
-              <Save className="h-4 w-4 mr-2" /> Save Draft
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? "Saving..." : "Save Draft"}
             </Button>
 
             <Button
               type="button"
               variant={showPreview ? "primary" : "outline"}
               onClick={togglePreview}
-              className="w-full sm:w-auto"
+              disabled={isLoading}
             >
               <BookOpen className="h-4 w-4 mr-2" />{" "}
-              {showPreview ? "Edit Publication" : "Preview"}
+              {showPreview ? "Continue Editing" : "Preview"}
             </Button>
           </div>
 
@@ -854,6 +953,27 @@ const WritePublicationPage = () => {
 
           {submitStatus === "success" ? (
             renderSuccessMessage()
+          ) : submitStatus === "error" ? (
+            <motion.div
+              className="bg-red-50 border border-red-200 rounded-lg p-8 text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Submission Failed
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {errorMessage ||
+                  "There was an error submitting your publication. Please try again."}
+              </p>
+              <Button variant="primary" onClick={() => setSubmitStatus(null)}>
+                Try Again
+              </Button>
+            </motion.div>
           ) : (
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
@@ -866,12 +986,18 @@ const WritePublicationPage = () => {
                   </p>
                 </div>
                 <div className="flex gap-3">
-                  <Button variant="outline" onClick={handleSaveDraft}>
-                    <Save className="h-4 w-4 mr-2" /> Save Draft
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveDraft}
+                    disabled={isLoading}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {isLoading ? "Saving..." : "Save Draft"}
                   </Button>
                   <Button
                     variant={showPreview ? "primary" : "outline"}
                     onClick={togglePreview}
+                    disabled={isLoading}
                   >
                     <BookOpen className="h-4 w-4 mr-2" />{" "}
                     {showPreview ? "Continue Editing" : "Preview"}
