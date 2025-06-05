@@ -141,12 +141,12 @@ const Header = () => {
   };
 
   const navLinks = [
-    { to: "/", label: "Home" },
+    //{ to: "/", label: "Home" },
     { to: "/about", label: "About Us" },
     { to: "/training", label: "Training & Conferences" },
     { to: "/membership", label: "Membership" },
     { to: "/resources", label: "Resources" },
-    { to: "/gallery", label: "Gallery" },
+    //{ to: "/gallery", label: "Gallery" },
     { to: "/find-specialist", label: "Find a Specialist" },
     { to: "/contact", label: "Contact Us" },
   ];
