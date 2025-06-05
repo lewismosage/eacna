@@ -1,26 +1,35 @@
-import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle, Mail, Lock } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-import Card, { CardContent } from '../../components/common/Card';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useState, FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, AlertCircle, Mail, Lock } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+import Card, { CardContent } from "../../components/common/Card";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
+// Use the same configuration as in App.tsx
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_KEY
+  import.meta.env.VITE_SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+    },
+  }
 );
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validate email format
     const validateEmail = (email: string) => {
@@ -29,49 +38,60 @@ const Login = () => {
     };
 
     if (!validateEmail(email)) {
-      setError('Please enter a valid email address.');
+      setError("Please enter a valid email address.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // 1. Sign in the user
-      const { data: { user }, error: signInError } = 
-        await supabase.auth.signInWithPassword({ email, password });
+      // Set the session persistence based on rememberMe
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (signInError) throw signInError;
-      if (!user) throw new Error('No user returned from sign in');
+      if (!data.session) throw new Error("No session returned from sign in");
 
-      // 2. Check if user exists in membership_directory with active status
+      // If rememberMe is checked, persist the session
+      if (rememberMe) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+
+      // Check membership status
       const { data: member, error: memberError } = await supabase
-        .from('membership_directory')
-        .select('status, expiry_date')
-        .eq('email', email)
+        .from("membership_directory")
+        .select("status, expiry_date")
+        .eq("email", email)
         .single();
 
       if (memberError) throw memberError;
-      if (!member) throw new Error('No membership record found');
+      if (!member) throw new Error("No membership record found");
 
-      // 3. Verify membership status
-      const isActive = member.status === 'active' && 
-                      new Date(member.expiry_date) > new Date();
+      const isActive =
+        member.status === "active" && new Date(member.expiry_date) > new Date();
 
       if (!isActive) {
         await supabase.auth.signOut();
-        throw new Error('Your account is inactive. Please contact support if you believe this is an error.');
+        throw new Error(
+          "Your account is inactive. Please contact support if you believe this is an error."
+        );
       }
 
-      // 4. Redirect to member portal after successful login
-      navigate('/member-portal');
+      navigate("/member-portal");
     } catch (err) {
-      console.error('Login failed:', err);
+      console.error("Login failed:", err);
       setError(
-        err instanceof Error 
-          ? err.message.includes('Invalid login credentials')
-            ? 'Invalid email or password'
+        err instanceof Error
+          ? err.message.includes("Invalid login credentials")
+            ? "Invalid email or password"
             : err.message
-          : 'An unexpected error occurred'
+          : "An unexpected error occurred"
       );
     } finally {
       setIsLoading(false);
@@ -95,7 +115,7 @@ const Login = () => {
               Sign in to access your member dashboard
             </p>
             <p className="mt-2 text-sm text-gray-600">
-              Or{' '}
+              Or{" "}
               <Link
                 to="/membership"
                 className="font-medium text-primary-700 hover:text-primary-600"
@@ -104,17 +124,20 @@ const Login = () => {
               </Link>
             </p>
           </div>
-          
+
           {error && (
             <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start">
               <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0" />
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
-          
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Email address
               </label>
               <div className="relative rounded-md shadow-sm">
@@ -134,9 +157,12 @@ const Login = () => {
                 />
               </div>
             </div>
-            
+
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <div className="relative rounded-md shadow-sm">
@@ -159,7 +185,11 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 focus:outline-none"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -170,6 +200,8 @@ const Login = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <label
@@ -198,13 +230,31 @@ const Login = () => {
               >
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Signing in...
                   </>
-                ) : 'Sign in'}
+                ) : (
+                  "Sign in"
+                )}
               </button>
             </div>
           </form>

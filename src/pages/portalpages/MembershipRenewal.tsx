@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, CreditCard, Calendar, ArrowRight, RefreshCw, CheckCircle, Loader2, AlertCircle, Banknote, Landmark } from 'lucide-react';
+import { Clock, CreditCard, Calendar, ArrowRight, RefreshCw, CheckCircle, Loader2, Banknote, Landmark } from 'lucide-react';
 
 interface Membership {
   type: string;

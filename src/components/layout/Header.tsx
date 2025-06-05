@@ -3,6 +3,20 @@ import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, Search } from "lucide-react";
 import { search } from "../utils/search";
 import { SearchItem } from "../utils/searchIndex";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,9 +24,54 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Check auth state on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+
+    checkAuth();
+
+    // Set up auth state listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        setIsLoggedIn(true);
+      } else if (event === "SIGNED_OUT") {
+        setIsLoggedIn(false);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  const handleLoginClick = async () => {
+    closeMenu();
+
+    // Check if user is already logged in
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      // User is logged in, redirect to member portal
+      navigate("/member-portal");
+    } else {
+      // User is not logged in, proceed to login page
+      navigate("/login");
+    }
+  };
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -185,12 +244,12 @@ const Header = () => {
             >
               Join/Renew
             </Link>
-            <Link
-              to="/login"
+            <button
+              onClick={handleLoginClick}
               className="btn border-primary-600 text-primary-600 hover:bg-primary-50 px-3 py-1.5 text-xs"
             >
-              Login
-            </Link>
+              {isLoggedIn ? "Member Portal" : "Login"}
+            </button>
           </div>
 
           {/* Mobile menu button */}
@@ -279,13 +338,12 @@ const Header = () => {
               >
                 Join/Renew
               </Link>
-              <Link
-                to="/login"
+              <button
+                onClick={handleLoginClick}
                 className="btn border-primary-600 text-primary-600 hover:bg-primary-50"
-                onClick={closeMenu}
               >
-                Login
-              </Link>
+                {isLoggedIn ? "Member Portal" : "Login"}
+              </button>
             </div>
           </nav>
         </div>
