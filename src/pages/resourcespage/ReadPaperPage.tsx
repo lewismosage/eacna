@@ -85,7 +85,7 @@ const ReadPaperPage = () => {
 
   // Get absolute URLs for sharing
   const getAbsoluteUrl = (path = '') => {
-    const baseUrl = import.meta.env.VITE_WEBSITE_URL || 'https://savannatek.vercel.app';
+    const baseUrl = import.meta.env.VITE_WEBSITE_URL || 'https://eacna.vercel.app';
     return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   };
 
