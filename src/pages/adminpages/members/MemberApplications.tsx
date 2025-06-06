@@ -41,9 +41,7 @@ interface Application {
   email: string;
   phone: string;
   gender: string;
-  national_id: string;
   date_of_birth: string;
-  residential_address: string;
   medical_registration_number: string;
   profession: string;
   specialization: string;
@@ -790,9 +788,6 @@ const Applications = () => {
                             <div className="font-medium text-gray-900">
                               {application.first_name} {application.last_name}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              ID: {application.national_id}
-                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">
@@ -923,12 +918,6 @@ const Applications = () => {
                           {formatDate(selectedApplication.date_of_birth)}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">National ID</p>
-                        <p className="font-medium">
-                          {selectedApplication.national_id}
-                        </p>
-                      </div>
                       <div className="col-span-2 md:col-span-1">
                         <p className="text-xs text-gray-500">Email</p>
                         <p className="font-medium break-all">
@@ -939,14 +928,6 @@ const Applications = () => {
                         <p className="text-xs text-gray-500">Phone</p>
                         <p className="font-medium">
                           {selectedApplication.phone}
-                        </p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">
-                          Residential Address
-                        </p>
-                        <p className="font-medium">
-                          {selectedApplication.residential_address}
                         </p>
                       </div>
                     </div>

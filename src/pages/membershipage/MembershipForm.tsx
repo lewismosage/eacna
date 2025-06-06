@@ -1,5 +1,5 @@
 // components/membership/MembershipForm.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import {
   CheckCircle,
@@ -24,10 +24,8 @@ type FormData = {
   lastName: string;
   dateOfBirth: string;
   gender: string;
-  nationalId: string;
   phone: string;
   email: string;
-  residentialAddress: string;
   password: string;
   confirmPassword: string;
 
@@ -125,6 +123,17 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
     [key: string]: number;
   }>({});
 
+  // Add useEffect for handling email verification step
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("step") === "verify-email") {
+      setCurrentStep(2);
+      // Clean up the URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, []);
+
   const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL,
     import.meta.env.VITE_SUPABASE_KEY
@@ -166,10 +175,8 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
           "lastName",
           "dateOfBirth",
           "gender",
-          "nationalId",
           "phone",
           "email",
-          "residentialAddress",
           "password",
           "confirmPassword",
         ];
@@ -217,9 +224,8 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
             first_name: data.firstName,
             last_name: data.lastName,
             phone: data.phone,
-            national_id: data.nationalId,
           },
-          emailRedirectTo: `${window.location.origin}/verify-success`,
+          emailRedirectTo: `${window.location.origin}/welcome`,
         },
       });
 
@@ -311,10 +317,8 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
         last_name: formData.lastName,
         date_of_birth: formData.dateOfBirth,
         gender: formData.gender,
-        national_id: formData.nationalId,
         phone: formData.phone,
         email: formData.email,
-        residential_address: formData.residentialAddress,
 
         // Professional Information
         medical_registration_number: formData.medicalRegistrationNumber,
@@ -504,26 +508,6 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  National ID / Passport No.*
-                </label>
-                <input
-                  type="text"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.nationalId ? "border-red-500" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("nationalId", {
-                    required: "National ID or Passport is required",
-                  })}
-                />
-                {errors.nationalId && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.nationalId.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number*
                 </label>
                 <input
@@ -545,9 +529,7 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
                   </p>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address*
@@ -568,28 +550,6 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
                 {errors.email && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Residential Address*
-                </label>
-                <input
-                  type="text"
-                  className={`appearance-none block w-full px-3 py-2 border ${
-                    errors.residentialAddress
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
-                  {...register("residentialAddress", {
-                    required: "Residential address is required",
-                  })}
-                />
-                {errors.residentialAddress && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.residentialAddress.message}
                   </p>
                 )}
               </div>

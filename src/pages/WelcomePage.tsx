@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { CheckCircle, MailCheck, Loader2 } from "lucide-react";
 import Card, { CardContent } from "../components/common/Card";
@@ -12,19 +12,24 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    const checkEmailVerification = async () => {
+    const checkAuthAndVerification = async () => {
       try {
-        // Check if the user is authenticated
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+        // Check for any authentication errors in the URL
+        if (location.search.includes('error=')) {
+          const errorMessage = new URLSearchParams(location.search).get('error');
+          throw new Error(errorMessage || "Authentication error occurred");
+        }
+
+        // Check the current session
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError) throw authError;
 
@@ -34,6 +39,10 @@ const WelcomePage = () => {
           // Check if email is verified
           if (user.email_confirmed_at) {
             setEmailVerified(true);
+            // Show success message if just verified
+            if (location.search.includes('type=signup')) {
+              setShowSuccess(true);
+            }
           } else {
             setError("Email not yet verified. Please check your inbox.");
           }
@@ -42,18 +51,42 @@ const WelcomePage = () => {
         }
       } catch (err) {
         console.error("Error checking verification:", err);
-        setError("Error verifying your email. Please try again.");
+        setError(err instanceof Error ? err.message : "Error verifying your email. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    checkEmailVerification();
-  }, []);
+    checkAuthAndVerification();
+  }, [location.search]);
 
   const handleContinue = () => {
-    // Navigate to membership form with step 2 (Email Verification)
-    navigate("/membership", { state: { step: 2 } });
+    navigate("/membership?step=verify-email");
+  };
+
+  const resendVerificationEmail = async () => {
+    try {
+      if (!userEmail) throw new Error("No email found");
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: userEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/welcome`
+        }
+      });
+
+      if (error) throw error;
+      
+      alert("Verification email resent! Please check your inbox.");
+    } catch (err) {
+      console.error("Error resending verification:", err);
+      setError(
+        err instanceof Error 
+          ? err.message 
+          : "Failed to resend verification email. Please try again."
+      );
+    }
   };
 
   if (loading) {
@@ -83,10 +116,7 @@ const WelcomePage = () => {
             <h2 className="text-2xl font-bold mb-2">Verification Issue</h2>
             <p className="text-gray-600 mb-6">{error}</p>
             <div className="space-y-3">
-              <Button
-                variant="primary"
-                onClick={() => window.location.reload()}
-              >
+              <Button variant="primary" onClick={() => window.location.reload()}>
                 Try Again
               </Button>
               <Button variant="outline" onClick={() => navigate("/login")}>
@@ -108,6 +138,11 @@ const WelcomePage = () => {
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4 mx-auto">
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
+              {showSuccess && (
+                <div className="bg-green-50 text-green-700 p-3 rounded-md mb-4">
+                  Email successfully verified!
+                </div>
+              )}
               <h2 className="text-2xl font-bold mb-2">Welcome to EACNA!</h2>
               <p className="text-gray-600 mb-4">
                 Thank you for verifying your email{" "}
@@ -121,6 +156,13 @@ const WelcomePage = () => {
                   className="w-full"
                 >
                   Complete Application
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/")}
+                  className="w-full"
+                >
+                  Go to Homepage
                 </Button>
               </div>
             </>
@@ -138,13 +180,7 @@ const WelcomePage = () => {
               <div className="space-y-3">
                 <Button
                   variant="primary"
-                  onClick={async () => {
-                    await supabase.auth.resend({
-                      type: "signup",
-                      email: userEmail,
-                    });
-                    alert("Confirmation email resent!");
-                  }}
+                  onClick={resendVerificationEmail}
                   className="w-full"
                 >
                   Resend Confirmation Email
