@@ -1309,7 +1309,7 @@ const JoinDirectoryForm: React.FC = () => {
               value={affiliationInput}
               onChange={(e) => handleArrayInputChange(e, "affiliations")}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-              placeholder="Add a professional affiliation"
+              placeholder="Add a professional affiliation e.g Kenya Medical Association (KMA)"
             />
             <button
               type="button"
@@ -1695,10 +1695,7 @@ const JoinDirectoryForm: React.FC = () => {
         </div>
 
         <div>
-          <label
-            htmlFor="bio"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Professional Bio <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -1715,68 +1712,6 @@ const JoinDirectoryForm: React.FC = () => {
           {formErrors.bio && (
             <p className="mt-1 text-sm text-red-500">{formErrors.bio}</p>
           )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="certifications"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Certifications & Licenses
-          </label>
-          <textarea
-            id="certifications"
-            name="certifications"
-            rows={3}
-            value={formData.certifications}
-            onChange={handleChange}
-            placeholder="List any relevant certifications or licenses"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-          ></textarea>
-        </div>
-
-        <div>
-          <label
-            htmlFor="researchInterests"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Research Interests
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              id="researchInterests"
-              value={researchInput}
-              onChange={(e) => handleArrayInputChange(e, "researchInterests")}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-              placeholder="Add a research interest"
-            />
-            <button
-              type="button"
-              onClick={() => addItem("researchInterests")}
-              className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              Add
-            </button>
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-2">
-            {formData.researchInterests.map((interest, index) => (
-              <div
-                key={index}
-                className="bg-gray-100 text-gray-800 rounded-full px-3 py-1 text-sm flex items-center"
-              >
-                {interest}
-                <button
-                  type="button"
-                  onClick={() => removeItem("researchInterests", index)}
-                  className="ml-1 text-gray-500 hover:text-red-500"
-                >
-                  &times;
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div>
@@ -2131,26 +2066,15 @@ const JoinDirectoryForm: React.FC = () => {
           </div>
 
           <div className="mb-4">
-            <p className="text-sm font-medium text-gray-500">
-              Certifications & Licenses
-            </p>
-            <p className="text-gray-700 mt-1">
-              {formData.certifications || "None specified"}
-            </p>
-          </div>
-
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-500">
-              Research Interests
-            </p>
+            <p className="text-sm font-medium text-gray-500">Publications</p>
             <div className="flex flex-wrap gap-2 mt-1">
-              {formData.researchInterests.length > 0 ? (
-                formData.researchInterests.map((interest, index) => (
+              {formData.publications.length > 0 ? (
+                formData.publications.map((publication, index) => (
                   <span
                     key={index}
                     className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm"
                   >
-                    {interest}
+                    {publication.title}
                   </span>
                 ))
               ) : (
@@ -2265,13 +2189,15 @@ const JoinDirectoryForm: React.FC = () => {
           Registration Successful!
         </h2>
         <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-        Thank you for your submission. Our team will review your details and contact you once your profile is approved for the specialist directory.
+          Thank you for your submission. Our team will review your details and
+          contact you once your profile is approved for the specialist
+          directory.
         </p>
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
             You will receive a confirmation email at{" "}
-            <span className="font-semibold">{formData.email}</span> {" "}
-            once your submission has been approved.
+            <span className="font-semibold">{formData.email}</span> once your
+            submission has been approved.
           </p>
           <button
             onClick={() => (window.location.href = "/")}

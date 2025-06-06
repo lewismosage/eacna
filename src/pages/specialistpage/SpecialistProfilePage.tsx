@@ -10,7 +10,6 @@ import {
   FileText,
   Star,
   Bookmark,
-  Share2,
   Clock,
   Users,
   Award,
@@ -29,30 +28,40 @@ import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import Card, { CardContent } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
 
 const SpecialistProfileView = () => {
   const { id } = useParams();
   const [specialist, setSpecialist] = useState<{
     id: number;
-    name: string;
-    title: string;
-    specialization: string;
-    photo: string;
-    hospital: string;
+    uuid: string;
+    prefix: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    title: string | null;
+    specialization: string | null;
+    photo_url: string | null;
+    hospital: string | null;
     location: {
-      city: string;
-      country: string;
-      address: string;
+      city: string | null;
+      country: string | null;
+      address: string | null;
     };
     rating: number;
     reviewCount: number;
     reviewDistribution: Record<number, number>;
-    yearsExperience: number;
-    languages: string[];
-    availability: string;
-    gender: string;
-    bio: string;
-    strengths: string;
+    years_experience: number | null;
+    languages: Record<string, boolean>;
+    availability: string | null;
+    gender: string | null;
+    bio: string | null;
+    strengths: string | null;
     expertise: string[];
     experience: {
       role: string;
@@ -70,17 +79,17 @@ const SpecialistProfileView = () => {
       description: string;
       duration: string;
     }[];
-    conditionsTreated: string[];
+    conditions_treated: string[];
     reviews: {
       name: string;
       date: string;
       rating: number;
       comment: string;
     }[];
-    researchInterests: string[];
-    phone: string;
-    email: string;
-    website: string;
+    research_interests: string[];
+    phone: string | null;
+    email: string | null;
+    website: string | null;
     rates: {
       inPerson: number;
       video: number;
@@ -89,39 +98,82 @@ const SpecialistProfileView = () => {
   } | null>(null);
   const [activeTab, setActiveTab] = useState("about");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
   const [showAllExpertise, setShowAllExpertise] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
   useEffect(() => {
-    // Simulate API fetch
     const fetchSpecialist = async () => {
       try {
-        // In a real app, you would fetch from your API
-        // const response = await fetch(`/api/specialists/${id}`);
-        // const data = await response.json();
+        setIsLoading(true);
 
-        // Using mock data for demonstration
-        setTimeout(() => {
-          const foundSpecialist = specialists.find(
-            (s) => s.id === parseInt(id ?? "0")
-          );
-          setSpecialist(foundSpecialist || null);
-          setIsLoading(false);
-        }, 300);
+        // Fetch specialist data
+        const { data, error } = await supabase
+          .from("specialists")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          // Transform the data to match our SpecialistType
+          const specialistData = {
+            id: data.id,
+            uuid: data.uuid,
+            prefix: data.prefix,
+            first_name: data.first_name,
+            last_name: data.last_name,
+            title: data.title,
+            specialization: data.specialization,
+            photo_url: data.photo_url,
+            hospital: data.hospital,
+            location: {
+              city: data.city,
+              country: data.country,
+              address: data.address,
+            },
+            rating: data.rating || 0,
+            reviewCount: data.review_count || 0,
+            reviewDistribution: data.review_distribution || {
+              5: 0,
+              4: 0,
+              3: 0,
+              2: 0,
+              1: 0,
+            },
+            years_experience: data.years_experience,
+            languages: data.languages || {},
+            availability: data.availability,
+            gender: data.gender,
+            bio: data.bio,
+            strengths: data.strengths,
+            expertise: data.expertise || [],
+            experience: data.experience || [],
+            education: data.education || [],
+            services: data.services || [],
+            conditions_treated: data.conditions_treated || [],
+            reviews: data.reviews || [],
+            research_interests: data.research_interests || [],
+            phone: data.phone,
+            email: data.email,
+            website: data.website,
+            rates: data.rates || {
+              inPerson: 0,
+              video: 0,
+              chat: 0,
+            },
+          };
+          setSpecialist(specialistData);
+        }
       } catch (error) {
         console.error("Failed to fetch specialist:", error);
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchSpecialist();
   }, [id]);
-
-  const handleSaveSpecialist = () => {
-    setIsSaved(!isSaved);
-    // Add API call to save to favorites in a real app
-  };
 
   const toggleExpertiseDisplay = () => {
     setShowAllExpertise(!showAllExpertise);
@@ -183,8 +235,11 @@ const SpecialistProfileView = () => {
             <div className="flex-shrink-0">
               <div className="relative">
                 <img
-                  src={specialist.photo}
-                  alt={specialist.name}
+                  src={
+                    specialist.photo_url ||
+                    "https://images.pexels.com/photos/5214956/pexels-photo-5214956.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  }
+                  alt={`${specialist.first_name} ${specialist.last_name}`}
                   className="rounded-full w-40 h-40 object-cover border-4 border-white shadow-lg"
                 />
                 <div className="absolute bottom-2 right-2 bg-primary-500 text-white rounded-full p-1.5">
@@ -199,7 +254,8 @@ const SpecialistProfileView = () => {
                 <div>
                   <div className="flex items-center flex-wrap gap-2 mb-2">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                      {specialist.name}
+                      {specialist.prefix && `${specialist.prefix} `}
+                      {specialist.first_name} {specialist.last_name}
                     </h1>
                     <Badge color="primary">Verified</Badge>
                     {specialist.availability === "available" && (
@@ -209,9 +265,11 @@ const SpecialistProfileView = () => {
                   <p className="text-lg text-gray-600 font-medium">
                     {specialist.title}
                   </p>
-                  <p className="text-primary-600">
-                    Specializes in {specialist.specialization}
-                  </p>
+                  {specialist.specialization && (
+                    <p className="text-primary-600">
+                      Specializes in {specialist.specialization}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -222,80 +280,71 @@ const SpecialistProfileView = () => {
                       ({specialist.reviewCount})
                     </span>
                   </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={
-                      isSaved ? "text-primary-600 border-primary-600" : ""
-                    }
-                    onClick={handleSaveSpecialist}
-                  >
-                    <Bookmark
-                      className={`h-4 w-4 mr-1 ${
-                        isSaved ? "fill-primary-600" : ""
-                      }`}
-                    />
-                    {isSaved ? "Saved" : "Save"}
-                  </Button>
-
-                  <Button variant="outline" size="sm">
-                    <Share2 className="h-4 w-4 mr-1" />
-                    Share
-                  </Button>
                 </div>
               </div>
 
               {/* Key Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm mb-6">
-                <div className="flex items-center">
-                  <MapPin className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                  <span>
-                    {specialist.hospital}, {specialist.location.city}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <Award className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                  <span>{specialist.yearsExperience} years experience</span>
-                </div>
+                {specialist.hospital && specialist.location.city && (
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                    <span>
+                      {specialist.hospital}, {specialist.location.city}
+                    </span>
+                  </div>
+                )}
+                {specialist.years_experience && (
+                  <div className="flex items-center">
+                    <Award className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                    <span>{specialist.years_experience} years experience</span>
+                  </div>
+                )}
                 <div className="flex items-center">
                   <Users className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                  <span>Speaks: {specialist.languages.join(", ")}</span>
+                  <span>
+                    Speaks:{" "}
+                    {Object.entries(specialist.languages || {})
+                      .filter(([_, isActive]) => isActive)
+                      .map(([language]) => language)
+                      .join(", ") || "Not specified"}
+                  </span>
                 </div>
               </div>
 
               {/* Expertise */}
-              <div className="pt-4 border-t border-gray-100">
-                <div className="flex flex-wrap items-center gap-2">
-                  {specialist.expertise
-                    .slice(
-                      0,
-                      showAllExpertise ? specialist.expertise.length : 3
-                    )
-                    .map((item, idx) => (
-                      <Badge key={idx} color="secondary">
-                        {item}
-                      </Badge>
-                    ))}
-                  {specialist.expertise.length > 3 && (
-                    <button
-                      onClick={toggleExpertiseDisplay}
-                      className="text-primary-600 text-sm flex items-center hover:text-primary-800"
-                    >
-                      {showAllExpertise ? (
-                        <>
-                          Show less <ChevronUp className="h-3 w-3 ml-1" />
-                        </>
-                      ) : (
-                        <>
-                          +{specialist.expertise.length - 3} more{" "}
-                          <ChevronDown className="h-3 w-3 ml-1" />
-                        </>
-                      )}
-                    </button>
-                  )}
+              {specialist.expertise && specialist.expertise.length > 0 && (
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {specialist.expertise
+                      .slice(
+                        0,
+                        showAllExpertise ? specialist.expertise.length : 3
+                      )
+                      .map((item, idx) => (
+                        <Badge key={idx} color="secondary">
+                          {item}
+                        </Badge>
+                      ))}
+                    {specialist.expertise.length > 3 && (
+                      <button
+                        onClick={toggleExpertiseDisplay}
+                        className="text-primary-600 text-sm flex items-center hover:text-primary-800"
+                      >
+                        {showAllExpertise ? (
+                          <>
+                            Show less <ChevronUp className="h-3 w-3 ml-1" />
+                          </>
+                        ) : (
+                          <>
+                            +{specialist.expertise.length - 3} more{" "}
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -347,19 +396,11 @@ const SpecialistProfileView = () => {
                 <Card>
                   <CardContent>
                     <h2 className="text-xl font-bold text-gray-800 mb-4">
-                      About Dr. {specialist.name.split(" ")[1]}
+                      About {specialist.prefix && `${specialist.prefix} `}
+                      {specialist.first_name} {specialist.last_name}
                     </h2>
                     <div className="prose max-w-none text-gray-700">
                       <p className="mb-4">{specialist.bio}</p>
-                      <p>
-                        {specialist.gender === "female" ? "Dr." : "Dr."}{" "}
-                        {specialist.name.split(" ")[1]} has over{" "}
-                        {specialist.yearsExperience} years of experience
-                        specializing in{" "}
-                        {specialist.specialization.toLowerCase()}.{" "}
-                        {specialist.gender === "female" ? "She" : "He"} is known
-                        for {specialist.strengths}.
-                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -498,7 +539,7 @@ const SpecialistProfileView = () => {
                       Conditions Treated
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {specialist.conditionsTreated.map((condition, index) => (
+                      {specialist.conditions_treated.map((condition, index) => (
                         <Badge key={index} color="secondary">
                           {condition}
                         </Badge>
@@ -632,7 +673,7 @@ const SpecialistProfileView = () => {
                       <User className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-600 mb-4">
                         Help others by sharing your experience with Dr.{" "}
-                        {specialist.name.split(" ")[1]}
+                        {specialist.last_name}
                       </p>
                       <Button variant="primary">Write a Review</Button>
                     </div>
@@ -819,141 +860,5 @@ const SpecialistProfileView = () => {
     </div>
   );
 };
-
-// Mock data - replace with your actual data source
-const specialists = [
-  {
-    id: 1,
-    name: "Dr. Sarah Johnson",
-    title: "Pediatric Neurologist",
-    specialization: "Child Neurology",
-    photo:
-      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-    hospital: "Nairobi Children's Hospital",
-    location: {
-      city: "Nairobi",
-      country: "Kenya",
-      address: "123 Medical Plaza, 2nd Floor",
-    },
-    rating: 4.8,
-    reviewCount: 124,
-    reviewDistribution: { 5: 90, 4: 25, 3: 7, 2: 1, 1: 1 },
-    yearsExperience: 15,
-    languages: ["English", "Swahili", "French"],
-    availability: "available",
-    gender: "female",
-    bio: "Dr. Sarah Johnson is a board-certified pediatric neurologist with extensive experience in treating neurological disorders in children. She completed her fellowship at Johns Hopkins Hospital and has been practicing in East Africa for the past 8 years.",
-    strengths:
-      "her patience, thorough examinations, and ability to explain complex conditions in simple terms",
-    expertise: [
-      "Epilepsy management",
-      "Autism spectrum disorders",
-      "Cerebral palsy",
-      "Developmental delays",
-      "Headache disorders",
-      "Neuromuscular disorders",
-      "Neurogenetic conditions",
-      "EEG interpretation",
-    ],
-    experience: [
-      {
-        role: "Senior Pediatric Neurologist",
-        institution: "Nairobi Children's Hospital",
-        period: "2015 - Present",
-        description:
-          "Leading the pediatric neurology department, overseeing diagnosis and treatment of complex neurological cases in children.",
-      },
-      {
-        role: "Pediatric Neurologist",
-        institution: "Aga Khan University Hospital",
-        period: "2010 - 2015",
-        description:
-          "Provided specialized care for children with neurological disorders and trained medical residents.",
-      },
-    ],
-    education: [
-      {
-        degree: "Fellowship in Pediatric Neurology",
-        institution: "Johns Hopkins Hospital, USA",
-        period: "2008 - 2010",
-      },
-      {
-        degree: "Residency in Pediatrics",
-        institution: "University of Nairobi, Kenya",
-        period: "2005 - 2008",
-      },
-      {
-        degree: "MD, Medicine",
-        institution: "University of Nairobi, Kenya",
-        period: "1998 - 2004",
-      },
-    ],
-    services: [
-      {
-        name: "Initial Consultation",
-        description:
-          "Comprehensive evaluation including medical history review and neurological examination",
-        duration: "60 mins",
-      },
-      {
-        name: "Follow-up Visit",
-        description: "Progress evaluation and treatment plan adjustment",
-        duration: "30 mins",
-      },
-      {
-        name: "EEG Interpretation",
-        description: "Analysis of electroencephalogram results",
-        duration: "45 mins",
-      },
-      {
-        name: "Developmental Assessment",
-        description:
-          "Evaluation of developmental milestones and potential delays",
-        duration: "90 mins",
-      },
-    ],
-    conditionsTreated: [
-      "Epilepsy",
-      "Seizure disorders",
-      "Autism",
-      "ADHD",
-      "Cerebral palsy",
-      "Muscular dystrophy",
-      "Tourette syndrome",
-      "Migraines",
-      "Neurodevelopmental disorders",
-    ],
-    reviews: [
-      {
-        name: "James Mwangi",
-        date: "2 weeks ago",
-        rating: 5,
-        comment:
-          "Dr. Johnson was incredibly patient with my son who has autism. She took the time to explain everything clearly and made us feel comfortable throughout the process.",
-      },
-      {
-        name: "Amina Hassan",
-        date: "1 month ago",
-        rating: 4,
-        comment:
-          "Very knowledgeable and professional. The only reason I didn't give 5 stars is because the wait time was a bit long.",
-      },
-    ],
-    researchInterests: [
-      "Epilepsy in developing countries",
-      "Neurodevelopmental outcomes of childhood illnesses",
-      "Autism spectrum disorders in Africa",
-      "EEG biomarkers for neurological conditions",
-    ],
-    phone: "+254 712 345 678",
-    email: "s.johnson@nairobichildrens.org",
-    website: "https://nairobichildrens.org/doctors/sjohnson",
-    rates: {
-      inPerson: 120,
-      video: 90,
-      chat: 60,
-    },
-  },
-];
 
 export default SpecialistProfileView;

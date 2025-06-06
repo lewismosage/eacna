@@ -1,28 +1,35 @@
-import { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  ChevronDown, 
-  ChevronUp, 
-  Check, 
-  X, 
-  Eye, 
-  User, 
-  Briefcase, 
-  MapPin, 
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  Eye,
+  User,
+  Briefcase,
+  MapPin,
   Clock,
   Mail,
-  Phone
-} from 'lucide-react';
-import { SupabaseClient } from '@supabase/supabase-js';
-import Card from '../../../components/common/Card';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
+  Phone,
+  Loader2,
+} from "lucide-react";
+import { SupabaseClient } from "@supabase/supabase-js";
+import Card from "../../../components/common/Card";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import AlertModal from "../../../components/common/AlertModal";
+import emailjs from "@emailjs/browser";
+
+// Initialize emailjs
+emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
 interface SpecialistApplication {
   id: string;
   created_at: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
+  prefix: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -35,6 +42,7 @@ interface SpecialistApplication {
   hospital: string;
   city: string;
   country: string;
+  address?: string;
   photo_url?: string;
   languages: {
     english: boolean;
@@ -60,38 +68,62 @@ interface SpecialistApplication {
     period: string;
     description: string;
   }[];
-  certifications?: string;
-  research_interests?: string[];
   services: {
     name: string;
     description: string;
     duration: string;
   }[];
   conditions_treated: string[];
-  availability: 'available' | 'limited' | 'unavailable';
+  availability: "available" | "limited" | "unavailable";
 }
 
 interface AdminApplicationsProps {
   supabase: SupabaseClient;
 }
 
-export default function AdminApplications({ supabase }: AdminApplicationsProps) {
+interface AlertState {
+  open: boolean;
+  title: string;
+  message: string;
+  type: "success" | "error" | "info" | "confirm";
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  customContent?: React.ReactNode;
+}
+
+export default function AdminApplications({
+  supabase,
+}: AdminApplicationsProps) {
   const [applications, setApplications] = useState<SpecialistApplication[]>([]);
-  const [filteredApplications, setFilteredApplications] = useState<SpecialistApplication[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<
+    SpecialistApplication[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [selectedApplication, setSelectedApplication] = useState<SpecialistApplication | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "approved" | "rejected"
+  >("pending");
+  const [selectedApplication, setSelectedApplication] =
+    useState<SpecialistApplication | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState<{
-    type: 'success' | 'error' | 'info';
+    type: "success" | "error" | "info";
     message: string;
   } | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof SpecialistApplication;
-    direction: 'ascending' | 'descending';
+    direction: "ascending" | "descending";
   } | null>(null);
+
+  const [alert, setAlert] = useState<AlertState>({
+    open: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   useEffect(() => {
     fetchApplications();
@@ -101,24 +133,25 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
     setIsLoading(true);
     try {
       let query = supabase
-        .from('specialist_applications')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("specialist_applications")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
+      // Always filter by status, defaulting to 'pending' if statusFilter is 'all'
+      const statusToFetch = statusFilter === "all" ? "pending" : statusFilter;
+      query = query.eq("status", statusToFetch);
 
       const { data, error } = await query;
 
       if (error) throw error;
-      setApplications(data as SpecialistApplication[] || []);
-      setFilteredApplications(data as SpecialistApplication[] || []);
+      setApplications((data as SpecialistApplication[]) || []);
+      setFilteredApplications((data as SpecialistApplication[]) || []);
     } catch (error) {
-      console.error('Error fetching applications:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to load applications. Please try again.'
+      console.error("Error fetching applications:", error);
+      showAlert({
+        title: "Error",
+        message: "Failed to load applications. Please try again.",
+        type: "error",
       });
     } finally {
       setIsLoading(false);
@@ -127,21 +160,24 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
 
   useEffect(() => {
     let result = [...applications];
-    
+
     // Apply search
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
-      result = result.filter(app => 
-        app.first_name.toLowerCase().includes(lowercasedSearch) ||
-        app.last_name.toLowerCase().includes(lowercasedSearch) ||
-        app.email.toLowerCase().includes(lowercasedSearch) ||
-        app.specialization.toLowerCase().includes(lowercasedSearch) ||
-        (app.specialization === 'Other' && 
-         app.other_specialization.toLowerCase().includes(lowercasedSearch)) ||
-        app.hospital.toLowerCase().includes(lowercasedSearch)
+      result = result.filter(
+        (app) =>
+          app.first_name.toLowerCase().includes(lowercasedSearch) ||
+          app.last_name.toLowerCase().includes(lowercasedSearch) ||
+          app.email.toLowerCase().includes(lowercasedSearch) ||
+          app.specialization.toLowerCase().includes(lowercasedSearch) ||
+          (app.specialization === "Other" &&
+            app.other_specialization
+              .toLowerCase()
+              .includes(lowercasedSearch)) ||
+          app.hospital.toLowerCase().includes(lowercasedSearch)
       );
     }
-    
+
     // Apply sorting
     if (sortConfig !== null) {
       result.sort((a, b) => {
@@ -153,22 +189,26 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
         }
 
         if (aValue < bValue) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
+          return sortConfig.direction === "ascending" ? -1 : 1;
         }
         if (aValue > bValue) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
+          return sortConfig.direction === "ascending" ? 1 : -1;
         }
         return 0;
       });
     }
-    
+
     setFilteredApplications(result);
   }, [applications, searchTerm, sortConfig]);
 
   const requestSort = (key: keyof SpecialistApplication) => {
-    let direction: 'ascending' | 'descending' = 'ascending';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
+    let direction: "ascending" | "descending" = "ascending";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
     }
     setSortConfig({ key, direction });
   };
@@ -177,9 +217,11 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
     if (!sortConfig || sortConfig.key !== key) {
       return null;
     }
-    return sortConfig.direction === 'ascending' ? 
-      <ChevronUp className="h-4 w-4" /> : 
-      <ChevronDown className="h-4 w-4" />;
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
+    );
   };
 
   const viewApplication = (application: SpecialistApplication) => {
@@ -187,36 +229,131 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
     setIsViewOpen(true);
   };
 
-  const updateApplicationStatus = async (id: string, status: 'approved' | 'rejected') => {
-    if (confirm(`Are you sure you want to ${status} this application?`)) {
-      setIsProcessing(true);
-      try {
-        const { error } = await supabase
-          .from('specialist_applications')
-          .update({ status })
-          .eq('id', id);
+  const showAlert = (alertProps: Omit<AlertState, "open">) => {
+    setAlert({
+      ...alertProps,
+      open: true,
+    });
+  };
 
-        if (error) throw error;
+  const closeAlert = () => {
+    setAlert((prev) => ({ ...prev, open: false }));
+  };
 
-        // If approved, add to specialists directory
-        if (status === 'approved') {
-          const application = applications.find(app => app.id === id);
-          if (application) {
-            const { error: specialistError } = await supabase
-              .from('specialists')
-              .insert([{
+  const sendApprovalEmail = async (application: SpecialistApplication) => {
+    try {
+      const templateParams = {
+        to_name: `${application.first_name} ${application.last_name}`,
+        to_email: application.email,
+        subject: `Your Specialist Directory Application Has Been Approved`,
+        message: `
+          <p>Dear ${application.first_name},</p>
+          <p>We are pleased to inform you that your application to join the Pediatric Neurology Specialist Directory has been approved!</p>
+          <p>Your profile is now live and visible to patients and colleagues searching for specialists in your area.</p>
+          <p>You can now:</p>
+          <ul>
+            <li>Update your profile information at any time</li>
+            <li>Manage your availability status</li>
+            <li>Connect with other specialists in the network</li>
+          </ul>
+          <p>If you have any questions, please don't hesitate to contact us.</p>
+          <p>Welcome to our specialist community!</p>
+          <p>Best regards,<br/>The Pediatric Neurology Specialist Directory Team</p>
+        `,
+      };
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending approval email:", error);
+      return false;
+    }
+  };
+
+  const sendRejectionEmail = async (
+    application: SpecialistApplication,
+    reason?: string
+  ) => {
+    try {
+      const templateParams = {
+        to_name: `${application.first_name} ${application.last_name}`,
+        to_email: application.email,
+        subject: `Your Specialist Directory Application Status`,
+        message: `
+          <p>Dear ${application.first_name},</p>
+          <p>Thank you for your interest in joining the Pediatric Neurology Specialist Directory.</p>
+          <p>After careful review, we regret to inform you that your application could not be approved at this time.</p>
+          ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+          <p>You may reapply after addressing any issues mentioned above.</p>
+          <p>If you have any questions about this decision, please don't hesitate to contact us.</p>
+          <p>Best regards,<br/>The Pediatric Neurology Specialist Directory Team</p>
+        `,
+      };
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending rejection email:", error);
+      return false;
+    }
+  };
+
+  const updateApplicationStatus = async (
+    id: string,
+    status: "approved" | "rejected",
+    reason?: string
+  ) => {
+    if (status === "approved") {
+      showAlert({
+        title: "Approve Application",
+        message:
+          "This will approve the application and notify the applicant. Continue?",
+        type: "confirm",
+        confirmText: "Approve",
+        cancelText: "Cancel",
+        onConfirm: async () => {
+          setIsProcessing(true);
+          try {
+            const application = applications.find((app) => app.id === id);
+            if (!application) throw new Error("Application not found");
+
+            // Update application status
+            const { error } = await supabase
+              .from("specialist_applications")
+              .update({ status })
+              .eq("id", id);
+
+            if (error) throw error;
+
+            // If approved, add to specialists directory
+            if (status === "approved") {
+              const specialistData = {
+                prefix: application.prefix,
                 first_name: application.first_name,
                 last_name: application.last_name,
                 email: application.email,
                 phone: application.phone,
                 gender: application.gender,
                 title: application.title,
-                specialization: application.specialization === 'Other' ? 
-                  application.other_specialization : application.specialization,
+                specialization:
+                  application.specialization === "Other"
+                    ? application.other_specialization
+                    : application.specialization,
                 years_experience: application.years_experience,
                 hospital: application.hospital,
                 city: application.city,
                 country: application.country,
+                address: application.address || "",
                 photo_url: application.photo_url,
                 languages: application.languages,
                 expertise: application.expertise,
@@ -224,75 +361,173 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
                 bio: application.bio,
                 education: application.education,
                 experience: application.experience,
-                certifications: application.certifications,
-                research_interests: application.research_interests,
                 services: application.services,
                 conditions_treated: application.conditions_treated,
-                availability: application.availability
-              }]);
+                availability: application.availability,
+              };
 
-            if (specialistError) throw specialistError;
+              const { error: specialistError } = await supabase
+                .from("specialists")
+                .insert([specialistData]);
+
+              if (specialistError) throw specialistError;
+
+              // Send approval email
+              const emailSent = await sendApprovalEmail(application);
+              if (!emailSent) {
+                console.warn("Failed to send approval email");
+              }
+            }
+
+            fetchApplications();
+            showAlert({
+              title: "Success",
+              message: `Application ${status} successfully!`,
+              type: "success",
+            });
+            setIsViewOpen(false);
+          } catch (error) {
+            console.error(`Error ${status} application:`, error);
+            showAlert({
+              title: "Error",
+              message: `Failed to ${status} application. Please try again.`,
+              type: "error",
+            });
+          } finally {
+            setIsProcessing(false);
           }
-        }
+        },
+        onCancel: closeAlert,
+      });
+    } else {
+      // For rejections
+      showAlert({
+        title: "Reject Application",
+        message: "Please provide a reason for rejection (optional):",
+        type: "confirm",
+        confirmText: "Reject",
+        cancelText: "Cancel",
+        customContent: (
+          <textarea
+            className="w-full mt-2 p-2 border border-gray-300 rounded-md"
+            placeholder="Reason for rejection..."
+            onChange={(e) =>
+              setAlert((prev) => ({
+                ...prev,
+                message:
+                  e.target.value ||
+                  "Please provide a reason for rejection (optional):",
+              }))
+            }
+          />
+        ),
+        onConfirm: async () => {
+          setIsProcessing(true);
+          try {
+            const application = applications.find((app) => app.id === id);
+            if (!application) throw new Error("Application not found");
 
-        fetchApplications();
-        setNotification({
-          type: 'success',
-          message: `Application ${status} successfully!`
-        });
-        setIsViewOpen(false);
-      } catch (error) {
-        console.error(`Error ${status} application:`, error);
-        setNotification({
-          type: 'error',
-          message: `Failed to ${status} application. Please try again.`
-        });
-      } finally {
-        setIsProcessing(false);
-      }
+            const { error } = await supabase
+              .from("specialist_applications")
+              .update({ status })
+              .eq("id", id);
+
+            if (error) throw error;
+
+            // Send rejection email with reason
+            const reasonText =
+              alert.message !==
+              "Please provide a reason for rejection (optional):"
+                ? alert.message
+                : undefined;
+            const emailSent = await sendRejectionEmail(application, reasonText);
+            if (!emailSent) {
+              console.warn("Failed to send rejection email");
+            }
+
+            fetchApplications();
+            showAlert({
+              title: "Success",
+              message: "Application has been rejected and applicant notified.",
+              type: "success",
+            });
+            setIsViewOpen(false);
+          } catch (error) {
+            console.error(`Error ${status} application:`, error);
+            showAlert({
+              title: "Error",
+              message: `Failed to ${status} application. Please try again.`,
+              type: "error",
+            });
+          } finally {
+            setIsProcessing(false);
+            closeAlert();
+          }
+        },
+        onCancel: closeAlert,
+      });
     }
   };
 
   const exportApplications = async () => {
     try {
       // Create CSV content
-      const headers = ['Name', 'Email', 'Specialization', 'Hospital', 'City', 'Country', 'Status', 'Applied On'];
+      const headers = [
+        "Name",
+        "Email",
+        "Specialization",
+        "Hospital",
+        "City",
+        "Country",
+        "Status",
+        "Applied On",
+      ];
       const csvContent = [
-        headers.join(','),
-        ...filteredApplications.map(app => 
-          `"${app.first_name} ${app.last_name}","${app.email}","${app.specialization === 'Other' ? app.other_specialization : app.specialization}","${app.hospital}","${app.city}","${app.country}","${app.status}","${new Date(app.created_at).toLocaleDateString()}"`
-        )
-      ].join('\n');
-      
+        headers.join(","),
+        ...filteredApplications.map(
+          (app) =>
+            `"${app.first_name} ${app.last_name}","${app.email}","${
+              app.specialization === "Other"
+                ? app.other_specialization
+                : app.specialization
+            }","${app.hospital}","${app.city}","${app.country}","${
+              app.status
+            }","${new Date(app.created_at).toLocaleDateString()}"`
+        ),
+      ].join("\n");
+
       // Create download link
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `specialist-applications-${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute(
+        "download",
+        `specialist-applications-${new Date().toISOString().split("T")[0]}.csv`
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       setNotification({
-        type: 'success',
-        message: 'Applications exported successfully!'
+        type: "success",
+        message: "Applications exported successfully!",
       });
     } catch (error) {
-      console.error('Error exporting applications:', error);
+      console.error("Error exporting applications:", error);
       setNotification({
-        type: 'error',
-        message: 'Failed to export applications. Please try again.'
+        type: "error",
+        message: "Failed to export applications. Please try again.",
       });
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -300,12 +535,15 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Specialist Applications</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Specialist Applications
+          </h1>
           <p className="text-gray-500 mt-1">
-            {applications.length} total applications ({applications.filter(a => a.status === 'pending').length} pending)
+            {applications.length} total applications (
+            {applications.filter((a) => a.status === "pending").length} pending)
           </p>
         </div>
-        <button 
+        <button
           onClick={exportApplications}
           className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center"
         >
@@ -314,20 +552,22 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
       </div>
 
       {notification && (
-        <div className={`p-4 rounded-md flex items-start justify-between ${
-          notification.type === 'success' 
-            ? 'bg-green-50 text-green-700 border border-green-200' 
-            : 'bg-red-50 text-red-700 border border-red-200'
-        }`}>
+        <div
+          className={`p-4 rounded-md flex items-start justify-between ${
+            notification.type === "success"
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
+          }`}
+        >
           <div className="flex items-center">
-            {notification.type === 'success' ? (
+            {notification.type === "success" ? (
               <Check className="w-5 h-5 mr-2 text-green-600" />
             ) : (
               <X className="w-5 h-5 mr-2 text-red-600" />
             )}
             <p>{notification.message}</p>
           </div>
-          <button 
+          <button
             onClick={() => setNotification(null)}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -351,7 +591,7 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <div className="flex items-center">
                 <Filter className="h-5 w-5 text-gray-400 mr-2" />
@@ -379,80 +619,83 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort('last_name')}
+                    onClick={() => requestSort("last_name")}
                   >
                     <div className="flex items-center">
                       <span>Applicant</span>
-                      {getSortIcon('last_name')}
+                      {getSortIcon("last_name")}
                     </div>
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort('specialization')}
+                    onClick={() => requestSort("specialization")}
                   >
                     <div className="flex items-center">
                       <span>Specialization</span>
-                      {getSortIcon('specialization')}
+                      {getSortIcon("specialization")}
                     </div>
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort('hospital')}
+                    onClick={() => requestSort("hospital")}
                   >
                     <div className="flex items-center">
                       <span>Hospital</span>
-                      {getSortIcon('hospital')}
+                      {getSortIcon("hospital")}
                     </div>
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort('country')}
+                    onClick={() => requestSort("country")}
                   >
                     <div className="flex items-center">
                       <span>Location</span>
-                      {getSortIcon('country')}
+                      {getSortIcon("country")}
                     </div>
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort('status')}
+                    onClick={() => requestSort("status")}
                   >
                     <div className="flex items-center">
                       <span>Status</span>
-                      {getSortIcon('status')}
+                      {getSortIcon("status")}
                     </div>
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort('created_at')}
+                    onClick={() => requestSort("created_at")}
                   >
                     <div className="flex items-center">
                       <span>Applied On</span>
-                      {getSortIcon('created_at')}
+                      {getSortIcon("created_at")}
                     </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredApplications.map(application => (
+                {filteredApplications.map((application) => (
                   <tr key={application.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
                           {application.photo_url ? (
-                            <img 
-                              src={application.photo_url} 
+                            <img
+                              src={application.photo_url}
                               alt={`${application.first_name} ${application.last_name}`}
                               className="h-10 w-10 rounded-full object-cover"
                             />
@@ -464,16 +707,21 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
                           <div className="text-sm font-medium text-gray-900">
                             {application.first_name} {application.last_name}
                           </div>
-                          <div className="text-sm text-gray-500">{application.email}</div>
+                          <div className="text-sm text-gray-500">
+                            {application.email}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {application.specialization === 'Other' ? 
-                          application.other_specialization : application.specialization}
+                        {application.specialization === "Other"
+                          ? application.other_specialization
+                          : application.specialization}
                       </div>
-                      <div className="text-sm text-gray-500">{application.title}</div>
+                      <div className="text-sm text-gray-500">
+                        {application.title}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {application.hospital}
@@ -482,13 +730,15 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
                       {application.city}, {application.country}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        application.status === 'approved' 
-                          ? 'bg-green-100 text-green-800' 
-                          : application.status === 'rejected'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                      }`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          application.status === "approved"
+                            ? "bg-green-100 text-green-800"
+                            : application.status === "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
                         {application.status}
                       </span>
                     </td>
@@ -496,32 +746,13 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
                       {formatDate(application.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-3">
-                        <button 
+                      <div className="flex justify-end space-x-2">
+                        <button
                           onClick={() => viewApplication(application)}
-                          className="text-primary-600 hover:text-primary-800"
-                          title="View Application"
+                          className="text-emerald-600 hover:text-emerald-900"
                         >
-                          <Eye className="w-5 h-5" />
+                          View Details
                         </button>
-                        {application.status === 'pending' && (
-                          <>
-                            <button 
-                              onClick={() => updateApplicationStatus(application.id, 'approved')}
-                              className="text-green-600 hover:text-green-800"
-                              title="Approve Application"
-                            >
-                              <Check className="w-5 h-5" />
-                            </button>
-                            <button 
-                              onClick={() => updateApplicationStatus(application.id, 'rejected')}
-                              className="text-red-600 hover:text-red-800"
-                              title="Reject Application"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          </>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -531,25 +762,28 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
           </div>
         ) : (
           <div className="text-center p-8">
-            {searchTerm || statusFilter !== 'all' ? (
-              <p className="text-gray-500">No applications match your search criteria.</p>
+            {searchTerm || statusFilter !== "all" ? (
+              <p className="text-gray-500">
+                No applications match your search criteria.
+              </p>
             ) : (
               <p className="text-gray-500">No applications found.</p>
             )}
           </div>
         )}
       </Card>
-      
+
       {/* Application View Modal */}
       {isViewOpen && selectedApplication && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">
-                Application from {selectedApplication.first_name} {selectedApplication.last_name}
+                Application from {selectedApplication.first_name}{" "}
+                {selectedApplication.last_name}
               </h3>
-              <button 
-                onClick={() => setIsViewOpen(false)} 
+              <button
+                onClick={() => setIsViewOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="w-5 h-5" />
@@ -559,8 +793,8 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="md:col-span-1">
                   {selectedApplication.photo_url ? (
-                    <img 
-                      src={selectedApplication.photo_url} 
+                    <img
+                      src={selectedApplication.photo_url}
                       alt={`${selectedApplication.first_name} ${selectedApplication.last_name}`}
                       className="w-full h-auto rounded-lg"
                     />
@@ -569,171 +803,240 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
                       <User className="h-16 w-16 text-gray-400" />
                     </div>
                   )}
-                  
+
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center">
                       <Mail className="w-4 h-4 text-gray-500 mr-2" />
-                      <span className="text-gray-800">{selectedApplication.email}</span>
+                      <span className="text-gray-800">
+                        {selectedApplication.email}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <Phone className="w-4 h-4 text-gray-500 mr-2" />
-                      <span className="text-gray-800">{selectedApplication.phone}</span>
+                      <span className="text-gray-800">
+                        {selectedApplication.phone}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <Briefcase className="w-4 h-4 text-gray-500 mr-2" />
-                      <span className="text-gray-800">{selectedApplication.title}</span>
+                      <span className="text-gray-800">
+                        {selectedApplication.title}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="w-4 h-4 text-gray-500 mr-2" />
                       <span className="text-gray-800">
-                        {selectedApplication.hospital}, {selectedApplication.city}, {selectedApplication.country}
+                        {selectedApplication.hospital},{" "}
+                        {selectedApplication.city},{" "}
+                        {selectedApplication.country}
                       </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="md:col-span-2 space-y-6">
                   <div>
-                    <h4 className="text-lg font-semibold text-primary-800 mb-2">Professional Information</h4>
+                    <h4 className="text-lg font-semibold text-primary-800 mb-2">
+                      Professional Information
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Specialization</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          Specialization
+                        </p>
                         <p className="text-gray-900">
-                          {selectedApplication.specialization === 'Other' ? 
-                            selectedApplication.other_specialization : selectedApplication.specialization}
+                          {selectedApplication.specialization === "Other"
+                            ? selectedApplication.other_specialization
+                            : selectedApplication.specialization}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Years of Experience</p>
-                        <p className="text-gray-900">{selectedApplication.years_experience}</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          Years of Experience
+                        </p>
+                        <p className="text-gray-900">
+                          {selectedApplication.years_experience}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Languages Spoken</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          Languages Spoken
+                        </p>
                         <p className="text-gray-900">
                           {[
                             ...Object.entries(selectedApplication.languages)
-                              .filter(([key, value]) => value && key !== 'other_language')
-                              .map(([key]) => key === 'other' ? 
-                                selectedApplication.languages.other_language : key),
-                          ].join(', ')}
+                              .filter(
+                                ([key, value]) =>
+                                  value && key !== "other_language"
+                              )
+                              .map(([key]) =>
+                                key === "other"
+                                  ? selectedApplication.languages.other_language
+                                  : key
+                              ),
+                          ].join(", ")}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Availability</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          Availability
+                        </p>
                         <p className="text-gray-900">
-                          {selectedApplication.availability === 'available' ? 'Available for new patients' :
-                           selectedApplication.availability === 'limited' ? 'Limited availability' :
-                           'Not accepting new patients'}
+                          {selectedApplication.availability === "available"
+                            ? "Available for new patients"
+                            : selectedApplication.availability === "limited"
+                            ? "Limited availability"
+                            : "Not accepting new patients"}
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-500">Areas of Expertise</p>
+                      <p className="text-sm font-medium text-gray-500">
+                        Areas of Expertise
+                      </p>
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedApplication.expertise.map((expertise, index) => (
-                          <span key={index} className="bg-primary-100 text-primary-800 rounded-full px-3 py-1 text-sm">
-                            {expertise}
-                          </span>
-                        ))}
+                        {selectedApplication.expertise.map(
+                          (expertise, index) => (
+                            <span
+                              key={index}
+                              className="bg-primary-100 text-primary-800 rounded-full px-3 py-1 text-sm"
+                            >
+                              {expertise}
+                            </span>
+                          )
+                        )}
                       </div>
                     </div>
-                    
+
                     <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-500">Professional Affiliations</p>
+                      <p className="text-sm font-medium text-gray-500">
+                        Professional Affiliations
+                      </p>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {selectedApplication.affiliations.length > 0 ? (
-                          selectedApplication.affiliations.map((affiliation, index) => (
-                            <span key={index} className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm">
-                              {affiliation}
-                            </span>
-                          ))
+                          selectedApplication.affiliations.map(
+                            (affiliation, index) => (
+                              <span
+                                key={index}
+                                className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm"
+                              >
+                                {affiliation}
+                              </span>
+                            )
+                          )
                         ) : (
-                          <p className="text-gray-500 text-sm">None specified</p>
+                          <p className="text-gray-500 text-sm">
+                            None specified
+                          </p>
                         )}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
-                    <h4 className="text-lg font-semibold text-primary-800 mb-2">Education</h4>
+                    <h4 className="text-lg font-semibold text-primary-800 mb-2">
+                      Education
+                    </h4>
                     <div className="space-y-4">
                       {selectedApplication.education.map((edu, index) => (
-                        <div key={index} className="border-l-2 border-primary-500 pl-4 py-1">
-                          <h4 className="font-medium text-gray-800">{edu.degree}</h4>
-                          <p className="text-sm text-primary-600">{edu.institution}</p>
+                        <div
+                          key={index}
+                          className="border-l-2 border-primary-500 pl-4 py-1"
+                        >
+                          <h4 className="font-medium text-gray-800">
+                            {edu.degree}
+                          </h4>
+                          <p className="text-sm text-primary-600">
+                            {edu.institution}
+                          </p>
                           <p className="text-xs text-gray-500">{edu.period}</p>
                         </div>
                       ))}
                     </div>
                   </div>
-                  
+
                   <div>
-                    <h4 className="text-lg font-semibold text-primary-800 mb-2">Experience</h4>
+                    <h4 className="text-lg font-semibold text-primary-800 mb-2">
+                      Experience
+                    </h4>
                     <div className="space-y-4">
                       {selectedApplication.experience.map((exp, index) => (
-                        <div key={index} className="border-l-2 border-primary-500 pl-4 py-1">
-                          <h4 className="font-medium text-gray-800">{exp.role}</h4>
-                          <p className="text-sm text-primary-600">{exp.institution}</p>
-                          <p className="text-xs text-gray-500 mb-1">{exp.period}</p>
-                          {exp.description && <p className="text-sm text-gray-700">{exp.description}</p>}
+                        <div
+                          key={index}
+                          className="border-l-2 border-primary-500 pl-4 py-1"
+                        >
+                          <h4 className="font-medium text-gray-800">
+                            {exp.role}
+                          </h4>
+                          <p className="text-sm text-primary-600">
+                            {exp.institution}
+                          </p>
+                          <p className="text-xs text-gray-500 mb-1">
+                            {exp.period}
+                          </p>
+                          {exp.description && (
+                            <p className="text-sm text-gray-700">
+                              {exp.description}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
-                  
+
                   <div>
-                    <h4 className="text-lg font-semibold text-primary-800 mb-2">Professional Bio</h4>
+                    <h4 className="text-lg font-semibold text-primary-800 mb-2">
+                      Professional Bio
+                    </h4>
                     <p className="text-gray-700">{selectedApplication.bio}</p>
                   </div>
-                  
-                  {selectedApplication.certifications && (
-                    <div>
-                      <h4 className="text-lg font-semibold text-primary-800 mb-2">Certifications & Licenses</h4>
-                      <p className="text-gray-700">{selectedApplication.certifications}</p>
-                    </div>
-                  )}
-                  
-                  {selectedApplication.research_interests && selectedApplication.research_interests.length > 0 && (
-                    <div>
-                      <h4 className="text-lg font-semibold text-primary-800 mb-2">Research Interests</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedApplication.research_interests.map((interest, index) => (
-                          <span key={index} className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm">
-                            {interest}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
+
                   <div>
-                    <h4 className="text-lg font-semibold text-primary-800 mb-2">Services Offered</h4>
+                    <h4 className="text-lg font-semibold text-primary-800 mb-2">
+                      Services Offered
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedApplication.services.map((service, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-4">
-                          <h4 className="font-medium text-primary-700">{service.name}</h4>
-                          <p className="text-sm text-gray-600 mb-2">{service.description}</p>
-                          <p className="text-xs text-gray-500">Duration: {service.duration}</p>
+                        <div
+                          key={index}
+                          className="border border-gray-200 rounded-lg p-4"
+                        >
+                          <h4 className="font-medium text-primary-700">
+                            {service.name}
+                          </h4>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {service.description}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Duration: {service.duration}
+                          </p>
                         </div>
                       ))}
                     </div>
                   </div>
-                  
+
                   <div>
-                    <h4 className="text-lg font-semibold text-primary-800 mb-2">Conditions Treated</h4>
+                    <h4 className="text-lg font-semibold text-primary-800 mb-2">
+                      Conditions Treated
+                    </h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedApplication.conditions_treated.map((condition, index) => (
-                        <span key={index} className="bg-primary-100 text-primary-800 rounded-full px-3 py-1 text-sm">
-                          {condition}
-                        </span>
-                      ))}
+                      {selectedApplication.conditions_treated.map(
+                        (condition, index) => (
+                          <span
+                            key={index}
+                            className="bg-primary-100 text-primary-800 rounded-full px-3 py-1 text-sm"
+                          >
+                            {condition}
+                          </span>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {selectedApplication.status === 'pending' && (
+
+              {selectedApplication.status === "pending" && (
                 <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end space-x-3">
                   <button
                     type="button"
@@ -744,19 +1047,35 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
                   </button>
                   <button
                     type="button"
-                    onClick={() => updateApplicationStatus(selectedApplication.id, 'rejected')}
+                    onClick={() =>
+                      updateApplicationStatus(
+                        selectedApplication.id,
+                        "rejected"
+                      )
+                    }
                     disabled={isProcessing}
                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
                   >
-                    {isProcessing ? 'Processing...' : 'Reject Application'}
+                    {isProcessing ? (
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                    ) : null}
+                    Reject Application
                   </button>
                   <button
                     type="button"
-                    onClick={() => updateApplicationStatus(selectedApplication.id, 'approved')}
+                    onClick={() =>
+                      updateApplicationStatus(
+                        selectedApplication.id,
+                        "approved"
+                      )
+                    }
                     disabled={isProcessing}
                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
                   >
-                    {isProcessing ? 'Processing...' : 'Approve Application'}
+                    {isProcessing ? (
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                    ) : null}
+                    Approve Application
                   </button>
                 </div>
               )}
@@ -764,6 +1083,19 @@ export default function AdminApplications({ supabase }: AdminApplicationsProps) 
           </div>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alert.open}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        confirmText={alert.confirmText}
+        cancelText={alert.cancelText}
+        onConfirm={alert.onConfirm}
+        onCancel={alert.onCancel}
+        onClose={closeAlert}
+        customContent={alert.customContent}
+      />
     </div>
   );
 }

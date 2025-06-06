@@ -425,17 +425,9 @@ const PublicationsDirectory = () => {
                       <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => viewPublication(publication)}
-                          className="text-primary-600 hover:text-primary-800 p-1"
-                          title="View Publication"
+                          className="text-emerald-600 hover:text-emerald-900"
                         >
-                          <Eye className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => sharePublication(publication)}
-                          className="text-blue-600 hover:text-blue-800 p-1"
-                          title="Share Publication"
-                        >
-                          <Share2 className="w-5 h-5" />
+                          View Details
                         </button>
                       </div>
                     </td>
@@ -591,13 +583,8 @@ const PublicationsDirectory = () => {
               )}
 
               <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end">
-                <Button
-                  variant="primary"
-                  onClick={() => sharePublication(selectedPublication)}
-                  className="flex items-center"
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share Publication
+                <Button variant="outline" onClick={() => setIsViewOpen(false)}>
+                  Close
                 </Button>
               </div>
             </div>
