@@ -52,8 +52,8 @@ const WelcomePage = () => {
   }, []);
 
   const handleContinue = () => {
-    // Redirect to step 2 of the membership form (professional information)
-    navigate("/membership/application", { state: { step: 2 } });
+    // Navigate to membership form with step 2 (Email Verification)
+    navigate("/membership", { state: { step: 2 } });
   };
 
   if (loading) {
@@ -121,13 +121,6 @@ const WelcomePage = () => {
                   className="w-full"
                 >
                   Complete Application
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/")}
-                  className="w-full"
-                >
-                  Go to Homepage
                 </Button>
               </div>
             </>

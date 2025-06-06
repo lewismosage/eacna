@@ -111,6 +111,7 @@ interface MembershipFormProps {
 const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [lastSubmissionTime, setLastSubmissionTime] = useState(0);
 
   // Get initial step from route state or default to 1
   const [currentStep, setCurrentStep] = useState(location.state?.step || 1);
@@ -195,6 +196,15 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
   };
 
   const handlePersonalInfoSubmit = async (data: Partial<FormData>) => {
+    const now = Date.now();
+
+    // Client-side rate limiting
+    if (now - lastSubmissionTime < 5000) {
+      setSubmitError("Please wait a few seconds before trying again");
+      return;
+    }
+    setLastSubmissionTime(now);
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -209,12 +219,19 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
             phone: data.phone,
             national_id: data.nationalId,
           },
+          emailRedirectTo: `${window.location.origin}/verify-success`,
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.status === 429) {
+          throw new Error(
+            "Too many signup attempts. Please wait before trying again."
+          );
+        }
+        throw authError;
+      }
 
-      // Profile is automatically created by the trigger we set up
       setVerificationSent(true);
       nextStep();
     } catch (err) {
