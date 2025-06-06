@@ -400,7 +400,7 @@ const SpecialistProfileView = () => {
                       {specialist.first_name} {specialist.last_name}
                     </h2>
                     <div className="prose max-w-none text-gray-700">
-                      <p className="mb-4">{specialist.bio}</p>
+                      <p className="mb-4">"{specialist.bio}"</p>
                     </div>
                   </CardContent>
                 </Card>

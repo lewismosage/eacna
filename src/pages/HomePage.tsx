@@ -52,22 +52,13 @@ const HomePage = () => {
     },
     {
       id: 4,
-      name: 'Dr. Lawrence Mwangi',
+      name: 'Dr. Lewis Mosage',
       position: 'Treasurer',
-      image: 'https://images.pexels.com/photos/5329163/pexels-photo-5329163.jpeg?auto=compress&cs=tinysrgb&w=600',
+      image: 'https://jajnicjmctsqgxcbgpmd.supabase.co/storage/v1/object/public/profile_photos/specialist-photos/Lewis%20-Mosage-1749236059747.jpg',
       bio: 'Neurologist with expertise in neurorehabilitation and policy development for child neurological care.'
     }
   ];
 
-  // Partner logos
-  const partners = [
-    { id: 1, name: "Gertrude's Hospital", logo: "https://images.pexels.com/photos/5407206/pexels-photo-5407206.jpeg?auto=compress&cs=tinysrgb&w=600" },
-    { id: 2, name: "Kenya Paediatric Association", logo: "https://images.pexels.com/photos/5407206/pexels-photo-5407206.jpeg?auto=compress&cs=tinysrgb&w=600" },
-    { id: 3, name: "British Paediatric Neurology Association", logo: "https://images.pexels.com/photos/5407214/pexels-photo-5407214.jpeg?auto=compress&cs=tinysrgb&w=600" },
-    { id: 4, name: "Africa Child Neurology Association", logo: "https://images.pexels.com/photos/5407222/pexels-photo-5407222.jpeg?auto=compress&cs=tinysrgb&w=600" },
-    { id: 5, name: "Global Health Partnerships", logo: "https://images.pexels.com/photos/5407214/pexels-photo-5407214.jpeg?auto=compress&cs=tinysrgb&w=600" },
-    { id: 6, name: "International League Against Epilepsy", logo: "https://images.pexels.com/photos/5407222/pexels-photo-5407222.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  ];
 
   return (
     <>
