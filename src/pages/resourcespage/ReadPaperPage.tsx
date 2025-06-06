@@ -1,22 +1,34 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Download, Share2, Clock, Calendar, Users, AlertCircle, Copy, Linkedin, Mail } from 'lucide-react';
-import Button from '../../components/common/Button';
-import { Link, useParams } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Download,
+  Share2,
+  Clock,
+  Calendar,
+  Users,
+  AlertCircle,
+  Copy,
+  Linkedin,
+  Mail,
+} from "lucide-react";
+import Button from "../../components/common/Button";
+import { Link, useParams } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { jsPDF } from "jspdf";
 
 // Custom X (formerly Twitter) icon
 const XIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="20" 
-    height="20" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
     strokeLinejoin="round"
   >
     <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
@@ -26,15 +38,15 @@ const XIcon = () => (
 
 // Custom Facebook icon
 const FacebookIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="20" 
-    height="20" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
     strokeLinejoin="round"
   >
     <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
@@ -72,29 +84,37 @@ const ReadPaperPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [showSharePopup, setShowSharePopup] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const sharePopupRef = useRef<HTMLDivElement>(null);
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
-      transition: { duration: 0.6 }
-    }
+      transition: { duration: 0.6 },
+    },
   };
 
   // Get absolute URLs for sharing
-  const getAbsoluteUrl = (path = '') => {
-    const baseUrl = import.meta.env.VITE_WEBSITE_URL || 'https://eacna.vercel.app';
-    return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  const getAbsoluteUrl = (path = "") => {
+    const baseUrl =
+      import.meta.env.VITE_WEBSITE_URL || "https://eacna.vercel.app";
+    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   };
 
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : getAbsoluteUrl(`resources/paper/${id}`);
+  const currentUrl =
+    typeof window !== "undefined"
+      ? window.location.href
+      : getAbsoluteUrl(`resources/paper/${id}`);
 
   // Close share popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (sharePopupRef.current && !sharePopupRef.current.contains(event.target as Node)) {
+      if (
+        sharePopupRef.current &&
+        !sharePopupRef.current.contains(event.target as Node)
+      ) {
         setShowSharePopup(false);
       }
     };
@@ -120,21 +140,23 @@ const ReadPaperPage = () => {
     const fetchPublication = async () => {
       try {
         setIsLoading(true);
-        
+
         const { data, error: supabaseError } = await supabase
-          .from('publications')
-          .select('*')
-          .eq('id', id)
-          .eq('status', 'published')
+          .from("publications")
+          .select("*")
+          .eq("id", id)
+          .eq("status", "published")
           .single();
 
         if (supabaseError) throw supabaseError;
-        if (!data) throw new Error('Publication not found or not published');
+        if (!data) throw new Error("Publication not found or not published");
 
         setPublication(data);
       } catch (err) {
-        console.error('Error fetching publication:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load publication');
+        console.error("Error fetching publication:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load publication"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -150,40 +172,45 @@ const ReadPaperPage = () => {
   };
 
   const copyToClipboard = () => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(currentUrl)
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard
+        .writeText(currentUrl)
         .then(() => setCopySuccess(true))
-        .catch(err => console.error('Failed to copy:', err));
+        .catch((err) => console.error("Failed to copy:", err));
     }
   };
 
   const shareOnTwitter = () => {
     try {
       if (!publication) {
-        console.error('No publication data available');
+        console.error("No publication data available");
         return;
       }
-  
+
       const url = getAbsoluteUrl(`resources/paper/${publication.id}`);
       const tweetText = `${publication.title}\n\nRead this publication: ${url}`;
-      
-      if (typeof window !== 'undefined') {
+
+      if (typeof window !== "undefined") {
         window.open(
-          `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`,
-          '_blank',
-          'noopener,noreferrer'
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            tweetText
+          )}`,
+          "_blank",
+          "noopener,noreferrer"
         );
       }
     } catch (error) {
-      console.error('Error sharing to Twitter:', error);
+      console.error("Error sharing to Twitter:", error);
     }
     setShowSharePopup(false);
   };
 
   const shareOnFacebook = () => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       window.open(
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`, 
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+          currentUrl
+        )}`,
         "_blank",
         "noopener,noreferrer"
       );
@@ -192,9 +219,11 @@ const ReadPaperPage = () => {
   };
 
   const shareOnLinkedIn = () => {
-    if (!publication || typeof window === 'undefined') return;
+    if (!publication || typeof window === "undefined") return;
     window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}&title=${encodeURIComponent(publication.title)}`, 
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+        currentUrl
+      )}&title=${encodeURIComponent(publication.title)}`,
       "_blank",
       "noopener,noreferrer"
     );
@@ -202,50 +231,160 @@ const ReadPaperPage = () => {
   };
 
   const shareByEmail = () => {
-    if (!publication || typeof window === 'undefined') return;
+    if (!publication || typeof window === "undefined") return;
     const subject = encodeURIComponent(publication.title);
-    const body = encodeURIComponent(`Check out this publication: ${publication.title}\n${currentUrl}`);
+    const body = encodeURIComponent(
+      `Check out this publication: ${publication.title}\n${currentUrl}`
+    );
     window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
     setShowSharePopup(false);
   };
 
   const useNativeShare = () => {
-    if (!publication || typeof navigator === 'undefined' || !('share' in navigator)) return;
-    
-    navigator.share({
-      title: publication.title,
-      text: `Check out this publication: ${publication.title}`,
-      url: currentUrl,
-    })
-    .then(() => setShowSharePopup(false))
-    .catch(err => {
-      if (err.name !== 'AbortError') {
-        console.error('Error sharing:', err);
-      }
-    });
+    if (
+      !publication ||
+      typeof navigator === "undefined" ||
+      !("share" in navigator)
+    )
+      return;
+
+    navigator
+      .share({
+        title: publication.title,
+        text: `Check out this publication: ${publication.title}`,
+        url: currentUrl,
+      })
+      .then(() => setShowSharePopup(false))
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("Error sharing:", err);
+        }
+      });
   };
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    return new Date(dateString).toLocaleDateString("en-US", options);
   };
 
   // Estimate read time based on content length
   const estimateReadTime = () => {
-    if (!publication?.sections) return '10 minutes'; // Default if no sections
-    
+    if (!publication?.sections) return "10 minutes"; // Default if no sections
+
     const contentLength = publication.sections.reduce(
       (acc, section) => acc + (section.content?.length || 0),
       0
     );
     const wordsPerMinute = 200;
     const minutes = Math.ceil(contentLength / 5 / wordsPerMinute);
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
+  };
+
+  const generatePDF = async (publication: Publication) => {
+    const doc = new jsPDF();
+
+    // Set title
+    doc.setFontSize(20);
+    doc.text(publication.title, 10, 20);
+
+    // Set authors
+    doc.setFontSize(12);
+    doc.text(`Authors: ${publication.authors}`, 10, 30);
+
+    // Add publication details
+    doc.text(`Journal: ${publication.journal || "N/A"}`, 10, 40);
+    doc.text(`Year: ${publication.year || "N/A"}`, 10, 50);
+
+    // Add abstract
+    doc.text("Abstract:", 10, 70);
+    doc.setFontSize(10);
+    const abstractLines = doc.splitTextToSize(publication.abstract, 180);
+    doc.text(abstractLines, 10, 80);
+
+    // Add sections
+    let yPosition = 100;
+    doc.setFontSize(12);
+
+    publication.sections?.forEach((section) => {
+      if (yPosition > 280) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      if (section.type === "heading") {
+        doc.setFontSize(14);
+        doc.text(section.content, 10, yPosition);
+        yPosition += 10;
+      } else {
+        doc.setFontSize(10);
+        const lines = doc.splitTextToSize(section.content, 180);
+        doc.text(lines, 10, yPosition);
+        yPosition += lines.length * 7;
+      }
+
+      yPosition += 10;
+    });
+
+    // Add references if they exist
+    if (publication.publication_references?.length > 0) {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.text("References:", 10, yPosition);
+      yPosition += 10;
+
+      doc.setFontSize(10);
+      publication.publication_references.forEach((reference, index) => {
+        if (yPosition > 280) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        const lines = doc.splitTextToSize(`${index + 1}. ${reference}`, 180);
+        doc.text(lines, 10, yPosition);
+        yPosition += lines.length * 7 + 5;
+      });
+    }
+
+    return doc.output("blob");
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!publication) return;
+
+    try {
+      setIsGeneratingPDF(true);
+      const pdfBlob = await generatePDF(publication);
+
+      // Create a URL for the blob
+      const url = URL.createObjectURL(pdfBlob);
+
+      // Create a temporary link element
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${publication.title.replace(/\s+/g, "_")}.pdf`;
+
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      setError("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   if (isLoading) {
@@ -263,7 +402,9 @@ const ReadPaperPage = () => {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-red-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Publication</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Error Loading Publication
+          </h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <Link to="/resources">
             <Button variant="primary">Back to Publications</Button>
@@ -280,8 +421,12 @@ const ReadPaperPage = () => {
           <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-yellow-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Publication Not Found</h2>
-          <p className="text-gray-600 mb-6">The requested publication could not be found or is not published.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Publication Not Found
+          </h2>
+          <p className="text-gray-600 mb-6">
+            The requested publication could not be found or is not published.
+          </p>
           <Link to="/resources">
             <Button variant="primary">Back to Publications</Button>
           </Link>
@@ -295,12 +440,15 @@ const ReadPaperPage = () => {
       {/* Header Section */}
       <div className="bg-white border-b">
         <div className="container-custom py-4">
-          <Link to="/resources" className="inline-flex items-center text-gray-600 hover:text-primary-700 mb-4">
+          <Link
+            to="/resources"
+            className="inline-flex items-center text-gray-600 hover:text-primary-700 mb-4"
+          >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Publications
           </Link>
         </div>
       </div>
-      
+
       {/* Paper Content */}
       <article className="bg-white">
         <div className="container-custom py-10">
@@ -311,7 +459,7 @@ const ReadPaperPage = () => {
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-gray-900">
                   {publication.title}
                 </h1>
-                
+
                 <div className="flex flex-wrap items-center text-sm text-gray-500 mb-6 gap-4">
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />
@@ -326,86 +474,127 @@ const ReadPaperPage = () => {
                     <span>{publication.authors}</span>
                   </div>
                 </div>
-                
+
                 <div className="bg-gray-50 border border-gray-100 rounded-lg p-5 mb-8">
                   <h2 className="font-semibold text-gray-900 mb-2">Abstract</h2>
                   <p className="text-gray-700">{publication.abstract}</p>
                 </div>
-                
+
                 {publication.keywords && publication.keywords.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-6">
                     {publication.keywords.map((keyword, index) => (
-                      <span key={index} className="bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1 rounded-full">
+                      <span
+                        key={index}
+                        className="bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1 rounded-full"
+                      >
                         {keyword}
                       </span>
                     ))}
                   </div>
                 )}
               </motion.header>
-              
+
               {/* Paper main content */}
               <div className="prose prose-primary prose-lg max-w-none">
                 {publication.sections?.map((section, index) => {
                   if (section.type === "heading" && section.level === 1) {
-                    return <h2 key={index} className="text-2xl font-bold mt-8 mb-4">{section.content}</h2>;
-                  } else if (section.type === "heading" && section.level === 2) {
-                    return <h3 key={index} className="text-xl font-semibold mt-6 mb-3">{section.content}</h3>;
+                    return (
+                      <h2 key={index} className="text-2xl font-bold mt-8 mb-4">
+                        {section.content}
+                      </h2>
+                    );
+                  } else if (
+                    section.type === "heading" &&
+                    section.level === 2
+                  ) {
+                    return (
+                      <h3
+                        key={index}
+                        className="text-xl font-semibold mt-6 mb-3"
+                      >
+                        {section.content}
+                      </h3>
+                    );
                   } else {
-                    return <p key={index} className="mb-4">{section.content}</p>;
+                    return (
+                      <p key={index} className="mb-4">
+                        {section.content}
+                      </p>
+                    );
                   }
                 })}
-                
+
                 {/* References section */}
                 {publication.publication_references?.length > 0 && (
                   <div className="mt-12 pt-8 border-t border-gray-200">
                     <h2 className="text-2xl font-bold mb-6">References</h2>
                     <ol className="list-decimal pl-5 space-y-2">
-                      {publication.publication_references.map((reference, index) => (
-                        <li key={index} className="text-gray-700">{reference}</li>
-                      ))}
+                      {publication.publication_references.map(
+                        (reference, index) => (
+                          <li key={index} className="text-gray-700">
+                            {reference}
+                          </li>
+                        )
+                      )}
                     </ol>
                   </div>
                 )}
               </div>
             </div>
-            
+
             {/* Sidebar */}
             <div className="lg:col-span-4">
-              <motion.div 
+              <motion.div
                 className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 sticky top-8"
                 variants={fadeIn}
               >
-                <h3 className="font-semibold text-gray-900 mb-4">Publication Details</h3>
-                
+                <h3 className="font-semibold text-gray-900 mb-4">
+                  Publication Details
+                </h3>
+
                 <ul className="space-y-3 mb-6">
                   {publication.journal && (
                     <li className="flex items-start">
-                      <span className="text-gray-600 w-24 flex-shrink-0">Journal:</span>
-                      <span className="text-gray-900">{publication.journal}</span>
+                      <span className="text-gray-600 w-24 flex-shrink-0">
+                        Journal:
+                      </span>
+                      <span className="text-gray-900">
+                        {publication.journal}
+                      </span>
                     </li>
                   )}
                   {publication.year && (
                     <li className="flex items-start">
-                      <span className="text-gray-600 w-24 flex-shrink-0">Year:</span>
+                      <span className="text-gray-600 w-24 flex-shrink-0">
+                        Year:
+                      </span>
                       <span className="text-gray-900">{publication.year}</span>
                     </li>
                   )}
                   {publication.pages && (
                     <li className="flex items-start">
-                      <span className="text-gray-600 w-24 flex-shrink-0">Pages:</span>
+                      <span className="text-gray-600 w-24 flex-shrink-0">
+                        Pages:
+                      </span>
                       <span className="text-gray-900">{publication.pages}</span>
                     </li>
                   )}
                 </ul>
-                
+
                 <div className="space-y-3">
-                  <Button variant="primary" className="w-full">
-                    <Download className="h-4 w-4 mr-2" /> Download PDF
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={handleDownloadPDF}
+                    disabled={isGeneratingPDF}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {isGeneratingPDF ? "Generating PDF..." : "Download PDF"}
                   </Button>
-                  
+
                   <div className="relative">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={handleShare}
                     >
@@ -413,38 +602,40 @@ const ReadPaperPage = () => {
                     </Button>
 
                     {showSharePopup && (
-                      <div 
+                      <div
                         ref={sharePopupRef}
                         className="absolute left-0 right-0 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-4 mt-1"
                       >
-                        <h3 className="font-semibold text-gray-900 mb-3 text-center">Share this paper</h3>
-                        
+                        <h3 className="font-semibold text-gray-900 mb-3 text-center">
+                          Share this paper
+                        </h3>
+
                         <div className="flex justify-center gap-3 mb-4">
-                          <button 
+                          <button
                             onClick={shareOnTwitter}
                             className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
                             aria-label="Share on X (Twitter)"
                           >
                             <XIcon />
                           </button>
-                          
-                          <button 
+
+                          <button
                             onClick={shareOnFacebook}
                             className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
                             aria-label="Share on Facebook"
                           >
                             <FacebookIcon />
                           </button>
-                          
-                          <button 
+
+                          <button
                             onClick={shareOnLinkedIn}
                             className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
                             aria-label="Share on LinkedIn"
                           >
                             <Linkedin className="w-5 h-5 text-gray-700" />
                           </button>
-                          
-                          <button 
+
+                          <button
                             onClick={shareByEmail}
                             className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
                             aria-label="Share by Email"
@@ -452,57 +643,78 @@ const ReadPaperPage = () => {
                             <Mail className="w-5 h-5 text-gray-700" />
                           </button>
                         </div>
-                        
-                        <button 
+
+                        <button
                           onClick={copyToClipboard}
                           className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
                           aria-label="Copy link to clipboard"
                         >
-                          <Copy className="w-4 h-4" /> 
+                          <Copy className="w-4 h-4" />
                           {copySuccess ? "Copied!" : "Copy link"}
                         </button>
-                        
-                        {typeof navigator !== 'undefined' && 'share' in navigator && (
-                          <button 
-                            onClick={useNativeShare}
-                            className="mt-2 flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
-                            aria-label="Share using native share dialog"
-                          >
-                            <Share2 className="w-4 h-4" /> 
-                            Share via...
-                          </button>
-                        )}
+
+                        {typeof navigator !== "undefined" &&
+                          "share" in navigator && (
+                            <button
+                              onClick={useNativeShare}
+                              className="mt-2 flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
+                              aria-label="Share using native share dialog"
+                            >
+                              <Share2 className="w-4 h-4" />
+                              Share via...
+                            </button>
+                          )}
                       </div>
                     )}
                   </div>
                 </div>
-                
+
                 <div className="mt-8 pt-6 border-t border-gray-200">
-                  <h3 className="font-semibold text-gray-900 mb-4">Related Papers</h3>
-                  
+                  <h3 className="font-semibold text-gray-900 mb-4">
+                    Related Papers
+                  </h3>
+
                   <ul className="space-y-4">
                     <li>
-                      <a href="#" className="block hover:bg-gray-50 rounded p-2 -mx-2">
+                      <a
+                        href="#"
+                        className="block hover:bg-gray-50 rounded p-2 -mx-2"
+                      >
                         <h4 className="text-primary-700 font-medium mb-1 hover:underline">
-                          Challenges in Diagnosing Pediatric Epilepsy in Resource-Limited Settings
+                          Challenges in Diagnosing Pediatric Epilepsy in
+                          Resource-Limited Settings
                         </h4>
-                        <p className="text-xs text-gray-500">Mwangi L, Njeri S, et al. (2023)</p>
+                        <p className="text-xs text-gray-500">
+                          Mwangi L, Njeri S, et al. (2023)
+                        </p>
                       </a>
                     </li>
                     <li>
-                      <a href="#" className="block hover:bg-gray-50 rounded p-2 -mx-2">
+                      <a
+                        href="#"
+                        className="block hover:bg-gray-50 rounded p-2 -mx-2"
+                      >
                         <h4 className="text-primary-700 font-medium mb-1 hover:underline">
-                          Anti-Seizure Medication Availability in East African Countries
+                          Anti-Seizure Medication Availability in East African
+                          Countries
                         </h4>
-                        <p className="text-xs text-gray-500">Omondi B, et al. (2022)</p>
+                        <p className="text-xs text-gray-500">
+                          Omondi B, et al. (2022)
+                        </p>
                       </a>
                     </li>
                     <li>
-                      <a href="#" className="block hover:bg-gray-50 rounded p-2 -mx-2">
+                      <a
+                        href="#"
+                        className="block hover:bg-gray-50 rounded p-2 -mx-2"
+                      >
                         <h4 className="text-primary-700 font-medium mb-1 hover:underline">
-                          Telemedicine for Epilepsy Management in Rural East Africa
+                          Telemedicine for Epilepsy Management in Rural East
+                          Africa
                         </h4>
-                        <p className="text-xs text-gray-500">Kimathi L, et al. (2023)</p>
+                        <p className="text-xs text-gray-500">
+                          Kimathi L, et al. (2023)
+                        </p>
                       </a>
                     </li>
                   </ul>

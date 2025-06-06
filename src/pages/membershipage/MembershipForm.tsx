@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Card, { CardContent } from "../../components/common/Card";
 import Button from "../../components/common/Button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import {
   MembershipTier,
@@ -110,7 +110,10 @@ interface MembershipFormProps {
 
 const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
+  const location = useLocation();
+
+  // Get initial step from route state or default to 1
+  const [currentStep, setCurrentStep] = useState(location.state?.step || 1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -147,13 +150,12 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
   const nextStep = async () => {
     const fieldsToValidate = getStepFields(currentStep);
     const isValid = await trigger(fieldsToValidate as any);
-
     if (isValid) {
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStep((prevStep: number) => prevStep + 1);
     }
   };
 
-  const prevStep = () => setCurrentStep((prev) => prev - 1);
+  const prevStep = () => setCurrentStep((prevStep: number) => prevStep - 1);
 
   const getStepFields = (step: number) => {
     switch (step) {

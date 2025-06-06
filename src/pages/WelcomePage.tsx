@@ -21,13 +21,16 @@ const WelcomePage = () => {
     const checkEmailVerification = async () => {
       try {
         // Check if the user is authenticated
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
 
         if (authError) throw authError;
 
         if (user) {
           setUserEmail(user.email || "");
-          
+
           // Check if email is verified
           if (user.email_confirmed_at) {
             setEmailVerified(true);
@@ -49,8 +52,8 @@ const WelcomePage = () => {
   }, []);
 
   const handleContinue = () => {
-    // Redirect to the application completion page
-    navigate("/membership/complete");
+    // Redirect to step 2 of the membership form (professional information)
+    navigate("/membership/application", { state: { step: 2 } });
   };
 
   if (loading) {
@@ -60,7 +63,9 @@ const WelcomePage = () => {
           <CardContent className="text-center p-8">
             <Loader2 className="h-12 w-12 text-primary-600 animate-spin mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Verifying Your Email</h2>
-            <p className="text-gray-600">Please wait while we verify your email address...</p>
+            <p className="text-gray-600">
+              Please wait while we verify your email address...
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -84,10 +89,7 @@ const WelcomePage = () => {
               >
                 Try Again
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/login")}
-              >
+              <Button variant="outline" onClick={() => navigate("/login")}>
                 Go to Login
               </Button>
             </div>
@@ -108,8 +110,9 @@ const WelcomePage = () => {
               </div>
               <h2 className="text-2xl font-bold mb-2">Welcome to EACNA!</h2>
               <p className="text-gray-600 mb-4">
-                Thank you for verifying your email <span className="font-semibold">{userEmail}</span>.
-                You're now ready to complete your membership application.
+                Thank you for verifying your email{" "}
+                <span className="font-semibold">{userEmail}</span>. You're now
+                ready to complete your membership application.
               </p>
               <div className="space-y-3">
                 <Button
@@ -135,15 +138,16 @@ const WelcomePage = () => {
               </div>
               <h2 className="text-2xl font-bold mb-2">Almost There!</h2>
               <p className="text-gray-600 mb-4">
-                We've sent a confirmation email to <span className="font-semibold">{userEmail}</span>.
-                Please click the verification link in that email to continue.
+                We've sent a confirmation email to{" "}
+                <span className="font-semibold">{userEmail}</span>. Please click
+                the verification link in that email to continue.
               </p>
               <div className="space-y-3">
                 <Button
                   variant="primary"
                   onClick={async () => {
                     await supabase.auth.resend({
-                      type: 'signup',
+                      type: "signup",
                       email: userEmail,
                     });
                     alert("Confirmation email resent!");
