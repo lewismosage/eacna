@@ -425,9 +425,7 @@ const JoinDirectoryForm: React.FC = () => {
         errors.phone = "Please enter a valid phone number";
       }
       if (!formData.gender) errors.gender = "Gender is required";
-      if (formData.photo && formData.photo.size > 10 * 1024 * 1024) {
-        errors.photo = "File size must be less than 10MB";
-      }
+      if (!formData.photo) errors.photo = "Profile photo is required";
     } else if (step === 2) {
       if (!formData.title.trim())
         errors.title = "Professional title is required";
@@ -874,7 +872,7 @@ const JoinDirectoryForm: React.FC = () => {
         {/* Profile Photo - More compact and better aligned */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Profile Photo
+            Profile Photo <span className="text-red-500">*</span>
             {formErrors.photo && (
               <span className="text-red-500 ml-1">* {formErrors.photo}</span>
             )}
@@ -2148,8 +2146,8 @@ const JoinDirectoryForm: React.FC = () => {
           Registration Successful!
         </h2>
         <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-          Thank you for your submission. Our team will review your details and
-          contact you once your profile is approved for the specialist
+          Thank you for your submission. Our team will review your Registration
+          and contact you once your profile is approved for the specialist
           directory.
         </p>
         <div className="space-y-4">
