@@ -58,14 +58,6 @@ interface FormData {
   }[];
   certifications: string;
   researchInterests: string[];
-  publications: {
-    title: string;
-    authors: string;
-    journal: string;
-    year: string;
-    abstract: string;
-    link: string;
-  }[];
 
   // Services
   services: {
@@ -125,7 +117,6 @@ const JoinDirectoryForm: React.FC = () => {
     experience: [],
     certifications: "",
     researchInterests: [],
-    publications: [],
     services: [],
     conditionsTreated: [],
     rates: {
@@ -155,14 +146,6 @@ const JoinDirectoryForm: React.FC = () => {
     duration: "",
   });
   const [researchInput, setResearchInput] = useState("");
-  const [publicationInput, setPublicationInput] = useState({
-    title: "",
-    authors: "",
-    journal: "",
-    year: "",
-    abstract: "",
-    link: "",
-  });
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const fadeIn = {
@@ -418,11 +401,6 @@ const JoinDirectoryForm: React.FC = () => {
         ...formData,
         services: formData.services.filter((_, i) => i !== index),
       });
-    } else if (arrayName === "publications") {
-      setFormData({
-        ...formData,
-        publications: formData.publications.filter((_, i) => i !== index),
-      });
     }
   };
 
@@ -636,7 +614,6 @@ const JoinDirectoryForm: React.FC = () => {
           ),
           certifications: formData.certifications,
           research_interests: formData.researchInterests,
-          publications: formData.publications,
 
           // Services
           services: formData.services,
@@ -2065,67 +2042,49 @@ const JoinDirectoryForm: React.FC = () => {
             <p className="text-gray-700 mt-1">{formData.bio}</p>
           </div>
 
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-500">Publications</p>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {formData.publications.length > 0 ? (
-                formData.publications.map((publication, index) => (
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h4 className="text-lg font-medium text-gray-900 mb-4">
+              Services & Rates
+            </h4>
+
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-500">
+                Services Offered
+              </p>
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {formData.services.map((service, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
+                    <h4 className="font-medium text-primary-700">
+                      {service.name}
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {service.description}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Duration: {service.duration}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-500">
+                Conditions Treated
+              </p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {formData.conditionsTreated.map((condition, index) => (
                   <span
                     key={index}
-                    className="bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm"
+                    className="bg-primary-100 text-primary-800 rounded-full px-3 py-1 text-sm"
                   >
-                    {publication.title}
+                    {condition}
                   </span>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm">None specified</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h4 className="text-lg font-medium text-gray-900 mb-4">
-            Services & Rates
-          </h4>
-
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-500">
-              Services Offered
-            </p>
-            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {formData.services.map((service, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <h4 className="font-medium text-primary-700">
-                    {service.name}
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {service.description}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Duration: {service.duration}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-500">
-              Conditions Treated
-            </p>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {formData.conditionsTreated.map((condition, index) => (
-                <span
-                  key={index}
-                  className="bg-primary-100 text-primary-800 rounded-full px-3 py-1 text-sm"
-                >
-                  {condition}
-                </span>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
