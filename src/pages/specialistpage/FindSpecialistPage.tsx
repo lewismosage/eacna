@@ -62,6 +62,47 @@ const FindSpecialistPage = () => {
   const specialistsPerPage = 6;
   const navigate = useNavigate();
 
+  // Static arrays for countries and specializations
+  const countries = [
+    "Kenya",
+    "Uganda",
+    "Tanzania",
+    "Burundi",
+    "Ethiopia",
+    "Somalia",
+    "South Sudan",
+    "Rwanda",
+  ];
+
+  const specializations = [
+    "Pediatric Neurology",
+    "Developmental Pediatrics",
+    "Child Psychology",
+    "Pediatric Neurosurgery",
+    "Pediatric Epileptology",
+    "Pediatric Neurogenetics",
+    "Pediatric Neuroimmunology",
+    "Pediatric Neurorehabilitation",
+    "Pediatric Movement Disorders",
+    "Pediatric Headache & Migraine Management",
+    "Pediatric Sleep Medicine",
+    "Child and Adolescent Psychiatry",
+    "Developmental-Behavioral Pediatrics",
+    "Pediatric Speech and Language Therapy",
+    "Pediatric Occupational Therapy",
+    "Pediatric Physical Therapy",
+    "Pediatric Autism Spectrum Services",
+    "Pediatric Cognitive Rehabilitation",
+    "Pediatric Pain Management",
+    "Pediatric Clinical Neuropsychology",
+    "Pediatric Social Work",
+    "Pediatric Neuro-Oncology",
+    "Pediatric Neurophysiology",
+    "Pediatric Radiology (Neuroimaging)",
+    "Pediatric Genetics Counseling",
+    "Special Needs Education and Support",
+  ];
+
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -186,24 +227,6 @@ const FindSpecialistPage = () => {
 
     return matchesSearch && matchesCountry && matchesSpecialization;
   });
-
-  // Get unique countries for filter
-  const countries = [
-    ...new Set(
-      specialists
-        .map((specialist) => specialist.location.country)
-        .filter((country): country is string => country !== null)
-    ),
-  ];
-
-  // Get unique specializations for filter
-  const specializations = [
-    ...new Set(
-      specialists
-        .map((specialist) => specialist.specialization)
-        .filter((spec): spec is string => spec !== null)
-    ),
-  ];
 
   // Calculate the specialists to display on the current page
   const indexOfLastSpecialist = currentPage * specialistsPerPage;
