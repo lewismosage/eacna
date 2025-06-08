@@ -245,22 +245,30 @@ export default function AdminApplications({
       const templateParams = {
         to_name: `${application.first_name} ${application.last_name}`,
         to_email: application.email,
-        subject: `Your Specialist Directory Application Has Been Approved`,
+        subject: `Your EACNA Specialist Directory Application Has Been Approved`,
         message: `
           <p>Dear ${application.first_name},</p>
-          <p>We are pleased to inform you that your application to join the Pediatric Neurology Specialist Directory has been approved!</p>
-          <p>Your profile is now live and visible to patients and colleagues searching for specialists in your area.</p>
-          <p>You can now:</p>
+          
+          <p>We are delighted to inform you that your application to join the <strong>East African Child Neurology Association (EACNA)</strong> Specialists Directory has been approved.</p>
+      
+          <p>Your profile is now live on our platform and accessible to patients, caregivers, and fellow professionals seeking expertise in your field.</p>
+      
+          <p>As a listed specialist, you can now:</p>
           <ul>
-            <li>Update your profile information at any time</li>
-            <li>Manage your availability status</li>
-            <li>Connect with other specialists in the network</li>
+            <li>Increase your visibility across the East African medical community</li>
+            <li>Receive relevant inquiries from patients and referring physicians</li>
+            <li>Contribute to regional collaborations and upcoming EACNA initiatives</li>
           </ul>
-          <p>If you have any questions, please don't hesitate to contact us.</p>
-          <p>Welcome to our specialist community!</p>
-          <p>Best regards,<br/>The Pediatric Neurology Specialist Directory Team</p>
+      
+          <p>We’re excited to have you on board and look forward to your valuable contributions to advancing child neurology in the region.</p>
+      
+          <p>If you have any questions or need assistance, please feel free to reach out to our team.</p>
+      
+          <p>Warm regards,<br/>
+          The EACNA Specialist Directory Team</p>
         `,
       };
+      
 
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -283,17 +291,25 @@ export default function AdminApplications({
       const templateParams = {
         to_name: `${application.first_name} ${application.last_name}`,
         to_email: application.email,
-        subject: `Your Specialist Directory Application Status`,
+        subject: `EACNA Specialist Directory Application Status`,
         message: `
           <p>Dear ${application.first_name},</p>
-          <p>Thank you for your interest in joining the Pediatric Neurology Specialist Directory.</p>
-          <p>After careful review, we regret to inform you that your application could not be approved at this time.</p>
-          ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-          <p>You may reapply after addressing any issues mentioned above.</p>
-          <p>If you have any questions about this decision, please don't hesitate to contact us.</p>
-          <p>Best regards,<br/>The Pediatric Neurology Specialist Directory Team</p>
+      
+          <p>Thank you for your interest in joining the <strong>East African Child Neurology Association (EACNA)</strong> Specialist Directory.</p>
+      
+          <p>After a thorough review of your application, we regret to inform you that we are unable to approve your request at this time.</p>
+      
+          <p>We encourage you to review your submission and consider reapplying in the future.</p>
+      
+          <p>If you have any questions or need further guidance, feel free to reach out to us.</p>
+      
+          <p>We appreciate your dedication to advancing pediatric neurological care in the region.</p>
+      
+          <p>Warm regards,<br/>
+          The EACNA Specialist Directory Team</p>
         `,
       };
+      
 
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
