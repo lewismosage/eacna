@@ -6,29 +6,23 @@ import {
   Calendar,
   Phone,
   Mail,
-  Globe,
-  FileText,
   Star,
-  Bookmark,
   Clock,
   Users,
   Award,
   CheckCircle,
-  MessageCircle,
-  ExternalLink,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  UserPlus,
-  Video,
   User,
   Info,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
 } from "lucide-react";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import Card, { CardContent } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import { createClient } from "@supabase/supabase-js";
+import ReviewForm from "./ReviewForm";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -101,77 +95,104 @@ const SpecialistProfileView = () => {
   const [showAllExpertise, setShowAllExpertise] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  useEffect(() => {
-    const fetchSpecialist = async () => {
-      try {
-        setIsLoading(true);
+  const fetchSpecialist = async () => {
+    try {
+      setIsLoading(true);
 
-        // Fetch specialist data
-        const { data, error } = await supabase
-          .from("specialists")
-          .select("*")
-          .eq("id", id)
-          .single();
+      // Fetch specialist data
+      const { data: specialistData, error: specialistError } = await supabase
+        .from("specialists")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-        if (error) throw error;
+      if (specialistError) throw specialistError;
 
-        if (data) {
-          // Transform the data to match our SpecialistType
-          const specialistData = {
-            id: data.id,
-            uuid: data.uuid,
-            prefix: data.prefix,
-            first_name: data.first_name,
-            last_name: data.last_name,
-            title: data.title,
-            specialization: data.specialization,
-            photo_url: data.photo_url,
-            hospital: data.hospital,
-            location: {
-              city: data.city,
-              country: data.country,
-              address: data.address,
-            },
-            rating: data.rating || 0,
-            reviewCount: data.review_count || 0,
-            reviewDistribution: data.review_distribution || {
-              5: 0,
-              4: 0,
-              3: 0,
-              2: 0,
-              1: 0,
-            },
-            years_experience: data.years_experience,
-            languages: data.languages || {},
-            availability: data.availability,
-            gender: data.gender,
-            bio: data.bio,
-            strengths: data.strengths,
-            expertise: data.expertise || [],
-            experience: data.experience || [],
-            education: data.education || [],
-            services: data.services || [],
-            conditions_treated: data.conditions_treated || [],
-            reviews: data.reviews || [],
-            research_interests: data.research_interests || [],
-            phone: data.phone,
-            email: data.email,
-            website: data.website,
-            rates: data.rates || {
-              inPerson: 0,
-              video: 0,
-              chat: 0,
-            },
-          };
-          setSpecialist(specialistData);
+      // Fetch reviews separately
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("specialist_id", id)
+        .order("created_at", { ascending: false });
+
+      if (reviewsError) throw reviewsError;
+
+      if (specialistData) {
+        // Calculate rating and distribution from reviews
+        const reviewCount = reviewsData?.length || 0;
+        let rating = 0;
+        const reviewDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+        if (reviewCount > 0) {
+          const totalRating =
+            reviewsData?.reduce((sum, review) => {
+              reviewDistribution[
+                review.rating as keyof typeof reviewDistribution
+              ]++;
+              return sum + review.rating;
+            }, 0) || 0;
+
+          rating = parseFloat((totalRating / reviewCount).toFixed(1));
         }
-      } catch (error) {
-        console.error("Failed to fetch specialist:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
+        // Transform the data to match our SpecialistType
+        const transformedData = {
+          id: specialistData.id,
+          uuid: specialistData.uuid,
+          prefix: specialistData.prefix,
+          first_name: specialistData.first_name,
+          last_name: specialistData.last_name,
+          title: specialistData.title,
+          specialization: specialistData.specialization,
+          photo_url: specialistData.photo_url,
+          hospital: specialistData.hospital,
+          location: {
+            city: specialistData.city,
+            country: specialistData.country,
+            address: specialistData.address,
+          },
+          rating: rating,
+          reviewCount: reviewCount,
+          reviewDistribution: reviewDistribution,
+          years_experience: specialistData.years_experience,
+          languages: specialistData.languages || {},
+          availability: specialistData.availability,
+          gender: specialistData.gender,
+          bio: specialistData.bio,
+          strengths: specialistData.strengths,
+          expertise: specialistData.expertise || [],
+          experience: specialistData.experience || [],
+          education: specialistData.education || [],
+          services: specialistData.services || [],
+          conditions_treated: specialistData.conditions_treated || [],
+          reviews:
+            reviewsData?.map((review) => ({
+              name: review.user_name,
+              date: new Date(review.created_at).toLocaleDateString(),
+              rating: review.rating,
+              comment: review.comment,
+            })) || [],
+          research_interests: specialistData.research_interests || [],
+          phone: specialistData.phone,
+          email: specialistData.email,
+          website: specialistData.website,
+          rates: specialistData.rates || {
+            inPerson: 0,
+            video: 0,
+            chat: 0,
+          },
+        };
+
+        setSpecialist(transformedData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch specialist:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchSpecialist();
   }, [id]);
 
@@ -620,65 +641,55 @@ const SpecialistProfileView = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-6">
-                      {specialist.reviews.map((review, index) => (
-                        <div
-                          key={index}
-                          className="border-b border-gray-200 pb-6 last:border-b-0"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center">
-                              <div className="bg-primary-100 text-primary-800 rounded-full h-10 w-10 flex items-center justify-center mr-3">
-                                <User className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-gray-900">
-                                  {review.name}
-                                </h4>
-                                <p className="text-sm text-gray-500">
-                                  {review.date}
-                                </p>
-                              </div>
+                    {/* Show only the most recent review */}
+                    {specialist.reviews.length > 0 && (
+                      <div className="border-b border-gray-200 pb-6 mb-6">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center">
+                            <div className="bg-primary-100 text-primary-800 rounded-full h-10 w-10 flex items-center justify-center mr-3">
+                              <User className="h-5 w-5" />
                             </div>
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`h-4 w-4 ${
-                                    i < review.rating
-                                      ? "text-yellow-500 fill-yellow-500"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
+                            <div>
+                              <h4 className="font-semibold text-gray-900">
+                                {specialist.reviews[0].name}
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                {specialist.reviews[0].date}
+                              </p>
                             </div>
                           </div>
-                          <p className="text-gray-700">{review.comment}</p>
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${
+                                  i < specialist.reviews[0].rating
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                        <p className="text-gray-700">{specialist.reviews[0].comment}</p>
+                      </div>
+                    )}
 
                     <div className="flex justify-center mt-8">
-                      <Button variant="outline">View All Reviews</Button>
+                      <Link to={`/specialists/${id}/reviews`}>
+                        <Button variant="outline">View All Reviews</Button>
+                      </Link>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      Share Your Experience
-                    </h3>
-                    <div className="bg-gray-50 rounded-lg p-6 text-center">
-                      <User className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600 mb-4">
-                        Help others by sharing your experience with Dr.{" "}
-                        {specialist.last_name}
-                      </p>
-                      <Button variant="primary">Write a Review</Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ReviewForm
+                  specialistId={specialist.id}
+                  onReviewSubmitted={() => {
+                    // Refresh reviews after submission
+                    fetchSpecialist();
+                  }}
+                />
               </>
             )}
           </div>

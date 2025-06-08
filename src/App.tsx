@@ -33,6 +33,7 @@ import ReadPaperPage from "./pages/resourcespage/ReadPaperPage";
 import WebinarDetails from "./pages/trainingpage/WebinarDetails";
 import AbstractSubmission from "./pages/trainingpage/AbstractSubmission";
 import AbstractGuidelines from "./pages/trainingpage/AbstractGuidelines";
+import AllReviewsPage from "./pages/specialistpage/AllReviewsPage"
 
 // Member Portal Components
 import Login from "./pages/portalpages/Login";
@@ -172,6 +173,7 @@ function App() {
           <Route path="read-publication/:id" element={<ReadPaperPage />} />
           <Route path="abstract-submission" element={<AbstractSubmission />} />
           <Route path="abstract-guidelines" element={<AbstractGuidelines />} />
+          <Route path="/specialists/:id/reviews" element={<AllReviewsPage />} />
           <Route path="welcome" element={<WelcomePage />} />
           <Route path="*" element={<NotFoundPage />} />
 

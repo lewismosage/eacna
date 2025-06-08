@@ -54,7 +54,7 @@ const HomePage = () => {
       id: 4,
       name: 'Dr. Lewis Mosage',
       position: 'Treasurer',
-      image: 'https://jajnicjmctsqgxcbgpmd.supabase.co/storage/v1/object/public/profile_photos/specialist-photos/Lewis%20-Mosage-1749236059747.jpg',
+      image: 'https://images.pexels.com/photos/6234600/pexels-photo-6234600.jpeg?auto=compress&cs=tinysrgb&w=600',
       bio: 'Neurologist with expertise in neurorehabilitation and policy development for child neurological care.'
     }
   ];

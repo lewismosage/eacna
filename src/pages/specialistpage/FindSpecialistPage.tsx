@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   MapPin,
@@ -42,6 +42,7 @@ type SpecialistType = {
   languages: Record<string, boolean>;
   photo_url: string | null;
   rating: number;
+  reviewCount: number;
 };
 
 const getActiveLanguages = (languages: Record<string, boolean>): string[] => {
@@ -59,6 +60,7 @@ const FindSpecialistPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const specialistsPerPage = 6;
+  const navigate = useNavigate();
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -74,12 +76,21 @@ const FindSpecialistPage = () => {
     const fetchSpecialists = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase.from("specialists").select("*");
+        // First fetch all specialists
+        const { data: specialistsData, error: specialistsError } =
+          await supabase.from("specialists").select("*");
 
-        if (error) throw error;
+        if (specialistsError) throw specialistsError;
+
+        // Then fetch reviews for all specialists
+        const { data: reviewsData, error: reviewsError } = await supabase
+          .from("reviews")
+          .select("*");
+
+        if (reviewsError) throw reviewsError;
 
         // Transform the data to match our SpecialistType
-        const formattedData = data.map((specialist: any) => {
+        const formattedData = specialistsData.map((specialist: any) => {
           // Handle languages field - it's an object with language: boolean pairs
           let languagesObj: Record<string, boolean> = {};
           if (
@@ -93,6 +104,21 @@ const FindSpecialistPage = () => {
             } catch {
               languagesObj = {};
             }
+          }
+
+          // Calculate rating and review count for this specialist
+          const specialistReviews = reviewsData.filter(
+            (review) => review.specialist_id === specialist.id
+          );
+          const reviewCount = specialistReviews.length;
+          let rating = 0;
+
+          if (reviewCount > 0) {
+            const totalRating = specialistReviews.reduce(
+              (sum, review) => sum + review.rating,
+              0
+            );
+            rating = parseFloat((totalRating / reviewCount).toFixed(1));
           }
 
           return {
@@ -116,7 +142,8 @@ const FindSpecialistPage = () => {
             photo_url:
               specialist.photo_url ||
               "https://images.pexels.com/photos/5214956/pexels-photo-5214956.jpeg?auto=compress&cs=tinysrgb&w=600",
-            rating: 0,
+            rating,
+            reviewCount,
           };
         });
 
@@ -360,7 +387,12 @@ const FindSpecialistPage = () => {
                 If you need help finding a specialist or have specific
                 requirements, our team is here to assist you.
               </p>
-              <Button variant="primary" size="sm" className="w-full">
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full"
+                onClick={() => navigate("/contact")}
+              >
                 Contact Us for Help
               </Button>
             </div>
@@ -416,6 +448,9 @@ const FindSpecialistPage = () => {
                             <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                             <span className="font-semibold">
                               {specialist.rating}
+                            </span>
+                            <span className="text-gray-500 text-xs">
+                              ({specialist.reviewCount})
                             </span>
                           </div>
                         </div>
