@@ -260,7 +260,7 @@ export default function AdminApplications({
             <li>Contribute to regional collaborations and upcoming EACNA initiatives</li>
           </ul>
       
-          <p>We’re excited to have you on board and look forward to your valuable contributions to advancing child neurology in the region.</p>
+          <p>We're excited to have you on board and look forward to your valuable contributions to advancing child neurology in the region.</p>
       
           <p>If you have any questions or need assistance, please feel free to reach out to our team.</p>
       
@@ -268,7 +268,6 @@ export default function AdminApplications({
           The EACNA Specialist Directory Team</p>
         `,
       };
-      
 
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -283,10 +282,7 @@ export default function AdminApplications({
     }
   };
 
-  const sendRejectionEmail = async (
-    application: SpecialistApplication,
-    reason?: string
-  ) => {
+  const sendRejectionEmail = async (application: SpecialistApplication) => {
     try {
       const templateParams = {
         to_name: `${application.first_name} ${application.last_name}`,
@@ -309,7 +305,6 @@ export default function AdminApplications({
           The EACNA Specialist Directory Team</p>
         `,
       };
-      
 
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -326,14 +321,12 @@ export default function AdminApplications({
 
   const updateApplicationStatus = async (
     id: string,
-    status: "approved" | "rejected",
-    reason?: string
+    status: "approved" | "rejected"
   ) => {
     if (status === "approved") {
       showAlert({
         title: "Approve Application",
-        message:
-          "This will approve the application and notify the applicant. Continue?",
+        message: "This will approve the application. Continue?",
         type: "confirm",
         confirmText: "Approve",
         cancelText: "Cancel",
@@ -419,24 +412,10 @@ export default function AdminApplications({
       // For rejections
       showAlert({
         title: "Reject Application",
-        message: "Please provide a reason for rejection (optional):",
+        message: "Are you sure you want to reject this application?",
         type: "confirm",
         confirmText: "Reject",
         cancelText: "Cancel",
-        customContent: (
-          <textarea
-            className="w-full mt-2 p-2 border border-gray-300 rounded-md"
-            placeholder="Reason for rejection..."
-            onChange={(e) =>
-              setAlert((prev) => ({
-                ...prev,
-                message:
-                  e.target.value ||
-                  "Please provide a reason for rejection (optional):",
-              }))
-            }
-          />
-        ),
         onConfirm: async () => {
           setIsProcessing(true);
           try {
@@ -450,13 +429,8 @@ export default function AdminApplications({
 
             if (error) throw error;
 
-            // Send rejection email with reason
-            const reasonText =
-              alert.message !==
-              "Please provide a reason for rejection (optional):"
-                ? alert.message
-                : undefined;
-            const emailSent = await sendRejectionEmail(application, reasonText);
+            // Send rejection email
+            const emailSent = await sendRejectionEmail(application);
             if (!emailSent) {
               console.warn("Failed to send rejection email");
             }
