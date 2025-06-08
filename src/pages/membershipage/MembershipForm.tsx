@@ -1355,39 +1355,48 @@ const MembershipForm: React.FC<MembershipFormProps> = ({ onComplete }) => {
         </p>
 
         {/* Progress Stepper */}
-        <div className="mb-8 overflow-hidden">
-          <div className="flex mb-2">
-            {[1, 2, 3, 4, 5].map((step) => (
-              <div
-                key={step}
-                className={`flex-1 border-b-2 pb-2 ${
-                  currentStep >= step ? "border-primary-600" : "border-gray-300"
-                }`}
-              >
-                <div className="flex items-center">
-                  <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 ${
+        <div className="mb-8">
+          <div className="relative">
+            <div className="overflow-x-auto pb-2 scrollbar-hide">
+              <div className="flex min-w-max">
+                {[1, 2, 3, 4, 5].map((step) => (
+                  <div
+                    key={step}
+                    className={`flex-none w-48 border-b-2 pb-2 ${
                       currentStep >= step
-                        ? "bg-primary-600 text-white"
-                        : "bg-gray-200 text-gray-600"
+                        ? "border-primary-600"
+                        : "border-gray-300"
                     }`}
                   >
-                    {step}
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      currentStep === step ? "text-primary-600" : ""
-                    }`}
-                  >
-                    {step === 1 && "Personal Info"}
-                    {step === 2 && "Email Verify"}
-                    {step === 3 && "Professional Info"}
-                    {step === 4 && "Education"}
-                    {step === 5 && "Compliance"}
-                  </span>
-                </div>
+                    <div className="flex items-center">
+                      <span
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 ${
+                          currentStep >= step
+                            ? "bg-primary-600 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {step}
+                      </span>
+                      <span
+                        className={`font-medium whitespace-nowrap ${
+                          currentStep === step ? "text-primary-600" : ""
+                        }`}
+                      >
+                        {step === 1 && "Personal Info"}
+                        {step === 2 && "Email Verify"}
+                        {step === 3 && "Professional Info"}
+                        {step === 4 && "Education"}
+                        {step === 5 && "Compliance"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            {/* Gradient fade effect for scroll indication */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white pointer-events-none"></div>
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white pointer-events-none"></div>
           </div>
         </div>
 

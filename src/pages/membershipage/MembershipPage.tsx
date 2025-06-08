@@ -149,8 +149,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Who can join EACNA?",
       content: (
         <p>
-          Any individual or institution involved or interested in child
-          neurology within East Africa.
+          Membership is open to individuals and institutions involved in or supportive of child neurology in East Africa. This includes pediatric neurologists, general pediatricians, neurosurgeons, child psychologists, therapists, researchers, and students pursuing relevant training.
         </p>
       ),
     },
@@ -159,8 +158,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "What's the difference between full and associate membership?",
       content: (
         <p>
-          Full members are certified specialists; associates are allied health
-          workers or professionals in related fields.
+          Full membership is reserved for certified child neurology professionals and specialists. Associate members are typically allied health professionals, researchers, or practitioners in related disciplines who contribute to the field but may not hold specialist certifications.
         </p>
       ),
     },
@@ -169,8 +167,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How long does approval take?",
       content: (
         <p>
-          Typically, 5–7 working days after you complete application and
-          payment.
+          Approval typically takes between 5–7 working days after we receive your completed application and payment. In some cases, it may take longer if additional documentation or verification is required.
         </p>
       ),
     },
@@ -178,7 +175,9 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       id: "faq4",
       title: "Can I change my membership type later?",
       content: (
-        <p>Yes, you can request an upgrade by submitting updated documents.</p>
+        <p>
+          Yes. If your qualifications or role changes, you may request to upgrade or modify your membership type by submitting updated credentials or documents. Our Membership Committee will review and respond accordingly.
+        </p>
       ),
     },
     {
@@ -186,8 +185,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How do I know which membership category I qualify for?",
       content: (
         <p>
-          We provide descriptions for each category on the membership category
-          page. If unsure, contact our Membership Team at admin@eacna.co.ke.
+          Each membership category has a detailed description on our website. If you're uncertain about where you fit, feel free to reach out to our Membership Team via email at <a href="mailto:admin@eacna.co.ke">admin@eacna.co.ke</a> for personalized guidance.
         </p>
       ),
     },
@@ -196,9 +194,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Is membership open to professionals outside East Africa?",
       content: (
         <p>
-          Yes. While our primary focus is on East Africa, we welcome
-          collaborators, researchers, and pediatrics neurology advocates from
-          across the globe.
+          Absolutely. While our core focus is the East African region, we welcome international collaborators, researchers, and advocates in pediatric neurology who share our mission and wish to contribute to the region's neurological care landscape.
         </p>
       ),
     },
@@ -207,8 +203,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Can I apply for membership as a student?",
       content: (
         <p>
-          Yes, as long as you're enrolled in a recognized health or medical
-          training program, you're eligible for student membership.
+          Yes. Students enrolled in recognized training programs in health, medicine, or related fields are encouraged to apply under the student membership category. This offers access to networking opportunities, events, and educational resources.
         </p>
       ),
     },
@@ -217,8 +212,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How long is the membership valid?",
       content: (
         <p>
-          Membership is valid for one year from the date of approval and is
-          renewable annually.
+          Membership is valid for 12 months from the date of approval. To maintain access to benefits, you will need to renew your membership annually before your expiry date.
         </p>
       ),
     },
@@ -227,8 +221,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Will I get a membership certificate?",
       content: (
         <p>
-          Yes, once your application is approved and payment confirmed, you'll
-          receive an official EACNA membership certificate.
+          Yes. Once your membership has been approved and your payment confirmed, we will issue you an official EACNA membership certificate, which you can download or receive via email.
         </p>
       ),
     },
@@ -237,9 +230,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Can institutions enroll multiple staff under one membership?",
       content: (
         <p>
-          Institutional membership includes benefits for multiple
-          representatives. Every individual, will be registered under the
-          institution's account.
+          Yes. Institutional memberships are designed to accommodate multiple representatives under a single account. Each representative will be individually registered and listed, while the institution retains administrative access and group benefits.
         </p>
       ),
     },
@@ -248,8 +239,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Can I cancel my membership and get a refund?",
       content: (
         <p>
-          We do not offer refunds once payment is made. However, you may choose
-          not to renew the following year.
+          Unfortunately, we do not offer refunds once membership payment has been processed. However, you can choose not to renew your membership in the following cycle without any penalties.
         </p>
       ),
     },
@@ -258,12 +248,12 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How do I pay for my membership?",
       content: (
         <p>
-          You can pay via mobile money (Mpesa), bank transfer, or card payment.
-          Details are provided on the registration form.
+          You can make your payment using several convenient options, including mobile money (Mpesa), bank transfer, and card payments. Complete payment instructions are provided on the membership registration form and confirmation page.
         </p>
       ),
     },
   ];
+  
 
   const handleFormComplete = (data: any) => {
     console.log("Form data:", data);
