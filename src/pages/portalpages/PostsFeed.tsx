@@ -31,28 +31,15 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
       setLoading(true);
       setError(null);
 
-      // First get the member's UUID from membership_directory
-      const { data: memberData, error: memberError } = await supabase
-        .from("membership_directory")
-        .select("user_id")
-        .eq("email", user.email)
-        .single();
-
-      if (memberError || !memberData?.user_id) {
-        throw new Error("Member not found");
-      }
-
-      const memberUserId = memberData.user_id;
-
-      // Fetch posts with member relationships
+      // 1. First fetch ALL posts with member data
       const { data: postsData, error: postsError } = await supabase
         .from("posts")
         .select(
           `
           *,
-          member:membership_directory!user_id(
-            first_name, 
-            last_name, 
+          member:membership_directory(
+            first_name,
+            last_name,
             avatar_url,
             user_id
           ),
@@ -65,39 +52,41 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
 
       if (postsError) throw postsError;
 
-      if (!postsData || postsData.length < postsPerPage) {
-        setHasMore(false);
-      }
+      // 2. Get current user's liked posts
+      const { data: currentMember } = await supabase
+        .from("membership_directory")
+        .select("user_id")
+        .eq("email", user.email)
+        .single();
 
-      // Fetch user's liked posts using member's UUID
-      const { data: userLikes, error: userLikesError } = await supabase
-        .from("reactions")
-        .select("post_id")
-        .eq("user_id", memberUserId);
+      const { data: userLikes } = currentMember?.user_id
+        ? await supabase
+            .from("reactions")
+            .select("post_id")
+            .eq("user_id", currentMember.user_id)
+        : { data: null };
 
-      if (userLikesError) throw userLikesError;
-
-      const processedPosts = postsData.map((post) => ({
+      // 3. Process posts with proper error handling
+      const processedPosts = (postsData || []).map((post) => ({
         id: post.id,
-        user_id: post.member?.user_id,
+        user_id: post.user_id,
         content: post.content,
         created_at: post.created_at,
-        author: {
-          first_name: post.member?.first_name || "Unknown",
-          last_name: post.member?.last_name || "User",
-          avatar_url: post.member?.avatar_url || null,
-        },
+        author_first_name: post.member?.first_name || "Unknown",
+        author_last_name: post.member?.last_name || "User",
+        author_avatar_url: post.member?.avatar_url || null,
+        author_email: post.member?.email,
+        author_role: post.member?.role,
         likes_count: post.likes?.[0]?.count || 0,
         comments_count: post.comments?.[0]?.count || 0,
         user_has_liked:
           userLikes?.some((like) => like.post_id === post.id) || false,
       }));
 
-      if (refresh) {
-        setPosts(processedPosts);
-      } else {
-        setPosts((prev) => [...prev, ...processedPosts]);
-      }
+      setPosts((prev) =>
+        refresh ? processedPosts : [...prev, ...processedPosts]
+      );
+      setHasMore((postsData?.length || 0) >= postsPerPage);
     } catch (err) {
       console.error("Error fetching posts:", err);
       setError("Failed to load posts. Please refresh the page.");

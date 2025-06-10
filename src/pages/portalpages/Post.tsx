@@ -4,10 +4,7 @@ import {
   MessageCircle,
   Share2,
   FileText,
-  Image,
-  Video,
   MoreHorizontal,
-  Bookmark,
   Repeat2,
 } from "lucide-react";
 import Avatar from "./Avatar";
@@ -93,9 +90,9 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
           <Link to={`/profile/${post.user_id}`}>
             <Avatar
               user={{
-                firstName: post.author.first_name,
-                lastName: post.author.last_name,
-                profileImage: post.author.avatar_url || null,
+                firstName: post.author_first_name,
+                lastName: post.author_last_name,
+                profileImage: post.author_avatar_url || null,
               }}
               size="md"
             />
@@ -105,12 +102,12 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
               to={`/profile/${post.user_id}`}
               className="font-semibold text-gray-900 hover:underline"
             >
-              {post.author.first_name} {post.author.last_name}
+              {post.author_first_name} {post.author_last_name}
             </Link>
             <p className="text-sm text-gray-500 flex items-center gap-2">
-              {post.author.role && (
+              {post.author_role && (
                 <>
-                  <span>{post.author.role}</span>
+                  <span>{post.author_role}</span>
                   <span className="inline-block w-1 h-1 rounded-full bg-gray-400"></span>
                 </>
               )}

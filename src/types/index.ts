@@ -8,13 +8,11 @@ export interface Post {
     name: string;
     url: string;
   }>;
-  author: {
-    first_name: string;
-    last_name: string;
-    avatar_url?: string;
-    email?: string;
-    role?: string;
-  };
+  author_first_name: string;
+  author_last_name: string;
+  author_avatar_url?: string;
+  author_email?: string;
+  author_role?: string;
   likes_count: number;
   comments_count: number;
   user_has_liked: boolean;
