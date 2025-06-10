@@ -12,7 +12,8 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@headlessui/react": "^2.2.2",
-    "@supabase/supabase-js": "^2.49.4",
+    "@supabase/auth-helpers-react": "^0.5.0",
+    "@supabase/supabase-js": "^2.50.0",
     "classnames": "^2.5.1",
     "date-fns": "^4.1.0",
     "file-saver": "^2.0.5",

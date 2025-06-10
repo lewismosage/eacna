@@ -5,7 +5,6 @@ import { createClient } from "@supabase/supabase-js";
 import Card, { CardContent } from "../../components/common/Card";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
-// Use the same configuration as in App.tsx
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_KEY,

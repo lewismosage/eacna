@@ -1,17 +1,14 @@
 import { useState, useEffect } from "react";
-import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Users,
-  MessageSquare,
   BookOpen,
   Bell,
   Search,
   ThumbsUp,
   MessageCircle,
   Share2,
-  MoreHorizontal,
   FileText,
-  UserPlus,
   Award,
   User,
   LogOut,
@@ -22,95 +19,7 @@ import WritePublication from "./MyPublications";
 import Notification from "./Notifications";
 import PostsFeed from "./PostsFeed";
 import EventsSidebar from "./EventsSidebar";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_KEY
-);
-
-// Mock data for demonstration purposes
-const MOCK_USER = {
-  firstName: "Lewis",
-  lastName: "Mosage",
-  email: "lewis.mosage@example.com",
-  profileImage: null,
-  role: "Associate Member",
-  joinDate: "May 2024",
-  unreadNotifications: 3,
-  country: "Kenya",
-};
-
-const MOCK_POSTS = [
-  {
-    id: 1,
-    author: {
-      name: "Dr. Samantha Njeri",
-      role: "President, EACNA",
-      avatar:
-        "https://images.pexels.com/photos/5327656/pexels-photo-5327656.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    content:
-      "Excited to announce our upcoming PET1 training in Nairobi this July! This one-day course is perfect for doctors and nurses who contribute to the initial care of children with paroxysmal disorders. Limited spots available, register now via the Training section.",
-    timestamp: "2 hours ago",
-    likes: 24,
-    comments: 5,
-    isPinned: true,
-    attachments: [],
-  },
-  {
-    id: 2,
-    author: {
-      name: "Dr. Benjamin Omondi",
-      role: "Vice President, EACNA",
-      avatar:
-        "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    content:
-      "Looking for collaborators on a research project studying epilepsy management in rural East African settings. We're particularly interested in innovative approaches to medication adherence. If interested, please comment below or message me directly.",
-    timestamp: "1 day ago",
-    likes: 18,
-    comments: 7,
-    isPinned: false,
-    attachments: [
-      { type: "pdf", name: "Research_Proposal.pdf", size: "1.2MB" },
-    ],
-  },
-  {
-    id: 3,
-    author: {
-      name: "Dr. Faith Mueni",
-      role: "Secretary General, EACNA",
-      avatar:
-        "https://images.pexels.com/photos/5214959/pexels-photo-5214959.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    content:
-      "New clinical guidelines for childhood epilepsy management have just been published. These guidelines specifically address the unique challenges we face in East Africa. Check out the attached summary and full document in the Resources section of our portal.",
-    timestamp: "3 days ago",
-    likes: 42,
-    comments: 11,
-    isPinned: false,
-    attachments: [
-      { type: "pdf", name: "Epilepsy_Guidelines_Summary.pdf", size: "850KB" },
-    ],
-  },
-  {
-    id: 4,
-    author: {
-      name: "Dr. Lawrence Mwangi",
-      role: "Treasurer, EACNA",
-      avatar:
-        "https://images.pexels.com/photos/5329163/pexels-photo-5329163.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    content:
-      "Reminder: Annual membership renewals are due by the end of this month. Please log in to your account and navigate to the Membership section to complete your renewal. Early renewals get 10% discount on our upcoming annual conference registration!",
-    timestamp: "1 week ago",
-    likes: 15,
-    comments: 3,
-    isPinned: false,
-    attachments: [],
-  },
-];
+import { useSupabase } from "../../context/SupabaseContext";
 
 interface UserData {
   id: number;
@@ -410,6 +319,7 @@ const CreatePostCard = ({ user }: { user: User }) => {
 const MemberPortal = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const supabase = useSupabase();
   const [currentTab, setCurrentTab] = useState("home");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -465,19 +375,9 @@ const MemberPortal = () => {
 
   // Navigation items
   const navItems = [
-    { icon: Users, label: "Home Feed", path: "home", badge: null },
-    {
-      icon: BookOpen,
-      label: "Publications",
-      path: "my-publications",
-      badge: null,
-    },
-    {
-      icon: Bell,
-      label: "Notifications",
-      path: "notifications",
-      badge: MOCK_USER.unreadNotifications,
-    },
+    { icon: Users, label: "Home Feed", path: "home" },
+    { icon: BookOpen, label: "Publications", path: "my-publications" },
+    { icon: Bell, label: "Notifications", path: "notifications" },
   ];
 
   // Format member since date
@@ -717,7 +617,6 @@ const MemberPortal = () => {
                   label={item.label}
                   to={`/portal/${item.path}`}
                   active={currentTab === item.path}
-                  badge={item.badge}
                   onClick={() => {
                     if (item.path !== "home") {
                       navigate(`/portal/${item.path}`);
@@ -793,11 +692,6 @@ const MemberPortal = () => {
                 >
                   <div className="relative">
                     <item.icon className="w-5 h-5" />
-                    {item.badge && (
-                      <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                        {item.badge}
-                      </span>
-                    )}
                   </div>
                   <span>{item.label}</span>
                 </button>
@@ -806,13 +700,23 @@ const MemberPortal = () => {
 
             {/* Dynamic Content based on current tab */}
             {currentTab === "home" && (
-              <div className="flex flex-col lg:flex-row gap-6">
-                <PostsFeed user={userData} posts={MOCK_POSTS} />
-                <div className="lg:w-72">
-                  <EventsSidebar />
-                </div>
+            <div className="flex flex-col lg:flex-row gap-6">
+              <PostsFeed 
+                user={{
+                  id: userData.id.toString(), // Convert to string if needed
+                  email: userData.email,
+                  user_metadata: {
+                    first_name: userData.first_name,
+                    last_name: userData.last_name,
+                    avatar_url: userData.profile_image || undefined
+                  }
+                }} 
+              />
+              <div className="lg:w-72">
+                <EventsSidebar />
               </div>
-            )}
+            </div>
+          )}
             {currentTab === "publications" && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                 <h2 className="text-2xl font-bold text-primary-800 mb-6">

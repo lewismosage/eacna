@@ -1,6 +1,7 @@
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { SupabaseProvider } from "./context/SupabaseContext";
 
 // Layouts
 import Layout from "./components/layout/Layout";
@@ -33,7 +34,7 @@ import ReadPaperPage from "./pages/resourcespage/ReadPaperPage";
 import WebinarDetails from "./pages/trainingpage/WebinarDetails";
 import AbstractSubmission from "./pages/trainingpage/AbstractSubmission";
 import AbstractGuidelines from "./pages/trainingpage/AbstractGuidelines";
-import AllReviewsPage from "./pages/specialistpage/AllReviewsPage"
+import AllReviewsPage from "./pages/specialistpage/AllReviewsPage";
 
 // Member Portal Components
 import Login from "./pages/portalpages/Login";
@@ -74,6 +75,7 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 import ProtectedRoute from "./components/protectedroute/ProtectedRoute";
 import UnsubscribePage from "./pages/UnsubscribePage";
 
+// Initialize Supabase client
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_KEY,
@@ -82,6 +84,11 @@ const supabase = createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
     },
   }
 );
@@ -139,7 +146,7 @@ function App() {
   }
 
   return (
-    <>
+    <SupabaseProvider client={supabase}>
       <Routes>
         {/* Public Routes with Layout (includes Header + Footer) */}
         <Route path="/" element={<Layout />}>
@@ -276,7 +283,7 @@ function App() {
       {showPaymentModal && (
         <PaymentModal onClose={() => setShowPaymentModal(false)} />
       )}
-    </>
+    </SupabaseProvider>
   );
 }
 
