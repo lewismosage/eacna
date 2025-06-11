@@ -8,6 +8,8 @@ import {
   Copy,
   Mail,
   X,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import Avatar from "./Avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -70,6 +72,20 @@ const Post = ({
   const [showSharePopup, setShowSharePopup] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const sharePopupRef = useRef<HTMLDivElement>(null);
+
+  const isCurrentUserPost = post.user_id === currentUserId;
+
+  const handleEditPost = () => {
+    setIsMenuOpen(false);
+    // TODO: Implement edit functionality
+    console.log("Edit post:", post.id);
+  };
+
+  const handleDeletePost = () => {
+    setIsMenuOpen(false);
+    // TODO: Implement delete functionality
+    console.log("Delete post:", post.id);
+  };
 
   const formattedDate = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
@@ -254,48 +270,37 @@ const Post = ({
           </div>
         </div>
 
-        <div className="relative">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-            aria-label="Post options"
-          >
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
+        {/* Only show menu button if it's the current user's post */}
+        {isCurrentUserPost && (
+          <div className="relative">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+              aria-label="Post options"
+            >
+              <MoreHorizontal className="w-5 h-5" />
+            </button>
 
-          {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100 z-10">
-              {post.user_id === currentUserId && (
-                <>
-                  <button
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Edit Post
-                  </button>
-                  <button
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Delete Post
-                  </button>
-                </>
-              )}
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Save Post
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Report Post
-              </button>
-            </div>
-          )}
-        </div>
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100 z-10">
+                <button
+                  className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={handleEditPost}
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Edit Post</span>
+                </button>
+                <button
+                  className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  onClick={handleDeletePost}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Post</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Post content */}
