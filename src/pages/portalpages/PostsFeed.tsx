@@ -3,6 +3,7 @@ import { useSupabase } from "../../context/SupabaseContext";
 import { AlertCircle } from "lucide-react";
 import PostComponent from "./Post";
 import CreatePostCard from "./CreatePostCard";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import type { Post } from "../../types";
 
 interface PostsFeedProps {
@@ -31,21 +32,15 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
       setLoading(true);
       setError(null);
 
-      // 1. First fetch ALL posts with member data
+      // 1. Fetch posts with author data directly from posts table
       const { data: postsData, error: postsError } = await supabase
         .from("posts")
         .select(
           `
-          *,
-          member:membership_directory(
-            first_name,
-            last_name,
-            avatar_url,
-            user_id
-          ),
-          likes:reactions(count),
-          comments:comments(count)
-        `
+        *,
+        likes:reactions(count),
+        comments:comments(count)
+      `
         )
         .order("created_at", { ascending: false })
         .range(pageNum * postsPerPage, (pageNum + 1) * postsPerPage - 1);
@@ -66,17 +61,15 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
             .eq("user_id", currentMember.user_id)
         : { data: null };
 
-      // 3. Process posts with proper error handling
+      // 3. Process posts using the author data from posts table
       const processedPosts = (postsData || []).map((post) => ({
         id: post.id,
         user_id: post.user_id,
         content: post.content,
         created_at: post.created_at,
-        author_first_name: post.member?.first_name || "Unknown",
-        author_last_name: post.member?.last_name || "User",
-        author_avatar_url: post.member?.avatar_url || null,
-        author_email: post.member?.email,
-        author_role: post.member?.role,
+        author_first_name: post.author_first_name || "Unknown",
+        author_last_name: post.author_last_name || "User",
+        author_avatar_url: post.author_avatar_url || null,
         likes_count: post.likes?.[0]?.count || 0,
         comments_count: post.comments?.[0]?.count || 0,
         user_has_liked:
@@ -110,10 +103,10 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
     try {
       setError(null);
 
-      // Get member's UUID
+      // Get member's data
       const { data: memberData, error: memberError } = await supabase
         .from("membership_directory")
-        .select("user_id")
+        .select("user_id, first_name, last_name, avatar_url")
         .eq("email", user.email)
         .single();
 
@@ -125,9 +118,12 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
         .from("posts")
         .insert([
           {
-            user_id: memberData.user_id, // Use the UUID
+            user_id: memberData.user_id,
             content,
             attachments: null,
+            author_first_name: memberData.first_name,
+            author_last_name: memberData.last_name,
+            author_avatar_url: memberData.avatar_url,
           },
         ])
         .select();
@@ -234,7 +230,7 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
             disabled={loading}
             className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 disabled:opacity-50"
           >
-            {loading ? "Loading..." : "Load More"}
+            {loading ? <LoadingSpinner /> : "Load More"}
           </button>
         </div>
       )}
