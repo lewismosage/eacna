@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSupabase } from "../../context/SupabaseContext";
+import { useUser } from "@supabase/auth-helpers-react";
 import { AlertCircle } from "lucide-react";
 import PostComponent from "./Post";
 import CreatePostCard from "./CreatePostCard";
@@ -20,6 +21,7 @@ interface PostsFeedProps {
 
 const PostsFeed = ({ user }: PostsFeedProps) => {
   const supabase = useSupabase();
+  const authUser = useUser();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -217,6 +219,8 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
               post={post}
               onLike={() => handleLike(post.id)}
               currentUserId={user.id}
+              currentUserAvatar={user.user_metadata?.avatar_url}
+              currentUserName={`${user.user_metadata?.first_name} ${user.user_metadata?.last_name}`}
             />
           ))}
 

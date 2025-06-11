@@ -1,13 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import {
-  FileText,
-  Paperclip,
-  Image,
-  Video,
-  X,
-  Smile,
-  Globe,
-} from "lucide-react";
+import { FileText, Paperclip, Image, Video, X } from "lucide-react";
 import Avatar from "./Avatar";
 
 interface CreatePostCardProps {
@@ -278,21 +270,6 @@ const CreatePostCard = ({
               </span>
             )}
           </button>
-
-          <button
-            type="button"
-            className="flex items-center gap-2 text-gray-600 hover:text-primary-600 p-2 rounded-md hover:bg-gray-50"
-            title="Add emoji"
-            disabled // TODO: Implement emoji picker
-          >
-            <Smile className="w-5 h-5" />
-            <span className="text-sm hidden sm:inline">Emoji</span>
-          </button>
-
-          <div className="flex items-center text-gray-500 text-sm ml-2">
-            <Globe className="w-4 h-4 mr-1" />
-            <span>Everyone</span>
-          </div>
 
           <input
             type="file"

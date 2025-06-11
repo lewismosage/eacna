@@ -1,31 +1,111 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   ThumbsUp,
   MessageCircle,
   Share2,
   FileText,
   MoreHorizontal,
-  Repeat2,
+  Copy,
+  Mail,
+  X,
 } from "lucide-react";
 import Avatar from "./Avatar";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import type { Post } from "../../types";
 
+// Custom X (Twitter) icon component
+const XIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+    <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+  </svg>
+);
+
+// Custom Facebook icon component
+const FacebookIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
 interface PostProps {
   post: Post;
   onLike: () => void;
   currentUserId: string;
+  currentUserAvatar?: string | null;
+  currentUserName?: string;
 }
 
-const Post = ({ post, onLike, currentUserId }: PostProps) => {
+const Post = ({
+  post,
+  onLike,
+  currentUserId,
+  currentUserAvatar,
+  currentUserName,
+}: PostProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [showSharePopup, setShowSharePopup] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const sharePopupRef = useRef<HTMLDivElement>(null);
 
   const formattedDate = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
   });
+
+  // Get absolute URL for the post
+  const getPostUrl = () => {
+    return `${window.location.origin}/posts/${post.id}`;
+  };
+
+  // Close share popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sharePopupRef.current &&
+        !sharePopupRef.current.contains(event.target as Node)
+      ) {
+        setShowSharePopup(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Reset copy success message after 2 seconds
+  useEffect(() => {
+    if (copySuccess) {
+      const timer = setTimeout(() => {
+        setCopySuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copySuccess]);
 
   const handleLike = () => {
     onLike();
@@ -37,6 +117,63 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
     console.log("Reply:", replyContent);
     setReplyContent("");
     setIsReplying(false);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard
+      .writeText(getPostUrl())
+      .then(() => setCopySuccess(true))
+      .catch((err) => console.error("Failed to copy:", err));
+  };
+
+  const shareOnTwitter = () => {
+    const text = `Check out this post by ${post.author_first_name} ${post.author_last_name}`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      text
+    )}&url=${encodeURIComponent(getPostUrl())}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setShowSharePopup(false);
+  };
+
+  const shareOnFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      getPostUrl()
+    )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setShowSharePopup(false);
+  };
+
+  const shareOnLinkedIn = () => {
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+      getPostUrl()
+    )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setShowSharePopup(false);
+  };
+
+  const shareByEmail = () => {
+    const subject = `Post by ${post.author_first_name} ${post.author_last_name}`;
+    const body = `Check out this post:\n\n${post.content.substring(
+      0,
+      100
+    )}...\n\n${getPostUrl()}`;
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+    setShowSharePopup(false);
+  };
+
+  const useNativeShare = async () => {
+    try {
+      await navigator.share({
+        title: `Post by ${post.author_first_name} ${post.author_last_name}`,
+        text: post.content.substring(0, 100) + "...",
+        url: getPostUrl(),
+      });
+      setShowSharePopup(false);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Error sharing:", err);
+      }
+    }
   };
 
   const renderAttachment = (attachment: {
@@ -51,6 +188,7 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
             src={attachment.url}
             alt={attachment.name}
             className="w-full max-h-96 object-contain"
+            loading="lazy"
           />
         </div>
       );
@@ -83,7 +221,7 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 relative">
       {/* Post header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -120,6 +258,7 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+            aria-label="Post options"
           >
             <MoreHorizontal className="w-5 h-5" />
           </button>
@@ -128,18 +267,30 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100 z-10">
               {post.user_id === currentUserId && (
                 <>
-                  <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <button
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     Edit Post
                   </button>
-                  <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <button
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     Delete Post
                   </button>
                 </>
               )}
-              <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              <button
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Save Post
               </button>
-              <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              <button
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Report Post
               </button>
             </div>
@@ -177,6 +328,7 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
               : "text-gray-600 hover:bg-gray-50"
           }`}
           onClick={handleLike}
+          aria-label={post.user_has_liked ? "Unlike post" : "Like post"}
         >
           <ThumbsUp className="w-5 h-5" />
           <span>{post.user_has_liked ? "Liked" : "Like"}</span>
@@ -185,20 +337,110 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
         <button
           className="flex items-center gap-2 px-4 py-2 rounded-md text-gray-600 hover:bg-gray-50"
           onClick={() => setIsReplying(!isReplying)}
+          aria-label="Comment on post"
         >
           <MessageCircle className="w-5 h-5" />
           <span>Comment</span>
         </button>
 
-        <button className="flex items-center gap-2 px-4 py-2 rounded-md text-gray-600 hover:bg-gray-50">
-          <Repeat2 className="w-5 h-5" />
-          <span>Repost</span>
-        </button>
+        <div className="relative">
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-md text-gray-600 hover:bg-gray-50"
+            onClick={() => setShowSharePopup(!showSharePopup)}
+            aria-label="Share post"
+          >
+            <Share2 className="w-5 h-5" />
+            <span>Share</span>
+          </button>
 
-        <button className="flex items-center gap-2 px-4 py-2 rounded-md text-gray-600 hover:bg-gray-50">
-          <Share2 className="w-5 h-5" />
-          <span>Share</span>
-        </button>
+          {/* Share popup */}
+          {showSharePopup && (
+            <div
+              ref={sharePopupRef}
+              className="absolute bottom-full right-0 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-4 mb-2 w-64"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold text-gray-900">Share this post</h3>
+                <button
+                  onClick={() => setShowSharePopup(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close share menu"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex justify-center gap-3 mb-4">
+                <button
+                  onClick={shareOnTwitter}
+                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                  aria-label="Share on X (Twitter)"
+                >
+                  <XIcon />
+                </button>
+
+                <button
+                  onClick={shareOnFacebook}
+                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                  aria-label="Share on Facebook"
+                >
+                  <FacebookIcon />
+                </button>
+
+                <button
+                  onClick={shareOnLinkedIn}
+                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                  aria-label="Share on LinkedIn"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                    <rect x="2" y="9" width="4" height="12" />
+                    <circle cx="4" cy="4" r="2" />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={shareByEmail}
+                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                  aria-label="Share by Email"
+                >
+                  <Mail className="w-5 h-5" />
+                </button>
+              </div>
+
+              <button
+                onClick={copyToClipboard}
+                className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
+                aria-label="Copy link to clipboard"
+              >
+                <Copy className="w-4 h-4" />
+                {copySuccess ? "Copied!" : "Copy link"}
+              </button>
+
+              {typeof navigator.share === "function" && (
+                <button
+                  onClick={useNativeShare}
+                  className="mt-2 flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
+                  aria-label="Share using native share dialog"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share via...
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Reply form */}
@@ -210,9 +452,9 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
           <div className="flex items-start gap-3">
             <Avatar
               user={{
-                firstName: "You", // Replace with actual current user data
-                lastName: "",
-                profileImage: null, // Replace with actual current user avatar
+                firstName: currentUserName?.split(" ")[0] || "You",
+                lastName: currentUserName?.split(" ")[1] || "",
+                profileImage: currentUserAvatar || null,
               }}
               size="sm"
             />
@@ -223,6 +465,7 @@ const Post = ({ post, onLike, currentUserId }: PostProps) => {
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 rows={2}
+                aria-label="Reply content"
               />
               <div className="flex justify-end gap-2 mt-2">
                 <button
