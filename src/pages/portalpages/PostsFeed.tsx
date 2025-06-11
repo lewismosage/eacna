@@ -193,47 +193,50 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
         }}
       />
 
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 flex items-start">
-          <AlertCircle className="h-5 w-5 text-red-400 mr-3 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-red-700">{error}</p>
-            <button
-              onClick={() => fetchPosts(0, true)}
-              className="mt-1 text-sm text-primary-600 hover:text-primary-500"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Add a container with fixed height and scroll */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="max-h-[calc(130vh-300px)] overflow-y-auto space-y-4">
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-400 mr-3 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-red-700">{error}</p>
+                <button
+                  onClick={() => fetchPosts(0, true)}
+                  className="mt-1 text-sm text-primary-600 hover:text-primary-500"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
 
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <PostComponent
-            key={post.id}
-            post={post}
-            onLike={() => handleLike(post.id)}
-            currentUserId={user.id}
-          />
-        ))}
+          {posts.map((post) => (
+            <PostComponent
+              key={post.id}
+              post={post}
+              onLike={() => handleLike(post.id)}
+              currentUserId={user.id}
+            />
+          ))}
+
+          {hasMore && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => {
+                  const nextPage = page + 1;
+                  setPage(nextPage);
+                  fetchPosts(nextPage);
+                }}
+                disabled={loading}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 disabled:opacity-50"
+              >
+                {loading ? <LoadingSpinner /> : "Load More"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-
-      {hasMore && (
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={() => {
-              const nextPage = page + 1;
-              setPage(nextPage);
-              fetchPosts(nextPage);
-            }}
-            disabled={loading}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 disabled:opacity-50"
-          >
-            {loading ? <LoadingSpinner /> : "Load More"}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

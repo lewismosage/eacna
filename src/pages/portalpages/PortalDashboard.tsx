@@ -700,23 +700,23 @@ const MemberPortal = () => {
 
             {/* Dynamic Content based on current tab */}
             {currentTab === "home" && (
-            <div className="flex flex-col lg:flex-row gap-6">
-              <PostsFeed 
-                user={{
-                  id: userData.id.toString(), // Convert to string if needed
-                  email: userData.email,
-                  user_metadata: {
-                    first_name: userData.first_name,
-                    last_name: userData.last_name,
-                    avatar_url: userData.profile_image || undefined
-                  }
-                }} 
-              />
-              <div className="lg:w-72">
-                <EventsSidebar />
+              <div className="flex flex-col lg:flex-row gap-6">
+                <PostsFeed
+                  user={{
+                    id: userData.id.toString(), // Convert to string if needed
+                    email: userData.email,
+                    user_metadata: {
+                      first_name: userData.first_name,
+                      last_name: userData.last_name,
+                      avatar_url: userData.profile_image || undefined,
+                    },
+                  }}
+                />
+                <div className="lg:w-72">
+                  <EventsSidebar />
+                </div>
               </div>
-            </div>
-          )}
+            )}
             {currentTab === "publications" && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                 <h2 className="text-2xl font-bold text-primary-800 mb-6">
