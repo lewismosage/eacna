@@ -1,191 +1,294 @@
-import { useState, useEffect, useRef } from "react";
-import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
+import { useState, useRef, useEffect } from "react";
+import { useSupabase } from "../../context/SupabaseContext";
+import { useUser } from "@supabase/auth-helpers-react";
+import { MoreHorizontal, Edit, Trash2, Reply } from "lucide-react";
 import Avatar from "./Avatar";
-import { MoreHorizontal, Trash2, Edit, Reply, X } from "lucide-react";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { formatDistanceToNow } from "date-fns";
+
+interface Author {
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url?: string | null;
+}
 
 interface Comment {
   id: number;
-  user_id: string;
   content: string;
   created_at: string;
-  parent_id: number | null;
-  author: {
-    first_name: string;
-    last_name: string;
-    avatar_url?: string;
-  };
+  author: Author;
   replies?: Comment[];
+  parent_id?: number | null;
 }
 
-const CommentsSection = ({ postId }: { postId: number }) => {
-  const supabase = useSupabaseClient();
+interface CommentsSectionProps {
+  postId: number;
+  initialComments?: Comment[];
+}
+
+const CommentsSection = ({
+  postId,
+  initialComments = [],
+}: CommentsSectionProps) => {
+  const supabase = useSupabase();
   const user = useUser();
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState("");
-  const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState<number | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const replyInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch comments and their replies
-  const fetchComments = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Fetch parent comments (where parent_id is null)
-      const { data: parentComments, error: parentError } = await supabase
-        .from("comments")
-        .select(
-          `*, 
-          author:membership_directory!user_id(first_name, last_name, avatar_url)`
-        )
-        .eq("post_id", postId)
-        .is("parent_id", null)
-        .order("created_at", { ascending: false });
-
-      if (parentError) throw parentError;
-
-      // Fetch all replies for this post
-      const { data: allReplies, error: repliesError } = await supabase
-        .from("comments")
-        .select(
-          `*, 
-          author:membership_directory!user_id(first_name, last_name, avatar_url)`
-        )
-        .eq("post_id", postId)
-        .not("parent_id", "is", null)
-        .order("created_at", { ascending: true });
-
-      if (repliesError) throw repliesError;
-
-      // Combine parent comments with their replies
-      const commentsWithReplies = parentComments.map((comment) => ({
-        ...comment,
-        replies: allReplies.filter((reply) => reply.parent_id === comment.id),
-      }));
-
-      setComments(commentsWithReplies);
-    } catch (err) {
-      console.error("Error fetching comments:", err);
-      setError("Failed to load comments. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch comments when postId changes
   useEffect(() => {
-    fetchComments();
+    const fetchComments = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("comments")
+          .select(
+            `
+            id,
+            content,
+            created_at,
+            parent_id,
+            author:user_id (
+              id,
+              first_name,
+              last_name,
+              avatar_url
+            )
+          `
+          )
+          .eq("post_id", postId)
+          .order("created_at", { ascending: true });
 
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel(`comments:post_id=eq.${postId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "comments",
-          filter: `post_id=eq.${postId}`,
-        },
-        () => fetchComments()
-      )
-      .subscribe();
+        if (error) throw error;
 
-    return () => {
-      supabase.removeChannel(subscription);
+        // Process the data to ensure author is properly typed
+        const processedData = (data || []).map((comment) => ({
+          ...comment,
+          author: Array.isArray(comment.author)
+            ? comment.author[0]
+            : comment.author,
+          replies: [],
+        }));
+
+        // Organize comments into a tree structure
+        const organizedComments = organizeComments(processedData);
+        setComments(organizedComments);
+      } catch (err) {
+        console.error("Error fetching comments:", err);
+        setError("Failed to load comments");
+      } finally {
+        setIsLoading(false);
+      }
     };
+
+    if (postId) fetchComments();
   }, [postId, supabase]);
 
+  // Organize flat comments into a nested structure
+  const organizeComments = (comments: Comment[]): Comment[] => {
+    const commentMap = new Map<number, Comment>();
+    const rootComments: Comment[] = [];
+
+    // First pass: create map of all comments
+    comments.forEach((comment) => {
+      commentMap.set(comment.id, {
+        ...comment,
+        replies: [],
+      });
+    });
+
+    // Second pass: build the tree
+    comments.forEach((comment) => {
+      if (comment.parent_id) {
+        const parent = commentMap.get(comment.parent_id);
+        if (parent) {
+          parent.replies?.push(commentMap.get(comment.id)!);
+        }
+      } else {
+        rootComments.push(commentMap.get(comment.id)!);
+      }
+    });
+
+    return rootComments;
+  };
+
+  // Update the handleAddComment function in CommentsSection.tsx
   const handleAddComment = async () => {
-    if (!user || !newComment.trim()) return;
-  
+    if (!newComment.trim()) {
+      setError("Comment cannot be empty");
+      return;
+    }
+    
+    // Get the authenticated user from Supabase
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!authUser?.email) {
+      setError("You must be logged in to comment");
+      return;
+    }
+
     try {
+      setIsLoading(true);
       setError(null);
-  
-      // Get member ID from membership_directory
+      console.log("Fetching user data...");
+
+      // Get member data using the authenticated user's email
       const { data: memberData, error: memberError } = await supabase
         .from("membership_directory")
-        .select("user_id")
-        .eq("email", user.email)
+        .select("user_id, first_name, last_name, avatar_url")
+        .eq("email", authUser.email)
         .single();
-  
-      if (memberError || !memberData?.user_id) {
-        throw new Error("Member not found");
-      }
-  
+
+      if (memberError) throw memberError;
+      if (!memberData) throw new Error("User profile not found");
+
       const { data, error } = await supabase
         .from("comments")
         .insert([
           {
-            user_id: memberData.user_id, // Use the UUID from membership_directory
             post_id: postId,
+            user_id: memberData.user_id,
             content: newComment,
+            parent_id: null,
           },
         ])
-        .select();
-  
+        .select(`
+          id,
+          content,
+          created_at,
+          parent_id,
+          author:user_id (
+            id,
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `);
+
       if (error) throw error;
-  
-      if (data?.[0]) {
+
+      if (data && data[0]) {
+        const processedComment = {
+          ...data[0],
+          author: Array.isArray(data[0].author) ? data[0].author[0] : data[0].author,
+          replies: [],
+        };
+        setComments((prev) => [...prev, processedComment]);
         setNewComment("");
       }
     } catch (err) {
-      console.error("Error adding comment:", err);
-      setError("Failed to add comment. Please try again.");
+      console.error("Comment submission error:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to post comment. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
-  
+
   const handleAddReply = async (parentId: number) => {
-    if (!user || !replyContent.trim()) return;
-  
+    if (!replyContent.trim() || !user?.email) return;
+
     try {
+      setIsLoading(true);
       setError(null);
-  
-      // Get member ID from membership_directory
+
+      // Get member data
       const { data: memberData, error: memberError } = await supabase
         .from("membership_directory")
-        .select("user_id")
+        .select("user_id, first_name, last_name, avatar_url")
         .eq("email", user.email)
         .single();
-  
-      if (memberError || !memberData?.user_id) {
-        throw new Error("Member not found");
-      }
-  
-      const { data, error } = await supabase
-        .from("comments")
-        .insert([
-          {
-            user_id: memberData.user_id,
-            post_id: postId,
-            parent_id: parentId,
-            content: replyContent,
-          },
-        ])
-        .select();
-  
+
+      if (memberError || !memberData) throw new Error("Member not found");
+
+      // Insert reply
+      const { data, error } = await supabase.from("comments").insert([
+        {
+          post_id: postId,
+          user_id: memberData.user_id,
+          content: replyContent,
+          parent_id: parentId,
+        },
+      ]).select(`
+          id,
+          content,
+          created_at,
+          parent_id,
+          author:user_id (
+            id,
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `);
+
       if (error) throw error;
-  
-      if (data?.[0]) {
-        setReplyingTo(null);
+
+      if (data && data[0]) {
+        const processedReply = {
+          ...data[0],
+          author: Array.isArray(data[0].author)
+            ? data[0].author[0]
+            : data[0].author,
+          replies: [],
+        };
+        setComments((prev) => {
+          const updateCommentWithReply = (comments: Comment[]): Comment[] => {
+            return comments.map((comment) => {
+              if (comment.id === parentId) {
+                return {
+                  ...comment,
+                  replies: [...(comment.replies || []), processedReply],
+                };
+              }
+              if (comment.replies) {
+                return {
+                  ...comment,
+                  replies: updateCommentWithReply(comment.replies),
+                };
+              }
+              return comment;
+            });
+          };
+          return updateCommentWithReply(prev);
+        });
         setReplyContent("");
+        setReplyingTo(null);
       }
     } catch (err) {
       console.error("Error adding reply:", err);
-      setError("Failed to add reply. Please try again.");
+      setError("Failed to add reply");
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const startEditing = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditContent(comment.content);
+    setIsMenuOpen(null);
+  };
+
+  const cancelEditing = () => {
+    setEditingCommentId(null);
+    setEditContent("");
   };
 
   const handleEditComment = async (commentId: number) => {
     if (!editContent.trim()) return;
 
     try {
+      setIsLoading(true);
       setError(null);
 
       const { error } = await supabase
@@ -195,11 +298,31 @@ const CommentsSection = ({ postId }: { postId: number }) => {
 
       if (error) throw error;
 
+      setComments((prev) => {
+        const updateComment = (comments: Comment[]): Comment[] => {
+          return comments.map((comment) => {
+            if (comment.id === commentId) {
+              return { ...comment, content: editContent };
+            }
+            if (comment.replies) {
+              return {
+                ...comment,
+                replies: updateComment(comment.replies),
+              };
+            }
+            return comment;
+          });
+        };
+        return updateComment(prev);
+      });
+
       setEditingCommentId(null);
       setEditContent("");
     } catch (err) {
       console.error("Error editing comment:", err);
-      setError("Failed to edit comment. Please try again.");
+      setError("Failed to edit comment");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -208,6 +331,7 @@ const CommentsSection = ({ postId }: { postId: number }) => {
       return;
 
     try {
+      setIsLoading(true);
       setError(null);
 
       const { error } = await supabase
@@ -216,34 +340,26 @@ const CommentsSection = ({ postId }: { postId: number }) => {
         .eq("id", commentId);
 
       if (error) throw error;
+
+      setComments((prev) => {
+        const removeComment = (comments: Comment[]): Comment[] => {
+          return comments.filter((comment) => {
+            if (comment.id === commentId) return false;
+            if (comment.replies) {
+              comment.replies = removeComment(comment.replies);
+            }
+            return true;
+          });
+        };
+        return removeComment(prev);
+      });
     } catch (err) {
       console.error("Error deleting comment:", err);
-      setError("Failed to delete comment. Please try again.");
+      setError("Failed to delete comment");
+    } finally {
+      setIsLoading(false);
+      setIsMenuOpen(null);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
-  };
-
-  const startEditing = (comment: Comment) => {
-    setEditingCommentId(comment.id);
-    setEditContent(comment.content);
-    setReplyingTo(null);
-  };
-
-  const cancelEditing = () => {
-    setEditingCommentId(null);
-    setEditContent("");
   };
 
   const cancelReplying = () => {
@@ -251,10 +367,16 @@ const CommentsSection = ({ postId }: { postId: number }) => {
     setReplyContent("");
   };
 
-  const renderComment = (comment: Comment, isReply = false) => {
-    const isCurrentUserComment = comment.user_id === user?.id;
-    const isEditing = editingCommentId === comment.id;
+  const formatDate = (dateString: string) => {
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  };
 
+  const isCurrentUserComment = (commentAuthorId: string) => {
+    if (!user?.id) return false;
+    return commentAuthorId === user.id;
+  };
+
+  const renderComment = (comment: Comment, isReply = false) => {
     return (
       <div
         key={comment.id}
@@ -282,38 +404,39 @@ const CommentsSection = ({ postId }: { postId: number }) => {
                     {formatDate(comment.created_at)}
                   </span>
                 </div>
-                {isCurrentUserComment && !isEditing && (
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsMenuOpen(comment.id)}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-                      aria-label="Comment options"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                    {isMenuOpen === comment.id && (
-                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-100 z-10">
-                        <button
-                          className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                          onClick={() => startEditing(comment)}
-                        >
-                          <Edit className="w-4 h-4" />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteComment(comment.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>Delete</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {isCurrentUserComment(comment.author.id) &&
+                  !editingCommentId && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsMenuOpen(comment.id)}
+                        className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+                        aria-label="Comment options"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                      {isMenuOpen === comment.id && (
+                        <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-100 z-10">
+                          <button
+                            className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            onClick={() => startEditing(comment)}
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteComment(comment.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
               </div>
 
-              {isEditing ? (
+              {editingCommentId === comment.id ? (
                 <div className="mt-2">
                   <textarea
                     value={editContent}
@@ -343,7 +466,7 @@ const CommentsSection = ({ postId }: { postId: number }) => {
               )}
             </div>
 
-            {!isReply && !isEditing && (
+            {!isReply && editingCommentId !== comment.id && (
               <div className="flex items-center gap-3 mt-2">
                 <button
                   className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700"
@@ -471,7 +594,7 @@ const CommentsSection = ({ postId }: { postId: number }) => {
       </div>
 
       {/* Comments list */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-8">
           <LoadingSpinner />
         </div>
@@ -489,3 +612,4 @@ const CommentsSection = ({ postId }: { postId: number }) => {
 };
 
 export default CommentsSection;
+

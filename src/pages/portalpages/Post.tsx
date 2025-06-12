@@ -15,6 +15,7 @@ import Avatar from "./Avatar";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import type { Post } from "../../types";
+import CommentsSection from "./CommentsSection";
 
 // Custom X (Twitter) icon component
 const XIcon = () => (
@@ -71,6 +72,7 @@ const Post = ({
   const [replyContent, setReplyContent] = useState("");
   const [showSharePopup, setShowSharePopup] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const sharePopupRef = useRef<HTMLDivElement>(null);
 
   const isCurrentUserPost = post.user_id === currentUserId;
@@ -341,8 +343,8 @@ const Post = ({
 
         <button
           className="flex items-center gap-2 px-4 py-2 rounded-md text-gray-600 hover:bg-gray-50"
-          onClick={() => setIsReplying(!isReplying)}
-          aria-label="Comment on post"
+          onClick={() => setShowComments(!showComments)}
+          aria-label={showComments ? "Hide comments" : "Show comments"}
         >
           <MessageCircle className="w-5 h-5" />
           <span>Comment</span>
@@ -495,6 +497,13 @@ const Post = ({
             </div>
           </div>
         </form>
+      )}
+
+      {/* Comments section */}
+      {showComments && (
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <CommentsSection postId={post.id} initialComments={[]} />
+        </div>
       )}
     </div>
   );
