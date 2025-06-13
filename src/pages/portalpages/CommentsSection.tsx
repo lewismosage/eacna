@@ -8,8 +8,8 @@ import { formatDistanceToNow } from "date-fns";
 
 interface Author {
   id: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   avatar_url?: string | null;
 }
 
@@ -17,6 +17,10 @@ interface Comment {
   id: number;
   content: string;
   created_at: string;
+  user_id: string;
+  author_first_name?: string;
+  author_last_name?: string;
+  author_avatar_url?: string;
   author: Author;
   replies?: Comment[];
   parent_id?: number | null;
@@ -57,12 +61,10 @@ const CommentsSection = ({
             content,
             created_at,
             parent_id,
-            author:user_id (
-              id,
-              first_name,
-              last_name,
-              avatar_url
-            )
+            user_id,
+            author_first_name,
+            author_last_name,
+            author_avatar_url
           `
           )
           .eq("post_id", postId)
@@ -70,17 +72,18 @@ const CommentsSection = ({
 
         if (error) throw error;
 
-        // Process the data to ensure author is properly typed
-        const processedData = (data || []).map((comment) => ({
+        const processedComments = (data || []).map((comment) => ({
           ...comment,
-          author: Array.isArray(comment.author)
-            ? comment.author[0]
-            : comment.author,
+          author: {
+            id: comment.user_id,
+            first_name: comment.author_first_name,
+            last_name: comment.author_last_name,
+            avatar_url: comment.author_avatar_url,
+          },
           replies: [],
         }));
 
-        // Organize comments into a tree structure
-        const organizedComments = organizeComments(processedData);
+        const organizedComments = organizeComments(processedComments);
         setComments(organizedComments);
       } catch (err) {
         console.error("Error fetching comments:", err);
@@ -100,6 +103,15 @@ const CommentsSection = ({
 
     // First pass: create map of all comments
     comments.forEach((comment) => {
+      if (!comment.author) {
+        // Provide default author data if missing
+        comment.author = {
+          id: "unknown",
+          first_name: "Deleted",
+          last_name: "User",
+          avatar_url: null,
+        };
+      }
       commentMap.set(comment.id, {
         ...comment,
         replies: [],
@@ -121,14 +133,13 @@ const CommentsSection = ({
     return rootComments;
   };
 
-  // Update the handleAddComment function in CommentsSection.tsx
+  // Update the handleAddComment function
   const handleAddComment = async () => {
     if (!newComment.trim()) {
       setError("Comment cannot be empty");
       return;
     }
 
-    // Get the authenticated user from Supabase
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
@@ -141,9 +152,8 @@ const CommentsSection = ({
     try {
       setIsLoading(true);
       setError(null);
-      console.log("Fetching user data...");
 
-      // Get member data using the authenticated user's email
+      // Get member data
       const { data: memberData, error: memberError } = await supabase
         .from("membership_directory")
         .select("user_id, first_name, last_name, avatar_url")
@@ -153,34 +163,39 @@ const CommentsSection = ({
       if (memberError) throw memberError;
       if (!memberData) throw new Error("User profile not found");
 
+      // Insert comment with author info
       const { data, error } = await supabase.from("comments").insert([
         {
           post_id: postId,
           user_id: memberData.user_id,
           content: newComment,
           parent_id: null,
+          author_first_name: memberData.first_name,
+          author_last_name: memberData.last_name,
+          author_avatar_url: memberData.avatar_url,
         },
       ]).select(`
           id,
           content,
           created_at,
           parent_id,
-          author:user_id (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
+          user_id,
+          author_first_name,
+          author_last_name,
+          author_avatar_url
         `);
 
       if (error) throw error;
 
       if (data && data[0]) {
-        const processedComment = {
+        const processedComment: Comment = {
           ...data[0],
-          author: Array.isArray(data[0].author)
-            ? data[0].author[0]
-            : data[0].author,
+          author: {
+            id: memberData.user_id,
+            first_name: data[0].author_first_name,
+            last_name: data[0].author_last_name,
+            avatar_url: data[0].author_avatar_url,
+          },
           replies: [],
         };
         setComments((prev) => [...prev, processedComment]);
@@ -198,13 +213,13 @@ const CommentsSection = ({
     }
   };
 
+  // Update handleAddReply function
   const handleAddReply = async (parentId: number) => {
     if (!replyContent.trim()) {
       setError("Reply cannot be empty");
       return;
     }
 
-    // Get the authenticated user from Supabase
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
@@ -218,7 +233,7 @@ const CommentsSection = ({
       setIsLoading(true);
       setError(null);
 
-      // Get member data using the authenticated user's email
+      // Get member data
       const { data: memberData, error: memberError } = await supabase
         .from("membership_directory")
         .select("user_id, first_name, last_name, avatar_url")
@@ -228,35 +243,39 @@ const CommentsSection = ({
       if (memberError) throw memberError;
       if (!memberData) throw new Error("User profile not found");
 
-      // Insert reply
+      // Insert reply with author info
       const { data, error } = await supabase.from("comments").insert([
         {
           post_id: postId,
           user_id: memberData.user_id,
           content: replyContent,
           parent_id: parentId,
+          author_first_name: memberData.first_name,
+          author_last_name: memberData.last_name,
+          author_avatar_url: memberData.avatar_url,
         },
       ]).select(`
           id,
           content,
           created_at,
           parent_id,
-          author:user_id (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
+          user_id,
+          author_first_name,
+          author_last_name,
+          author_avatar_url
         `);
 
       if (error) throw error;
 
       if (data && data[0]) {
-        const processedReply = {
+        const processedReply: Comment = {
           ...data[0],
-          author: Array.isArray(data[0].author)
-            ? data[0].author[0]
-            : data[0].author,
+          author: {
+            id: memberData.user_id,
+            first_name: data[0].author_first_name,
+            last_name: data[0].author_last_name,
+            avatar_url: data[0].author_avatar_url,
+          },
           replies: [],
         };
         setComments((prev) => {
@@ -394,6 +413,15 @@ const CommentsSection = ({
   };
 
   const renderComment = (comment: Comment, isReply = false) => {
+    // Add null check for author
+    if (!comment.author) {
+      return (
+        <div className="mt-3 bg-gray-50 p-3 rounded-lg text-gray-500 text-sm">
+          [Deleted user's comment]
+        </div>
+      );
+    }
+
     return (
       <div
         key={comment.id}
@@ -404,8 +432,8 @@ const CommentsSection = ({
         <div className="flex items-start gap-3">
           <Avatar
             user={{
-              firstName: comment.author.first_name,
-              lastName: comment.author.last_name,
+              firstName: comment.author.first_name || "Unknown",
+              lastName: comment.author.last_name || "User",
               profileImage: comment.author.avatar_url || null,
             }}
             size="sm"
@@ -415,7 +443,8 @@ const CommentsSection = ({
               <div className="flex justify-between items-start">
                 <div>
                   <span className="font-medium text-gray-900">
-                    {comment.author.first_name} {comment.author.last_name}
+                    {comment.author.first_name || "Unknown"}{" "}
+                    {comment.author.last_name || "User"}
                   </span>
                   <span className="text-xs text-gray-500 ml-2">
                     {formatDate(comment.created_at)}
