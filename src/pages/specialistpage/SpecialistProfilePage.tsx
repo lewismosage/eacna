@@ -785,6 +785,7 @@ const SpecialistProfileView = () => {
       isOpen={showBookingModal}
       onClose={() => setShowBookingModal(false)}
       specialistName={`${specialist.first_name} ${specialist.last_name}`}
+      specialistId={specialist.id}
       availability={specialist.availability}
     />
     </div>
