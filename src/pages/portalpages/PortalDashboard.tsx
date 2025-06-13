@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Users,
   BookOpen,
-  Bell,
   Search,
   ThumbsUp,
   MessageCircle,
@@ -16,7 +15,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 import WritePublication from "./MyPublications";
-import Notification from "./Notifications";
 import PostsFeed from "./PostsFeed";
 import EventsSidebar from "./EventsSidebar";
 import { useSupabase } from "../../context/SupabaseContext";
@@ -377,7 +375,6 @@ const MemberPortal = () => {
   const navItems = [
     { icon: Users, label: "Home Feed", path: "home" },
     { icon: BookOpen, label: "Publications", path: "my-publications" },
-    { icon: Bell, label: "Notifications", path: "notifications" },
   ];
 
   // Format member since date
@@ -703,7 +700,7 @@ const MemberPortal = () => {
               <div className="flex flex-col lg:flex-row gap-6">
                 <PostsFeed
                   user={{
-                    id: userData.id.toString(), // Convert to string if needed
+                    id: userData.id.toString(),
                     email: userData.email,
                     user_metadata: {
                       first_name: userData.first_name,
@@ -723,14 +720,6 @@ const MemberPortal = () => {
                   My Publications
                 </h2>
                 <WritePublication />
-              </div>
-            )}
-            {currentTab === "notifications" && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h2 className="text-2xl font-bold text-primary-800 mb-6">
-                  Notifications
-                </h2>
-                <Notification />
               </div>
             )}
           </div>

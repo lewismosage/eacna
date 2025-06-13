@@ -43,11 +43,8 @@ import ResetPassword from "./pages/portalpages/ResetPassword";
 import MemberPortal from "./pages/portalpages/PortalDashboard";
 import WritePublicationPage from "./pages/portalpages/WritePublications";
 import MyPublications from "./pages/portalpages/MyPublications";
-import Notifications from "./pages/portalpages/Notifications";
 import ViewProfile from "./pages/portalpages/ViewProfile";
 import MembershipStatus from "./pages/portalpages/MembershipStatus";
-import MembershipRenewal from "./pages/portalpages/MembershipRenewal";
-import MembershipUpgrade from "./pages/portalpages/MembershipUpgrade";
 
 // Admin Pages
 import AdminLogin from "./pages/adminpages/AdminLogin";
@@ -93,18 +90,6 @@ const supabase = createClient(
   }
 );
 
-const mockMembership = {
-  type: "Associate Member",
-  membershipId: "EACNA-2024-KE-1289",
-  expiryDate: "May 14, 2025",
-  renewalFee: 150,
-  benefits: [
-    "Access to online resources and clinical guidelines",
-    "Discounted rates for conferences and training",
-    "Eligibility to participate in research collaborations",
-    "Networking opportunities with professionals across East Africa",
-  ],
-};
 
 function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -191,37 +176,12 @@ function App() {
 
           {/* Protected Member Portal */}
           <Route element={<ProtectedRoute />}>
-            <Route
-              path="portal/publications"
-              element={<WritePublicationPage />}
-            />
+            <Route path="portal/publications" element={<WritePublicationPage />} />
             <Route path="portal/my-publications" element={<MyPublications />} />
-            <Route
-              path="portal/publications/edit/:id"
-              element={<WritePublicationPage />}
-            />
-            <Route path="portal/notifications" element={<Notifications />} />
+            <Route path="portal/publications/edit/:id" element={<WritePublicationPage />} />
             <Route path="member-portal" element={<MemberPortal />} />
             <Route path="/portal/profile" element={<ViewProfile />} />
             <Route path="/portal/membership" element={<MembershipStatus />} />
-            <Route
-              path="/portal/membership/membership-upgrade"
-              element={
-                <MembershipUpgrade
-                  currentMembership={mockMembership}
-                  onClose={() => navigate("/portal/membership")}
-                />
-              }
-            />
-            <Route
-              path="/portal/membership/membership-renewal"
-              element={
-                <MembershipRenewal
-                  currentMembership={mockMembership}
-                  onClose={() => navigate("/portal/membership")}
-                />
-              }
-            />
           </Route>
         </Route>
 
@@ -244,10 +204,7 @@ function App() {
               path="communications/subscribers"
               element={<Subscribers supabase={supabase} />}
             />
-            <Route
-              path="members/applications"
-              element={<MemberApplications />}
-            />
+            <Route path="members/applications" element={<MemberApplications />}/>
             <Route path="members/payments" element={<MembershipPayments />} />
             <Route path="members/directory" element={<Directory />} />
             <Route path="events/meetings" element={<AnnualMeetings />} />
@@ -268,10 +225,7 @@ function App() {
               element={<SpecialistsDirectory supabase={supabase} />}
             />
             <Route path="publications/review" element={<PublicationReview />} />
-            <Route
-              path="publications/published"
-              element={<PublishedArticles />}
-            />
+            <Route path="publications/published" element={<PublishedArticles />} />
             <Route path="events/abstracts" element={<AbtractSubmissions />} />
           </Route>
 
