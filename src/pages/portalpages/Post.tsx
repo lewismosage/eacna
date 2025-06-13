@@ -75,7 +75,7 @@ const Post = ({
   const [showComments, setShowComments] = useState(false);
   const sharePopupRef = useRef<HTMLDivElement>(null);
 
-  const isCurrentUserPost = post.user_id === currentUserId;
+  const isCurrentUserPost = String(post.user_id) === String(currentUserId);
 
   const handleEditPost = () => {
     setIsMenuOpen(false);

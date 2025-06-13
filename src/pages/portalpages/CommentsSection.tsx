@@ -127,10 +127,12 @@ const CommentsSection = ({
       setError("Comment cannot be empty");
       return;
     }
-    
+
     // Get the authenticated user from Supabase
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+
     if (!authUser?.email) {
       setError("You must be logged in to comment");
       return;
@@ -151,17 +153,14 @@ const CommentsSection = ({
       if (memberError) throw memberError;
       if (!memberData) throw new Error("User profile not found");
 
-      const { data, error } = await supabase
-        .from("comments")
-        .insert([
-          {
-            post_id: postId,
-            user_id: memberData.user_id,
-            content: newComment,
-            parent_id: null,
-          },
-        ])
-        .select(`
+      const { data, error } = await supabase.from("comments").insert([
+        {
+          post_id: postId,
+          user_id: memberData.user_id,
+          content: newComment,
+          parent_id: null,
+        },
+      ]).select(`
           id,
           content,
           created_at,
@@ -179,7 +178,9 @@ const CommentsSection = ({
       if (data && data[0]) {
         const processedComment = {
           ...data[0],
-          author: Array.isArray(data[0].author) ? data[0].author[0] : data[0].author,
+          author: Array.isArray(data[0].author)
+            ? data[0].author[0]
+            : data[0].author,
           replies: [],
         };
         setComments((prev) => [...prev, processedComment]);
@@ -188,7 +189,9 @@ const CommentsSection = ({
     } catch (err) {
       console.error("Comment submission error:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to post comment. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to post comment. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -196,20 +199,34 @@ const CommentsSection = ({
   };
 
   const handleAddReply = async (parentId: number) => {
-    if (!replyContent.trim() || !user?.email) return;
+    if (!replyContent.trim()) {
+      setError("Reply cannot be empty");
+      return;
+    }
+
+    // Get the authenticated user from Supabase
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+
+    if (!authUser?.email) {
+      setError("You must be logged in to reply");
+      return;
+    }
 
     try {
       setIsLoading(true);
       setError(null);
 
-      // Get member data
+      // Get member data using the authenticated user's email
       const { data: memberData, error: memberError } = await supabase
         .from("membership_directory")
         .select("user_id, first_name, last_name, avatar_url")
-        .eq("email", user.email)
+        .eq("email", authUser.email)
         .single();
 
-      if (memberError || !memberData) throw new Error("Member not found");
+      if (memberError) throw memberError;
+      if (!memberData) throw new Error("User profile not found");
 
       // Insert reply
       const { data, error } = await supabase.from("comments").insert([
@@ -267,7 +284,7 @@ const CommentsSection = ({
       }
     } catch (err) {
       console.error("Error adding reply:", err);
-      setError("Failed to add reply");
+      setError("Failed to add reply. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -373,7 +390,7 @@ const CommentsSection = ({
 
   const isCurrentUserComment = (commentAuthorId: string) => {
     if (!user?.id) return false;
-    return commentAuthorId === user.id;
+    return String(commentAuthorId) === String(user.id);
   };
 
   const renderComment = (comment: Comment, isReply = false) => {
@@ -411,10 +428,11 @@ const CommentsSection = ({
                         onClick={() => setIsMenuOpen(comment.id)}
                         className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
                         aria-label="Comment options"
+                        disabled={!!editingCommentId}
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
-                      {isMenuOpen === comment.id && (
+                      {isMenuOpen === comment.id && !editingCommentId && (
                         <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-100 z-10">
                           <button
                             className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -612,4 +630,3 @@ const CommentsSection = ({
 };
 
 export default CommentsSection;
-
