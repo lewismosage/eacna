@@ -4,16 +4,12 @@ import {
   Mail,
   MapPin,
   Calendar,
-  Edit,
-  Search,
-  Filter,
   Heart,
   MessageCircle,
   ExternalLink,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import AlertModal from "../../components/common/AlertModal";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -51,17 +47,6 @@ const ViewProfile = () => {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAlertModal, setShowAlertModal] = useState(false);
-  const [alertConfig, setAlertConfig] = useState<{
-    type: "info" | "success" | "warning" | "error" | "confirm";
-    title: string;
-    message: string;
-    onConfirm?: () => void;
-  }>({
-    type: "info",
-    title: "",
-    message: "",
-  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -120,42 +105,6 @@ const ViewProfile = () => {
     });
   };
 
-  const handleDeletePost = async (postId: string) => {
-    try {
-      const { error } = await supabase.from("posts").delete().eq("id", postId);
-
-      if (error) throw error;
-
-      setUserPosts(userPosts.filter((post) => post.id !== postId));
-      setShowAlertModal(false);
-      setAlertConfig({
-        type: "success",
-        title: "Success",
-        message: "Post deleted successfully",
-      });
-      setShowAlertModal(true);
-    } catch (error) {
-      console.error("Error deleting post:", error);
-      setAlertConfig({
-        type: "error",
-        title: "Error",
-        message: "Failed to delete post. Please try again.",
-      });
-      setShowAlertModal(true);
-    }
-  };
-
-  const confirmDeletePost = (post: Post) => {
-    setAlertConfig({
-      type: "confirm",
-      title: "Delete Post",
-      message:
-        "Are you sure you want to delete this post? This action cannot be undone.",
-      onConfirm: () => handleDeletePost(post.id),
-    });
-    setShowAlertModal(true);
-  };
-
   const PostsTab = () => {
     if (!userData) return null;
 
@@ -201,28 +150,6 @@ const ViewProfile = () => {
                       · {formatDate(post.created_at)}
                     </span>
                   </div>
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() => confirmDeletePost(post)}
-                    className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="1"></circle>
-                      <circle cx="12" cy="5" r="1"></circle>
-                      <circle cx="12" cy="19" r="1"></circle>
-                    </svg>
-                  </button>
                 </div>
               </div>
 
@@ -348,40 +275,6 @@ const ViewProfile = () => {
               </div>
             </div>
           </div>
-
-          {/* Replace Edit Profile with Search and Menu */}
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-full transition-colors">
-              <Search className="w-5 h-5" />
-            </button>
-            <button
-              className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-full transition-colors"
-              onClick={() => {
-                setAlertConfig({
-                  type: "info",
-                  title: "Update Profile Picture",
-                  message: "Feature coming soon!",
-                });
-                setShowAlertModal(true);
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="12" cy="5" r="1"></circle>
-                <circle cx="12" cy="19" r="1"></circle>
-              </svg>
-            </button>
-          </div>
         </div>
 
         {/* Bio */}
@@ -393,16 +286,6 @@ const ViewProfile = () => {
         )}
       </div>
       <PostsTab />
-      <AlertModal
-        isOpen={showAlertModal}
-        onClose={() => setShowAlertModal(false)}
-        onConfirm={alertConfig.onConfirm}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        confirmText={alertConfig.type === "confirm" ? "Delete" : "OK"}
-        cancelText={alertConfig.type === "confirm" ? "Cancel" : undefined}
-      />
     </div>
   );
 };

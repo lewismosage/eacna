@@ -427,9 +427,9 @@ const MemberPortal = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <Link to="/home" className="text-primary-800 font-bold text-xl">
+              <span className="text-primary-800 font-bold text-xl cursor-default">
                 EACNA Member Portal
-              </Link>
+              </span>
             </div>
 
             {/* Search */}
@@ -660,11 +660,11 @@ const MemberPortal = () => {
                 </li>
                 <li>
                   <Link
-                    to="/resources/journal-access"
+                    to="/resources"
                     className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-2"
                   >
                     <FileText className="w-4 h-4" />
-                    <span>Journal Access</span>
+                    <span>Resources & Publications</span>
                   </Link>
                 </li>
               </ul>

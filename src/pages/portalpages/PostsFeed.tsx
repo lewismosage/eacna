@@ -91,8 +91,6 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
   };
 
   useEffect(() => {
-    // Add console log to verify user.id is a UUID
-    console.log("User ID:", user?.id, "Type:", typeof user?.id);
     fetchPosts(0, true);
   }, [user?.id]);
 

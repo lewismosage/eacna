@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import Avatar from "./Avatar";
 import { formatDistanceToNow } from "date-fns";
-import { Link } from "react-router-dom";
 import type { Post } from "../../types";
 import CommentsSection from "./CommentsSection";
 
@@ -243,7 +242,7 @@ const Post = ({
       {/* Post header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <Link to={`/profile/${post.user_id}`}>
+          <div>
             <Avatar
               user={{
                 firstName: post.author_first_name,
@@ -252,14 +251,11 @@ const Post = ({
               }}
               size="md"
             />
-          </Link>
+          </div>
           <div>
-            <Link
-              to={`/profile/${post.user_id}`}
-              className="font-semibold text-gray-900 hover:underline"
-            >
+            <span className="font-semibold text-gray-900">
               {post.author_first_name} {post.author_last_name}
-            </Link>
+            </span>
             <p className="text-sm text-gray-500 flex items-center gap-2">
               {post.author_role && (
                 <>
