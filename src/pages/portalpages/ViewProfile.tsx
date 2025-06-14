@@ -49,6 +49,10 @@ const ViewProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const formatMembershipType = (membershipType: string) => {
+    return membershipType.replace('Membership', 'Member');
+  };
+
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -247,7 +251,7 @@ const ViewProfile = () => {
               {userData.first_name} {userData.last_name}
             </h1>
             <p className="text-primary-600 font-medium">
-              {userData.membership_type}
+              {formatMembershipType(userData.membership_type)}
             </p>
             {userData.current_profession && (
               <p className="text-gray-600 mt-1">

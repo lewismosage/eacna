@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSupabase } from "../../context/SupabaseContext";
 import { useUser } from "@supabase/auth-helpers-react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Search } from "lucide-react";
 import PostComponent from "./Post";
 import CreatePostCard from "./CreatePostCard";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
@@ -9,7 +9,7 @@ import type { Post } from "../../types";
 
 interface PostsFeedProps {
   user: {
-    id: string; // Ensure this is a UUID string
+    id: string;
     email?: string;
     user_metadata?: {
       first_name?: string;
@@ -17,9 +17,10 @@ interface PostsFeedProps {
       avatar_url?: string;
     };
   };
+  searchQuery?: string;
 }
 
-const PostsFeed = ({ user }: PostsFeedProps) => {
+const PostsFeed = ({ user, searchQuery = "" }: PostsFeedProps) => {
   const supabase = useSupabase();
   const authUser = useUser();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -34,22 +35,28 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
       setLoading(true);
       setError(null);
 
-      // 1. Fetch posts with author data directly from posts table
-      const { data: postsData, error: postsError } = await supabase
+      let query = supabase
         .from("posts")
         .select(
           `
-        *,
-        likes:reactions(count),
-        comments:comments(count)
-      `
+          *,
+          likes:reactions(count),
+          comments:comments(count)
+        `
         )
-        .order("created_at", { ascending: false })
-        .range(pageNum * postsPerPage, (pageNum + 1) * postsPerPage - 1);
+        .order("created_at", { ascending: false });
+
+      if (searchQuery) {
+        query = query.ilike("content", `%${searchQuery}%`);
+      }
+
+      const { data: postsData, error: postsError } = await query.range(
+        pageNum * postsPerPage,
+        (pageNum + 1) * postsPerPage - 1
+      );
 
       if (postsError) throw postsError;
 
-      // 2. Get current user's liked posts
       const { data: currentMember } = await supabase
         .from("membership_directory")
         .select("user_id")
@@ -63,7 +70,6 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
             .eq("user_id", currentMember.user_id)
         : { data: null };
 
-      // 3. Process posts using the author data from posts table
       const processedPosts = (postsData || []).map((post) => ({
         id: post.id,
         user_id: post.user_id,
@@ -92,7 +98,7 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
 
   useEffect(() => {
     fetchPosts(0, true);
-  }, [user?.id]);
+  }, [user?.id, searchQuery]);
 
   const handleCreatePost = async (content: string, attachments?: File[]) => {
     if (!user?.email || !content.trim()) {
@@ -193,7 +199,27 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
         }}
       />
 
-      {/* Add a container with fixed height and scroll */}
+      {searchQuery && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <h3 className="text-lg font-medium text-gray-800 flex items-center gap-2">
+            <Search className="w-5 h-5" />
+            Search results for "{searchQuery}"
+          </h3>
+          {posts.length === 0 && !loading && (
+            <p className="text-gray-500 mt-2">
+              No posts found matching your search.
+            </p>
+          )}
+        </div>
+      )}
+
+      {searchQuery && loading && (
+        <div className="flex justify-center py-4">
+          <LoadingSpinner />
+          <span className="ml-2 text-gray-600">Searching posts...</span>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <div className="max-h-[calc(130vh-300px)] overflow-y-auto space-y-4">
           {error && (
@@ -222,7 +248,7 @@ const PostsFeed = ({ user }: PostsFeedProps) => {
             />
           ))}
 
-          {hasMore && (
+          {hasMore && !searchQuery && (
             <div className="flex justify-center mt-6">
               <button
                 onClick={() => {

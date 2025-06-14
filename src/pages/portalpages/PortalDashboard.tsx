@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { debounce } from "lodash";
 import {
   Users,
   BookOpen,
+  Bell,
   Search,
   ThumbsUp,
   MessageCircle,
@@ -314,6 +316,14 @@ const CreatePostCard = ({ user }: { user: User }) => {
   );
 };
 
+// Add debounce function outside the component
+const debouncedSearch = debounce(
+  (query: string, setIsSearching: (value: boolean) => void) => {
+    setIsSearching(query.length > 0);
+  },
+  300
+);
+
 const MemberPortal = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -325,6 +335,15 @@ const MemberPortal = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Clean up debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, []);
 
   // Fetch user data on component mount
   useEffect(() => {
@@ -375,6 +394,7 @@ const MemberPortal = () => {
   const navItems = [
     { icon: Users, label: "Home Feed", path: "home" },
     { icon: BookOpen, label: "Publications", path: "my-publications" },
+    { icon: User, label: "Specialists", path: "find-specialist" },
   ];
 
   // Format member since date
@@ -435,9 +455,26 @@ const MemberPortal = () => {
                 <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search the community..."
+                  placeholder="Search posts..."
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchQuery(value);
+                    debouncedSearch(value, setIsSearching);
+                  }}
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setIsSearching(false);
+                    }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
 
@@ -612,10 +649,16 @@ const MemberPortal = () => {
                   key={item.path}
                   icon={item.icon}
                   label={item.label}
-                  to={`/portal/${item.path}`}
+                  to={
+                    item.path === "find-specialist"
+                      ? "/find-specialist"
+                      : `/portal/${item.path}`
+                  }
                   active={currentTab === item.path}
                   onClick={() => {
-                    if (item.path !== "home") {
+                    if (item.path === "find-specialist") {
+                      navigate("/find-specialist");
+                    } else if (item.path !== "home") {
                       navigate(`/portal/${item.path}`);
                     }
                     setCurrentTab(item.path);
@@ -681,7 +724,9 @@ const MemberPortal = () => {
                       : "bg-white text-gray-600 border border-gray-100"
                   }`}
                   onClick={() => {
-                    if (item.path !== "home") {
+                    if (item.path === "find-specialist") {
+                      navigate("/find-specialist");
+                    } else if (item.path !== "home") {
                       navigate(`/portal/${item.path}`);
                     }
                     setCurrentTab(item.path);
@@ -708,6 +753,7 @@ const MemberPortal = () => {
                       avatar_url: userData.profile_image || undefined,
                     },
                   }}
+                  searchQuery={isSearching ? searchQuery : ""}
                 />
                 <div className="lg:w-72">
                   <EventsSidebar />
@@ -720,6 +766,16 @@ const MemberPortal = () => {
                   My Publications
                 </h2>
                 <WritePublication />
+              </div>
+            )}
+            {currentTab === "find-specialist" && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <h2 className="text-2xl font-bold text-primary-800 mb-6">
+                  Find a Specialist
+                </h2>
+                <div className="text-gray-600">
+                  Redirecting to specialists directory...
+                </div>
               </div>
             )}
           </div>
