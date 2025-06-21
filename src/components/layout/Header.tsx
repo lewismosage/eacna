@@ -108,6 +108,24 @@ const Header = () => {
     };
   }, []);
 
+  const handleResultClick = (url: string) => {
+    setShowSearchResults(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
+    navigate(normalizedUrl);
+    closeMenu();
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchResults.length > 0) {
+      handleResultClick(searchResults[0].url);
+    } else if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
   // Search handler
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -123,30 +141,12 @@ const Header = () => {
     }
   };
 
-  // Handle search result selection
-  const handleResultClick = (url: string) => {
-    navigate(url);
-    setSearchQuery("");
-    setSearchResults([]);
-    setShowSearchResults(false);
-    closeMenu();
-  };
-
-  // Handle search submission
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchResults.length > 0) {
-      handleResultClick(searchResults[0].url);
-    }
-  };
-
   const navLinks = [
-    //{ to: "/", label: "Home" },
-    { to: "/about", label: "About Us" },
+    { to: "/", label: "Home" },
+    { to: "/about", label: "About" },
     { to: "/training", label: "Training & Conferences" },
     { to: "/membership", label: "Membership" },
     { to: "/resources", label: "Resources" },
-    //{ to: "/gallery", label: "Gallery" },
     { to: "/find-specialist", label: "Find a Specialist" },
     { to: "/contact", label: "Contact Us" },
   ];
@@ -154,141 +154,124 @@ const Header = () => {
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        scrolled ? "bg-white shadow-md" : "bg-transparent"
+        scrolled ? "bg-white shadow-md" : "bg-white"
       }`}
     >
-      <div className="container-custom">
-        <div className="flex items-center justify-between py-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 text-primary-700">
-            <img
-              src="/eacnaLogo.jpg"
-              alt="EACNA Logo"
-              className="h-12 w-auto"
-            />
-            <div>
-              <span className="text-xl font-bold font-display tracking-tight block">
-                EACNA
-              </span>
-              <span className="text-xs text-primary-600 tracking-wider block">
-                East African Child Neurology Association
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? "text-primary-700 bg-primary-50"
-                      : "text-gray-700 hover:text-primary-600 hover:bg-gray-100"
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-
-            {/* Search Bar */}
-            <div className="relative ml-2" ref={searchRef}>
-              <form onSubmit={handleSearchSubmit}>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  onFocus={() =>
-                    searchQuery.length > 0 && setShowSearchResults(true)
-                  }
-                  className="w-48 px-3 py-1.5 text-xs text-gray-900 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                >
-                  <Search className="h-4 w-4 text-gray-500" />
-                </button>
-              </form>
-
-              {showSearchResults && searchResults.length > 0 && (
-                <div className="absolute mt-2 w-64 bg-white rounded-lg shadow-lg py-2 border border-gray-200 z-50">
-                  {searchResults.map((result, index) => (
-                    <div
-                      key={index}
-                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleResultClick(result.url)}
-                    >
-                      <div className="font-medium text-primary-600">
-                        {result.title}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {result.description}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </nav>
-
-          {/* Button group */}
-          <div className="hidden lg:flex items-center space-x-2">
+      <div className="container mx-auto px-4">
+        <div className="flex">
+          {/* Logo spanning both rows */}
+          <div className="flex flex-col justify-center items-center mr-8">
             <Link
-              to="/membership"
-              className="btn btn-primary px-3 py-1.5 text-xs"
+              to="/"
+              className="flex flex-col items-center text-primary-700 select-none"
             >
-              Join/Renew
+              <img
+                src="/eacnaLogo.jpg"
+                alt="EACNA Logo"
+                className="h-24 w-auto md:h-32 lg:h-36 transition-all duration-300"
+                style={{ minHeight: "96px" }}
+              />
             </Link>
-            <button
-              onClick={handleLoginClick}
-              className="btn border-primary-600 text-primary-600 hover:bg-primary-50 px-3 py-1.5 text-xs"
-            >
-              {isLoggedIn ? "Member Portal" : "Login"}
-            </button>
           </div>
-
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-primary-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
-            onClick={toggleMenu}
-          >
-            <span className="sr-only">Open main menu</span>
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          {/* Right side: stacked rows */}
+          <div className="flex-1 flex flex-col justify-between">
+            {/* Upper Row: Membership buttons and Search */}
+            <div className="flex justify-end items-center py-2 border-b border-gray-100 space-x-3">
+              <Link
+                to="/membership"
+                className="btn bg-purple-900 text-white hover:bg-purple-950 px-4 py-2 text-sm font-medium"
+              >
+                Join/Renew
+              </Link>
+              <button
+                onClick={handleLoginClick}
+                className="btn border-purple-600 text-purple-600 hover:bg-primary-50 px-4 py-2 text-sm font-medium"
+              >
+                {isLoggedIn ? "Member Portal" : "Login"}
+              </button>
+              <div className="relative ml-3 hidden md:block" ref={searchRef}>
+                <form onSubmit={handleSearchSubmit}>
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={() =>
+                      searchQuery.length > 0 && setShowSearchResults(true)
+                    }
+                    className="w-48 px-4 py-2 text-sm text-gray-900 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  >
+                    <Search className="h-4 w-4 text-gray-500" />
+                  </button>
+                </form>
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="absolute mt-2 w-64 bg-white rounded-lg shadow-lg py-2 border border-gray-200 z-50">
+                    {searchResults.map((result, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleResultClick(result.url)}
+                      >
+                        <div className="font-medium text-primary-600">
+                          {result.title}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {result.description}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Lower Row: Navigation links */}
+            <div className="flex items-center justify-end py-4 lg:bg-purple-950 w-full">
+              <nav className="hidden lg:flex items-center space-x-2">
+                {navLinks.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    className={({ isActive }) =>
+                      `px-4 py-2 rounded-md text-base font-medium transition-colors text-white ${
+                        isActive
+                          ? "bg-purple-900"
+                          : "hover:text-purple-200 hover:bg-purple-950"
+                      }`
+                    }
+                  >
+                    {link.label}
+                  </NavLink>
+                ))}
+              </nav>
+              {/* Mobile menu button */}
+              <button
+                type="button"
+                className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-primary-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 ml-2"
+                onClick={toggleMenu}
+              >
+                <span className="sr-only">Open main menu</span>
+                {isOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-
         {/* Mobile menu */}
         <div
           className={`lg:hidden transition-all duration-300 overflow-hidden ${
-            isOpen ? "max-h-screen opacity-100 pb-6" : "max-h-0 opacity-0"
+            isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <nav className="flex flex-col space-y-1 mt-2">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  `px-4 py-3 rounded-md text-base font-medium ${
-                    isActive
-                      ? "text-primary-700 bg-primary-50"
-                      : "text-gray-700 hover:text-primary-600 hover:bg-gray-100"
-                  }`
-                }
-                onClick={closeMenu}
-              >
-                {link.label}
-              </NavLink>
-            ))}
-
+          <div className="pt-2 pb-4 space-y-2">
             {/* Mobile Search */}
-            <div className="px-4 py-2" ref={searchRef}>
+            <div className="px-2" ref={searchRef}>
               <form onSubmit={handleSearchSubmit}>
                 <div className="relative">
                   <input
@@ -330,22 +313,26 @@ const Header = () => {
               )}
             </div>
 
-            <div className="flex flex-col space-y-2 pt-4">
-              <Link
-                to="/membership"
-                className="btn btn-primary"
-                onClick={closeMenu}
-              >
-                Join/Renew
-              </Link>
-              <button
-                onClick={handleLoginClick}
-                className="btn border-primary-600 text-primary-600 hover:bg-primary-50"
-              >
-                {isLoggedIn ? "Member Portal" : "Login"}
-              </button>
-            </div>
-          </nav>
+            {/* Mobile Navigation Links */}
+            <nav className="flex flex-col space-y-1">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  className={({ isActive }) =>
+                    `px-4 py-3 rounded-md text-base font-medium ${
+                      isActive
+                        ? "text-primary-700 bg-primary-50"
+                        : "text-gray-700 hover:text-primary-600 hover:bg-gray-100"
+                    }`
+                  }
+                  onClick={closeMenu}
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
         </div>
       </div>
     </header>
