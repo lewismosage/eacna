@@ -67,5 +67,16 @@ export default {
       },
     },
   },
+  safelist: [
+    'bg-purple-800',
+    'text-purple-200',
+    'border-white/20',
+    'bg-white/10',
+    'backdrop-blur-sm',
+    {
+      pattern: /bg-purple-(50|100|200|300|400|500|600|700|800|900|950)/,
+      variants: ['hover', 'focus'],
+    },
+  ],
   plugins: [],
 };

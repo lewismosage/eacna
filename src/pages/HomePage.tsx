@@ -175,43 +175,30 @@ const HomePage = () => {
       {/* Events Section */}
       <EventsSection />
 
-      {/* Leadership Section */}
-      <Section className="py-16 bg-purple-800 text-white">
+      {/* Executive Committee Section */}
+      <Section
+        className="py-16 text-white"
+        style={{ backgroundColor: "#6b21a8" }} // Inline fallback
+      >
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
-            <motion.h2
-              className="text-3xl font-bold mb-4"
-              variants={fadeIn}
-              initial="hidden"
-              whileInView="visible"
-            >
-              Executive Committee
-            </motion.h2>
-            <motion.p
-              className="text-purple-200 max-w-2xl mx-auto"
-              variants={fadeIn}
-              initial="hidden"
-              whileInView="visible"
-              transition={{ delay: 0.1 }}
-            >
+            <h2 className="text-3xl font-bold mb-4">Executive Committee</h2>
+            <p className="text-purple-200 max-w-2xl mx-auto">
               The East African Child Neurology Association (EACNA) is guided by
               a diverse and experienced leadership team committed to advancing
               child neurology across the region.
-            </motion.p>
+            </p>
           </div>
 
-          <motion.div
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-          >
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {leaders.map((leader) => (
-              <motion.div
+              <div
                 key={leader.id}
-                variants={itemVariants}
-                className="bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors"
+                className="bg-white/10 p-6 rounded-xl border border-white/20"
+                style={{
+                  backdropFilter: "blur(10px)",
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                }}
               >
                 <div className="flex flex-col items-center text-center">
                   <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white/20 mb-4">
@@ -222,17 +209,13 @@ const HomePage = () => {
                     />
                   </div>
                   <h3 className="text-xl font-bold">{leader.name}</h3>
-                  <p className="text-purple-100 font-medium mb-2">
+                  <p className="text-purple-100 font-medium">
                     {leader.position}
                   </p>
-                  {/* Uncomment if you want to include bios
-                  <p className="text-white/90 mt-2">
-                    {leader.bio}
-                  </p> */}
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </Section>
 
