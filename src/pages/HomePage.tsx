@@ -34,6 +34,14 @@ const itemVariants = {
   },
 };
 
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.5 },
+  },
+};
+
 const HomePage = () => {
   // Leadership Team
   const leaders = [
@@ -114,19 +122,7 @@ const HomePage = () => {
             <Button
               size="lg"
               to="/membership"
-              style={{
-                backgroundColor: "rgb(82, 42, 127)",
-                color: "white",
-                borderRadius: "0.375rem",
-                padding: "0.75rem 1.5rem",
-                fontWeight: 600,
-              }}
-              onMouseOver={(
-                e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-              ) => (e.currentTarget.style.backgroundColor = "rgb(65, 33, 102)")}
-              onMouseOut={(
-                e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-              ) => (e.currentTarget.style.backgroundColor = "rgb(82, 42, 127)")}
+              className="bg-purple-600 hover:bg-purple-700"
             >
               Join EACNA Today
             </Button>
@@ -155,22 +151,7 @@ const HomePage = () => {
               enhance paediatric neurological care and provide education and
               resources for medical professionals.
             </p>
-            <Button
-              to="/about"
-              style={{
-                backgroundColor: "rgb(82, 42, 127)",
-                color: "white",
-                borderRadius: "0.375rem",
-                padding: "0.75rem 1.5rem",
-                fontWeight: 600,
-              }}
-              onMouseOver={(
-                e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-              ) => (e.currentTarget.style.backgroundColor = "rgb(65, 33, 102)")}
-              onMouseOut={(
-                e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-              ) => (e.currentTarget.style.backgroundColor = "rgb(82, 42, 127)")}
-            >
+            <Button to="/about" className="bg-purple-600 hover:bg-purple-700">
               Read More About Us
             </Button>
           </div>
@@ -195,48 +176,64 @@ const HomePage = () => {
       <EventsSection />
 
       {/* Leadership Section */}
-      <Section className="bg-purple-950 text-white">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Executive Commitee</h2>
-          <p className="text-purple-200 max-w-2xl mx-auto">
-            The East African Child Neurology Association (EACNA) is guided by a
-            diverse and experienced leadership team committed to advancing child
-            neurology across the region.
-          </p>
-        </div>
+      <Section className="py-16 bg-purple-800 text-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <motion.h2
+              className="text-3xl font-bold mb-4"
+              variants={fadeIn}
+              initial="hidden"
+              whileInView="visible"
+            >
+              Executive Committee
+            </motion.h2>
+            <motion.p
+              className="text-purple-200 max-w-2xl mx-auto"
+              variants={fadeIn}
+              initial="hidden"
+              whileInView="visible"
+              transition={{ delay: 0.1 }}
+            >
+              The East African Child Neurology Association (EACNA) is guided by
+              a diverse and experienced leadership team committed to advancing
+              child neurology across the region.
+            </motion.p>
+          </div>
 
-        <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
-        >
-          {leaders.map((leader) => (
-            <motion.div key={leader.id} variants={itemVariants}>
-              <Card>
-                <div className="aspect-w-3 aspect-h-4 relative">
-                  <img
-                    src={leader.image}
-                    alt={leader.name}
-                    className="w-full h-64 object-cover object-center"
-                  />
-                </div>
-                <CardContent>
-                  <h3 className="text-xl font-bold text-black">
-                    {leader.name}
-                  </h3>
-                  <p className="font-medium mb-2 text-black">
+          <motion.div
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+          >
+            {leaders.map((leader) => (
+              <motion.div
+                key={leader.id}
+                variants={itemVariants}
+                className="bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white/20 mb-4">
+                    <img
+                      src={leader.image}
+                      alt={leader.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <h3 className="text-xl font-bold">{leader.name}</h3>
+                  <p className="text-purple-100 font-medium mb-2">
                     {leader.position}
                   </p>
-                  {/*<p className="font-medium mb-2 text-black">
+                  {/* Uncomment if you want to include bios
+                  <p className="text-white/90 mt-2">
                     {leader.bio}
                   </p> */}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
       </Section>
 
       {/* CTA Section */}
@@ -250,19 +247,7 @@ const HomePage = () => {
           <Button
             size="lg"
             to="/membership"
-            style={{
-              backgroundColor: "rgb(82, 42, 127)",
-              color: "white",
-              borderRadius: "0.375rem",
-              padding: "0.75rem 1.5rem",
-              fontWeight: 600,
-            }}
-            onMouseOver={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) =>
-              (e.currentTarget.style.backgroundColor = "rgb(65, 33, 102)")
-            }
-            onMouseOut={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) =>
-              (e.currentTarget.style.backgroundColor = "rgb(82, 42, 127)")
-            }
+            className="bg-purple-600 hover:bg-purple-700"
           >
             Join EACNA Today
           </Button>

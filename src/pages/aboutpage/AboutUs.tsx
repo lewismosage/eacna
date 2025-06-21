@@ -173,79 +173,83 @@ const AboutPage = () => {
       </Section>
 
       {/* Vision & Mission Section */}
-      <Section className="py-16 bg-purple-950 text-white">
-        <div className="grid md:grid-cols-2 gap-12">
-          <motion.div
-            className="bg-white/10 p-8 rounded-xl shadow-sm border border-white/20"
-            variants={fadeIn}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"></path>
-                  <path d="M8.5 8.5v.01"></path>
-                  <path d="M16 15.5v.01"></path>
-                  <path d="M12 12v.01"></path>
-                  <path d="M11 17v.01"></path>
-                  <path d="M7 14v.01"></path>
-                </svg>
+      <Section className="py-16 bg-purple-800 text-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Vision Card */}
+            <motion.div
+              className="bg-white/10 p-8 rounded-xl backdrop-blur-sm border border-white/20"
+              variants={fadeIn}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"></path>
+                    <path d="M8.5 8.5v.01"></path>
+                    <path d="M16 15.5v.01"></path>
+                    <path d="M12 12v.01"></path>
+                    <path d="M11 17v.01"></path>
+                    <path d="M7 14v.01"></path>
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold">Our Vision</h3>
               </div>
-              <h3 className="text-2xl font-bold text-white">Our Vision</h3>
-            </div>
-            <p className="text-white/90 leading-relaxed">
-              To be the leading force in transforming pediatric neurological
-              care across East Africa, ensuring every child has access to
-              world-class diagnosis, treatment, and support for neurological
-              conditions.
-            </p>
-          </motion.div>
+              <p className="leading-relaxed">
+                To be the leading force in transforming pediatric neurological
+                care across East Africa, ensuring every child has access to
+                world-class diagnosis, treatment, and support for neurological
+                conditions.
+              </p>
+            </motion.div>
 
-          <motion.div
-            className="bg-white/10 p-8 rounded-xl shadow-sm border border-white/20"
-            variants={fadeIn}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
+            {/* Mission Card */}
+            <motion.div
+              className="bg-white/10 p-8 rounded-xl backdrop-blur-sm border border-white/20"
+              variants={fadeIn}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold">Our Mission</h3>
               </div>
-              <h3 className="text-2xl font-bold text-white">Our Mission</h3>
-            </div>
-            <p className="text-white/90 leading-relaxed">
-              To advance pediatric neurology in East Africa through professional
-              development, research, advocacy, and collaboration, while
-              improving access to quality care for children with neurological
-              disorders.
-            </p>
-          </motion.div>
+              <p className="leading-relaxed">
+                To advance pediatric neurology in East Africa through
+                professional development, research, advocacy, and collaboration,
+                while improving access to quality care for children with
+                neurological disorders.
+              </p>
+            </motion.div>
+          </div>
         </div>
       </Section>
 
