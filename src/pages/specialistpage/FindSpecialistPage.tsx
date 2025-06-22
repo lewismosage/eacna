@@ -451,7 +451,7 @@ const FindSpecialistPage = () => {
                       <CardContent className="flex-1 md:p-6">
                         <div className="flex flex-wrap justify-between items-start">
                           <div>
-                            <h3 className="text-xl font-bold text-primary-800">
+                            <h3 className="text-xl font-bold text-gray-900">
                               {specialist.prefix && `${specialist.prefix} `}
                               {specialist.first_name} {specialist.last_name}
                             </h3>

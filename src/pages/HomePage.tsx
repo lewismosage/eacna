@@ -220,9 +220,11 @@ const HomePage = () => {
       </Section>
 
       {/* CTA Section */}
-      <Section background="white" className="text-center text-primary-800">
-        <h2 className="text-3xl font-bold mb-6">Ready to Make a Difference?</h2>
-        <p className="text-xl mb-8 max-w-2xl mx-auto">
+      <Section background="white" className="text-center">
+        <h2 className="text-3xl font-bold mb-6 text-primary-800">
+          Ready to Make a Difference?
+        </h2>
+        <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-700">
           Join EACNA today and be part of our mission to improve neurological
           care for children in East Africa.
         </p>

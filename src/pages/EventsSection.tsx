@@ -86,13 +86,13 @@ const EventsSection = () => {
         src={medicalBg}
         alt="Medical background"
         className="absolute inset-0 w-full h-full object-cover object-center z-0"
-        //style={{ opacity: 0.25 }}
+        style={{ opacity: 0.25 }}
       />
       <div className="relative z-10">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-purple font-bold mb-4 text-primary">
-            Upcoming Training Events
-          </h2>
+        <h2 className="text-2xl md:text-3xl font-bold mb-6 text-primary-800 relative">
+          Upcoming Training Events
+        </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Join us for these upcoming training opportunities and conferences in
             child neurology.
