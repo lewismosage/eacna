@@ -473,182 +473,180 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
         </div>
       </Section>
 
-      {/* Member Benefits */}
-      <Section className="bg-teal-800 text-white !bg-teal-800">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Member Benefits
-          </h2>
-          <p className="text-white/90 max-w-2xl mx-auto">
-            Each membership tier comes with its own set of benefits tailored to
-            your professional needs.
-          </p>
-        </div>
-
-        {/* Membership Tiers with Benefits */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Full Membership Card */}
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg border border-white/20 hover:bg-white/20 transition-all">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4 text-white">
-                <Award className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold">Full Membership</h3>
-            </div>
-            <ul className="space-y-3 text-white/80">
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Full voting rights in AGMs and elections</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Access to all research journals and publications</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Priority for conference speaking opportunities</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Eligibility for leadership positions</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Complimentary annual conference registration</span>
-              </li>
-            </ul>
+      {/* Member Benefits Section - Updated to Purple */}
+      <Section className="py-16 text-white" style={{ backgroundColor: "#6b21a8" }}>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">
+              Member Benefits
+            </h2>
+            <p className="text-purple-200 max-w-2xl mx-auto">
+              Each membership tier comes with its own set of benefits tailored to
+              your professional needs.
+            </p>
           </div>
 
-          {/* Associate Membership Card */}
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg border border-white/20 hover:bg-white/20 transition-all">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4 text-white">
-                <Users className="h-6 w-6" />
+          {/* Membership Tiers with Benefits - Updated Cards */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Full Membership Card */}
+            <div className="bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
+                  <Award className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">Full Membership</h3>
               </div>
-              <h3 className="text-xl font-semibold">Associate Membership</h3>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Full voting rights in AGMs and elections</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Access to all research journals and publications</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Priority for conference speaking opportunities</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Eligibility for leadership positions</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Complimentary annual conference registration</span>
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-3 text-white/80">
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Access to research journals and publications</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Participation in EACNA committees</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Discounted conference registration</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Mentorship program access</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Networking opportunities</span>
-              </li>
-            </ul>
-          </div>
 
-          {/* Student Membership Card */}
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg border border-white/20 hover:bg-white/20 transition-all">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4 text-white">
-                <GraduationCap className="h-6 w-6" />
+            {/* Associate Membership Card */}
+            <div className="bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">Associate Membership</h3>
               </div>
-              <h3 className="text-xl font-semibold">Student Membership</h3>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Access to research journals and publications</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Participation in EACNA committees</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Discounted conference registration</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Mentorship program access</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Networking opportunities</span>
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-3 text-white/80">
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Access to selected research materials</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Student mentorship programs</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Discounted conference rates</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Case study workshops</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Career development resources</span>
-              </li>
-            </ul>
-          </div>
 
-          {/* Institutional Membership Card */}
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg border border-white/20 hover:bg-white/20 transition-all">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4 text-white">
-                <BookOpen className="h-6 w-6" />
+            {/* Student Membership Card */}
+            <div className="bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
+                  <GraduationCap className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">Student Membership</h3>
               </div>
-              <h3 className="text-xl font-semibold">
-                Institutional Membership
-              </h3>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Access to selected research materials</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Student mentorship programs</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Discounted conference rates</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Case study workshops</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Career development resources</span>
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-3 text-white/80">
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Multiple staff registrations under one account</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Access to all research publications</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Collaboration opportunities</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Discounted group conference rates</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Institutional recognition on EACNA platforms</span>
-              </li>
-            </ul>
-          </div>
 
-          {/* Common Benefits Card */}
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg border border-white/20 hover:bg-white/20 transition-all md:col-span-2 lg:col-span-1">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4 text-white">
-                <CheckCircle className="h-6 w-6" />
+            {/* Institutional Membership Card */}
+            <div className="bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">Institutional Membership</h3>
               </div>
-              <h3 className="text-xl font-semibold">All Members Enjoy</h3>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Multiple staff registrations under one account</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Access to all research publications</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Collaboration opportunities</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Discounted group conference rates</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Institutional recognition on EACNA platforms</span>
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-3 text-white/80">
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Quarterly e-newsletter with latest developments</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Access to EACNA's professional network</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>
-                  Opportunities to contribute to guidelines and policies
-                </span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Reduced fees for EACNA-sponsored workshops</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-300" />
-                <span>Certificate of membership</span>
-              </li>
-            </ul>
+
+            {/* Common Benefits Card */}
+            <div className="bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-colors md:col-span-2 lg:col-span-1">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
+                  <CheckCircle className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">All Members Enjoy</h3>
+              </div>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Quarterly e-newsletter with latest developments</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Access to EACNA's professional network</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Opportunities to contribute to guidelines and policies</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Reduced fees for EACNA-sponsored workshops</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
+                  <span>Certificate of membership</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </Section>
