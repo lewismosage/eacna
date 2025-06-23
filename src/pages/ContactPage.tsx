@@ -85,7 +85,6 @@ const ContactPage = () => {
       <section className="relative bg-gradient-to-r from-primary-900 via-primary-800 to-primary-700 text-white">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/4226262/pexels-photo-4226262.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center mix-blend-overlay"></div>
         </div>
         
         <div className="container-custom relative py-24">
@@ -121,8 +120,7 @@ const ContactPage = () => {
                         Visit Us
                       </h3>
                       <p className="mt-1 text-gray-600">
-                        5th Ngong Avenue<br />
-                        Avenue Suites<br />
+                        5th Avenue Suites<br />
                         6th Floor, Suite 8<br />
                         Nairobi, Kenya
                       </p>
@@ -135,7 +133,10 @@ const ContactPage = () => {
                         Call Us
                       </h3>
                       <p className="mt-1 text-gray-600">
-                        <a href="tel:+254123456789" className="text-primary-600 hover:underline">
+                        <a
+                          href="tel:+254123456789"
+                          className="text-primary-600 hover:underline"
+                        >
                           +254 123 456 789
                         </a>
                       </p>
@@ -148,7 +149,10 @@ const ContactPage = () => {
                         Email Us
                       </h3>
                       <p className="mt-1 text-gray-600">
-                        <a href="mailto:info@eacna.org" className="text-primary-600 hover:underline">
+                        <a
+                          href="mailto:info@eacna.org"
+                          className="text-primary-600 hover:underline"
+                        >
                           info@eacna.co.ke
                         </a>
                       </p>
@@ -161,7 +165,8 @@ const ContactPage = () => {
                         Office Hours
                       </h3>
                       <p className="mt-1 text-gray-600">
-                        Monday - Friday: 8:00 AM - 5:00 PM<br />
+                        Monday - Friday: 8:00 AM - 5:00 PM
+                        <br />
                       </p>
                     </div>
                   </div>
@@ -177,22 +182,27 @@ const ContactPage = () => {
                 <h2 className="text-2xl font-bold text-primary-800 mb-6">
                   Send Us a Message
                 </h2>
-                
+
                 {/* Status Message */}
                 {status.type && (
-                  <div className={`mb-6 p-4 rounded-md ${
-                    status.type === 'success' 
-                      ? 'bg-green-50 text-green-700 border border-green-200' 
-                      : 'bg-red-50 text-red-700 border border-red-200'
-                  }`}>
+                  <div
+                    className={`mb-6 p-4 rounded-md ${
+                      status.type === "success"
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                    }`}
+                  >
                     {status.message}
                   </div>
                 )}
-                
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
+                      <label
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                        htmlFor="name"
+                      >
                         Full Name *
                       </label>
                       <input
@@ -206,7 +216,10 @@ const ContactPage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
+                      <label
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                        htmlFor="email"
+                      >
                         Email Address *
                       </label>
                       <input
@@ -223,7 +236,10 @@ const ContactPage = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="phone">
+                      <label
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                        htmlFor="phone"
+                      >
                         Phone Number
                       </label>
                       <input
@@ -236,7 +252,10 @@ const ContactPage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="preferred_contact_method">
+                      <label
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                        htmlFor="preferred_contact_method"
+                      >
                         Preferred Contact Method
                       </label>
                       <select
@@ -253,7 +272,10 @@ const ContactPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="subject">
+                    <label
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                      htmlFor="subject"
+                    >
                       Subject *
                     </label>
                     <select
@@ -273,7 +295,10 @@ const ContactPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="message">
+                    <label
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                      htmlFor="message"
+                    >
                       Message *
                     </label>
                     <textarea
@@ -317,7 +342,7 @@ const ContactPage = () => {
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="aspect-w-16 aspect-h-9">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.8193213776024!2d36.81275261475895!3d-1.2924399990631648!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f10d22f42bf25%3A0x8f4f6c6c4b9fa84b!2s5th%20Avenue%20Suites!5e0!3m2!1sen!2sus!4v1647940434242!5m2!1sen!2sus"
+                src="https://www.google.com/maps?q=5th+Avenue+Suites,+Nairobi,+Kenya&output=embed"
                 width="100%"
                 height="450"
                 style={{ border: 0 }}
@@ -325,6 +350,16 @@ const ContactPage = () => {
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               ></iframe>
+            </div>
+            <div className="flex justify-center">
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=5th+Avenue+Suites,+Nairobi,+Kenya"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn border-purple-600 text-purple-600 hover:bg-primary-50 px-4 py-2 text-sm font-medium mt-4 mb-6"
+              >
+                Get Directions
+              </a>
             </div>
           </div>
         </div>
