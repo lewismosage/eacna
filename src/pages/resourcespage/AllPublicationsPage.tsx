@@ -161,8 +161,11 @@ const AllPublicationsPage = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="bg-primary-800 text-white py-16">
-        <div className="container-custom">
+      <section className="relative bg-gradient-to-r from-primary-900 via-primary-800 to-primary-700 text-white">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+        </div>
+        <div className="container-custom relative py-16">
           <motion.h1
             className="text-3xl md:text-4xl font-bold mb-4"
             variants={fadeIn}
@@ -171,7 +174,6 @@ const AllPublicationsPage = () => {
           >
             Publications
           </motion.h1>
-
           <motion.p
             className="text-lg max-w-2xl mb-6 text-white/90"
             variants={fadeIn}

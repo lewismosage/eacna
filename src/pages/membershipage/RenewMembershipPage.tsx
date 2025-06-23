@@ -197,26 +197,26 @@ export default function MembershipRenewalPage() {
 
       // Create payment record with all required fields
       const { data: paymentData, error: paymentError } = await supabase
-      .from("payments")
-      .insert({
-        transaction_id: transactionId,
-        amount: membershipTiers[membershipTier].price,
-        currency: "KES",
-        payment_method: dbPaymentMethod, // mapped from frontend
-        status: "pending",
-        user_id: memberData.user_id,
-        first_name: memberData.first_name,
-        last_name: memberData.last_name,
-        email: memberData.email,
-        
-        payment_type: actionType === "renew" ? "renewal" : "upgrade",
-        membership_tier: membershipTier,
-        membership_id: memberData.membership_id, // Existing ID for renewals
-        previous_tier: actionType === "upgrade" ? originalTier : null,
-        expiry_date: newExpiryDate.toISOString(),
-      })
-      .select()
-      .single();
+        .from("payments")
+        .insert({
+          transaction_id: transactionId,
+          amount: membershipTiers[membershipTier].price,
+          currency: "KES",
+          payment_method: dbPaymentMethod, // mapped from frontend
+          status: "pending",
+          user_id: memberData.user_id,
+          first_name: memberData.first_name,
+          last_name: memberData.last_name,
+          email: memberData.email,
+
+          payment_type: actionType === "renew" ? "renewal" : "upgrade",
+          membership_tier: membershipTier,
+          membership_id: memberData.membership_id, // Existing ID for renewals
+          previous_tier: actionType === "upgrade" ? originalTier : null,
+          expiry_date: newExpiryDate.toISOString(),
+        })
+        .select()
+        .single();
 
       if (paymentError) throw paymentError;
       if (!paymentData) throw new Error("Payment record not created");
@@ -289,7 +289,7 @@ export default function MembershipRenewalPage() {
               setIsModalOpen(true);
               setStep(1);
             }}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
           >
             Search Again
           </button>
@@ -437,7 +437,7 @@ export default function MembershipRenewalPage() {
                   setSearchError("Please select a new membership tier");
                 }
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             >
               Continue to Payment
             </button>
@@ -463,7 +463,7 @@ export default function MembershipRenewalPage() {
               setIsModalOpen(true);
               setStep(1);
             }}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
           >
             Search Again
           </button>
@@ -577,7 +577,7 @@ export default function MembershipRenewalPage() {
 
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 flex items-center"
                   disabled={submitLoading || submitted || !paymentMethod}
                 >
                   {submitLoading ? (
@@ -685,7 +685,7 @@ export default function MembershipRenewalPage() {
 
       <button
         onClick={() => (window.location.href = "/")}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
       >
         HOME
       </button>
@@ -695,12 +695,10 @@ export default function MembershipRenewalPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-primary-800 text-white">
+      <section className="relative bg-gradient-to-r from-primary-900 via-primary-800 to-primary-700 text-white">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-900 to-primary-700 opacity-90"></div>
-          <div className="absolute inset-0 bg-[url('/api/placeholder/1400/600')] bg-cover bg-center mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
-
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative py-16 md:py-24">
           <h1 className="text-3xl md:text-5xl font-bold mb-6 max-w-3xl">
             Renew or Upgrade Your EACNA Membership
@@ -848,7 +846,7 @@ export default function MembershipRenewalPage() {
                 <button
                   type="button"
                   onClick={handleSearch}
-                  className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+                  className="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 sm:ml-3 sm:w-auto"
                   disabled={searchLoading}
                 >
                   {searchLoading ? (

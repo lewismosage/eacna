@@ -13,7 +13,6 @@ import Button from "../../components/common/Button";
 import Accordion from "../../components/common/Accordion";
 import MembershipForm from "./MembershipForm";
 
-
 interface MembershipPageProps {
   setShowPaymentModal: (value: boolean) => void;
 }
@@ -149,7 +148,11 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Who can join EACNA?",
       content: (
         <p>
-          Membership is open to individuals and institutions involved in or supportive of child neurology in East Africa. This includes pediatric neurologists, general pediatricians, neurosurgeons, child psychologists, therapists, researchers, and students pursuing relevant training.
+          Membership is open to individuals and institutions involved in or
+          supportive of child neurology in East Africa. This includes pediatric
+          neurologists, general pediatricians, neurosurgeons, child
+          psychologists, therapists, researchers, and students pursuing relevant
+          training.
         </p>
       ),
     },
@@ -158,7 +161,11 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "What's the difference between full and associate membership?",
       content: (
         <p>
-          Full membership is reserved for certified child neurology professionals and specialists. Associate members are typically allied health professionals, researchers, or practitioners in related disciplines who contribute to the field but may not hold specialist certifications.
+          Full membership is reserved for certified child neurology
+          professionals and specialists. Associate members are typically allied
+          health professionals, researchers, or practitioners in related
+          disciplines who contribute to the field but may not hold specialist
+          certifications.
         </p>
       ),
     },
@@ -167,7 +174,9 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How long does approval take?",
       content: (
         <p>
-          Approval typically takes between 5–7 working days after we receive your completed application and payment. In some cases, it may take longer if additional documentation or verification is required.
+          Approval typically takes between 5–7 working days after we receive
+          your completed application and payment. In some cases, it may take
+          longer if additional documentation or verification is required.
         </p>
       ),
     },
@@ -176,7 +185,10 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Can I change my membership type later?",
       content: (
         <p>
-          Yes. If your qualifications or role changes, you may request to upgrade or modify your membership type by submitting updated credentials or documents. Our Membership Committee will review and respond accordingly.
+          Yes. If your qualifications or role changes, you may request to
+          upgrade or modify your membership type by submitting updated
+          credentials or documents. Our Membership Committee will review and
+          respond accordingly.
         </p>
       ),
     },
@@ -185,7 +197,11 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How do I know which membership category I qualify for?",
       content: (
         <p>
-          Each membership category has a detailed description on our website. If you're uncertain about where you fit, feel free to reach out to our Membership Team via email at <a href="mailto:admin@eacna.co.ke">admin@eacna.co.ke</a> for personalized guidance.
+          Each membership category has a detailed description on our website. If
+          you're uncertain about where you fit, feel free to reach out to our
+          Membership Team via email at{" "}
+          <a href="mailto:admin@eacna.co.ke">admin@eacna.co.ke</a> for
+          personalized guidance.
         </p>
       ),
     },
@@ -194,7 +210,10 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Is membership open to professionals outside East Africa?",
       content: (
         <p>
-          Absolutely. While our core focus is the East African region, we welcome international collaborators, researchers, and advocates in pediatric neurology who share our mission and wish to contribute to the region's neurological care landscape.
+          Absolutely. While our core focus is the East African region, we
+          welcome international collaborators, researchers, and advocates in
+          pediatric neurology who share our mission and wish to contribute to
+          the region's neurological care landscape.
         </p>
       ),
     },
@@ -203,7 +222,10 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Can I apply for membership as a student?",
       content: (
         <p>
-          Yes. Students enrolled in recognized training programs in health, medicine, or related fields are encouraged to apply under the student membership category. This offers access to networking opportunities, events, and educational resources.
+          Yes. Students enrolled in recognized training programs in health,
+          medicine, or related fields are encouraged to apply under the student
+          membership category. This offers access to networking opportunities,
+          events, and educational resources.
         </p>
       ),
     },
@@ -212,7 +234,9 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How long is the membership valid?",
       content: (
         <p>
-          Membership is valid for 12 months from the date of approval. To maintain access to benefits, you will need to renew your membership annually before your expiry date.
+          Membership is valid for 12 months from the date of approval. To
+          maintain access to benefits, you will need to renew your membership
+          annually before your expiry date.
         </p>
       ),
     },
@@ -221,7 +245,9 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Will I get a membership certificate?",
       content: (
         <p>
-          Yes. Once your membership has been approved and your payment confirmed, we will issue you an official EACNA membership certificate, which you can download or receive via email.
+          Yes. Once your membership has been approved and your payment
+          confirmed, we will issue you an official EACNA membership certificate,
+          which you can download or receive via email.
         </p>
       ),
     },
@@ -230,7 +256,10 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Can institutions enroll multiple staff under one membership?",
       content: (
         <p>
-          Yes. Institutional memberships are designed to accommodate multiple representatives under a single account. Each representative will be individually registered and listed, while the institution retains administrative access and group benefits.
+          Yes. Institutional memberships are designed to accommodate multiple
+          representatives under a single account. Each representative will be
+          individually registered and listed, while the institution retains
+          administrative access and group benefits.
         </p>
       ),
     },
@@ -239,7 +268,9 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "Can I cancel my membership and get a refund?",
       content: (
         <p>
-          Unfortunately, we do not offer refunds once membership payment has been processed. However, you can choose not to renew your membership in the following cycle without any penalties.
+          Unfortunately, we do not offer refunds once membership payment has
+          been processed. However, you can choose not to renew your membership
+          in the following cycle without any penalties.
         </p>
       ),
     },
@@ -248,12 +279,14 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       title: "How do I pay for my membership?",
       content: (
         <p>
-          You can make your payment using several convenient options, including mobile money (Mpesa), bank transfer, and card payments. Complete payment instructions are provided on the membership registration form and confirmation page.
+          You can make your payment using several convenient options, including
+          mobile money (Mpesa), bank transfer, and card payments. Complete
+          payment instructions are provided on the membership registration form
+          and confirmation page.
         </p>
       ),
     },
   ];
-  
 
   const handleFormComplete = (data: any) => {
     console.log("Form data:", data);
@@ -447,7 +480,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
                 </div>
 
                 <div className="flex justify-center order-1 md:order-2">
-                  <div className="relative w-10 h-10 rounded-full bg-accent-500 text-primary-900 flex items-center justify-center font-semibold text-lg">
+                  <div className="relative w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-semibold text-lg">
                     <CheckCircle className="h-6 w-6" />
                   </div>
                 </div>
@@ -474,15 +507,18 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       </Section>
 
       {/* Member Benefits Section - Updated to Purple */}
-      <Section className="py-16 text-white" style={{ backgroundColor: "#6b21a8" }}>
+      <Section
+        className="py-16 text-white"
+        style={{ backgroundColor: "#6b21a8" }}
+      >
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">
               Member Benefits
             </h2>
             <p className="text-purple-200 max-w-2xl mx-auto">
-              Each membership tier comes with its own set of benefits tailored to
-              your professional needs.
+              Each membership tier comes with its own set of benefits tailored
+              to your professional needs.
             </p>
           </div>
 
@@ -590,7 +626,9 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4 text-white">
                   <BookOpen className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">Institutional Membership</h3>
+                <h3 className="text-xl font-semibold">
+                  Institutional Membership
+                </h3>
               </div>
               <ul className="space-y-3 text-white/80">
                 <li className="flex items-start">
@@ -635,7 +673,9 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
                 </li>
                 <li className="flex items-start">
                   <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
-                  <span>Opportunities to contribute to guidelines and policies</span>
+                  <span>
+                    Opportunities to contribute to guidelines and policies
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-purple-300" />
