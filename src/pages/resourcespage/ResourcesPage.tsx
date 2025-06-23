@@ -327,7 +327,7 @@ const ResourcesPage = () => {
           </div>
 
           <div className="text-center mt-8">
-            <Button variant="secondary">View All Resources</Button>
+            <Button variant="primary">View All Resources</Button>
           </div>
         </Section>
       </div>

@@ -97,28 +97,26 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     // Validate at least one field is filled
     if (!firstName && !lastName && !phone && !email) {
       setSearchError("Please fill at least one search field");
       return;
     }
-  
+
     setSearchLoading(true);
     setSearchError("");
-  
+
     try {
       // Clean search terms
       const cleanFirstName = firstName.trim();
       const cleanLastName = lastName.trim();
       const cleanPhone = phone.trim();
       const cleanEmail = email.trim();
-  
+
       // Start building the query
-      let query = supabase
-        .from("membership_applications")
-        .select("*");
-  
+      let query = supabase.from("membership_applications").select("*");
+
       // Add conditions for each provided field
       if (cleanFirstName) {
         query = query.ilike("first_name", `%${cleanFirstName}%`);
@@ -132,44 +130,47 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
       if (cleanEmail) {
         query = query.ilike("email", `%${cleanEmail}%`);
       }
-  
+
       // Execute the query
       const { data, error } = await query;
-  
+
       if (error) throw error;
-  
+
       if (data && data.length > 0) {
         // Find the best match - prioritize exact matches
         let bestMatch = data[0];
-  
+
         if (cleanFirstName || cleanLastName) {
           const exactMatch = data.find(
             (app) =>
               (cleanFirstName &&
-                app.first_name?.toLowerCase() === cleanFirstName.toLowerCase()) ||
+                app.first_name?.toLowerCase() ===
+                  cleanFirstName.toLowerCase()) ||
               (cleanLastName &&
                 app.last_name?.toLowerCase() === cleanLastName.toLowerCase())
           );
-  
+
           if (exactMatch) {
             bestMatch = exactMatch;
           }
         }
-  
+
         const application = bestMatch;
-  
+
         // Check if application is approved
         if (application.application_status === "approved") {
           // Validate membership tier exists and is valid
           if (!application.membership_tier) {
             throw new Error("Membership tier is missing from application");
           }
-  
+
           // Check if the tier exists in our membershipTiers
           if (!membershipTiers[application.membership_tier as MembershipTier]) {
-            throw new Error(`Invalid membership tier: ${application.membership_tier}`);
+            throw new Error(
+              `Invalid membership tier: ${application.membership_tier}`
+            );
           }
-  
+
           setMemberData({
             id: application.id,
             user_id: application.user_id,
@@ -234,28 +235,30 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         online: "credit_card",
       };
 
-      const dbPaymentMethod = paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] || "other";
+      const dbPaymentMethod =
+        paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] ||
+        "other";
 
       // Submit payment
       const { data: paymentData, error: paymentError } = await supabase
-      .from("payments")
-      .insert({
-        user_id: memberData.user_id,
-        transaction_id: transactionId,
-        amount: tier.price,
-        currency: "KES",
-        payment_method: dbPaymentMethod,
-        status: "pending",
-        first_name: memberData.first_name,
-        last_name: memberData.last_name,
-        email: memberData.email,
-        payment_type: "application",
-        membership_id: memberData.membership_id,
-        membership_tier: memberData.membership_tier,
-        notes: "Payment submitted through member portal",
-      })
-      .select()
-      .single();
+        .from("payments")
+        .insert({
+          user_id: memberData.user_id,
+          transaction_id: transactionId,
+          amount: tier.price,
+          currency: "KES",
+          payment_method: dbPaymentMethod,
+          status: "pending",
+          first_name: memberData.first_name,
+          last_name: memberData.last_name,
+          email: memberData.email,
+          payment_type: "application",
+          membership_id: memberData.membership_id,
+          membership_tier: memberData.membership_tier,
+          notes: "Payment submitted through member portal",
+        })
+        .select()
+        .single();
 
       if (paymentError) throw paymentError;
 
@@ -354,7 +357,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
             disabled={searchLoading}
           >
             {searchLoading ? (
@@ -509,7 +512,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                 <button
                   type="button"
                   onClick={handleSubmitPayment}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
                   disabled={submitLoading || !paymentMethod || !transactionId}
                 >
                   {submitLoading ? (

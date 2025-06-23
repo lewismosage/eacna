@@ -2192,10 +2192,9 @@ const JoinDirectoryForm: React.FC = () => {
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-primary-800 text-white">
+      <section className="relative bg-gradient-to-r from-primary-900 via-primary-800 to-primary-700 text-white">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-900 to-primary-700 opacity-90"></div>
-          <div className="absolute inset-0 bg-[url('/api/placeholder/1920/600')] bg-cover bg-center mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
 
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative py-16 lg:py-20">

@@ -623,18 +623,18 @@ const FindSpecialistPage = () => {
       </Section>
 
       {/* Join Directory CTA */}
-      <section className="relative bg-primary-800 text-white">
-        {/* Background Overlay */}
+      <section className="relative bg-white text-primary-800">
+        {/* Background Image and Overlay */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-900 to-primary-700 opacity-90"></div>
-          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3938023/pexels-photo-3938023.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3938023/pexels-photo-3938023.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center"></div>
+          <div className="absolute inset-0 bg-black opacity-35"></div>
         </div>
 
         {/* Content */}
         <div className="relative container-custom py-16">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">
+              <h2 className="text-2xl md:text-3xl text-white font-bold mb-4">
                 Are You a Specialist?
               </h2>
               <p className="text-lg mb-6 text-white/90">
@@ -643,12 +643,7 @@ const FindSpecialistPage = () => {
                 visibility and connect with patients and colleagues.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  variant="accent"
-                  size="lg"
-                  href="join-directory"
-                  className="text-primary-900"
-                >
+                <Button variant="primary" size="lg" href="join-directory">
                   Join Our Directory
                 </Button>
               </div>

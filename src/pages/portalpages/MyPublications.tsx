@@ -29,15 +29,15 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 // Custom X (formerly Twitter) icon
 const XIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="20" 
-    height="20" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
     strokeLinejoin="round"
   >
     <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
@@ -47,15 +47,15 @@ const XIcon = () => (
 
 // Custom Facebook icon
 const FacebookIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="20" 
-    height="20" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
     strokeLinejoin="round"
   >
     <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
@@ -93,13 +93,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const MyPublicationsPage = () => {
   const [publications, setPublications] = useState<Publication[]>([]);
-  const [filteredPublications, setFilteredPublications] = useState<Publication[]>([]);
+  const [filteredPublications, setFilteredPublications] = useState<
+    Publication[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<PublicationStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<PublicationStatus | "all">(
+    "all"
+  );
   const [sortBy, setSortBy] = useState("updated_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
+  const [selectedPublication, setSelectedPublication] =
+    useState<Publication | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -131,15 +136,19 @@ const MyPublicationsPage = () => {
   };
 
   // Get absolute URLs for sharing
-  const getAbsoluteUrl = (path = '') => {
-    const baseUrl = import.meta.env.VITE_WEBSITE_URL || 'https://eacna.vercel.app';
-    return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  const getAbsoluteUrl = (path = "") => {
+    const baseUrl =
+      import.meta.env.VITE_WEBSITE_URL || "https://eacna.vercel.app";
+    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   };
 
   // Close share popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (sharePopupRef.current && !sharePopupRef.current.contains(event.target as Node)) {
+      if (
+        sharePopupRef.current &&
+        !sharePopupRef.current.contains(event.target as Node)
+      ) {
         setShowSharePopup(false);
       }
     };
@@ -341,34 +350,35 @@ const MyPublicationsPage = () => {
   };
 
   const copyToClipboard = () => {
-    if (!selectedPublication || typeof navigator === 'undefined') return;
-    
+    if (!selectedPublication || typeof navigator === "undefined") return;
+
     const url = getShareUrl(selectedPublication.id);
-    navigator.clipboard.writeText(url)
+    navigator.clipboard
+      .writeText(url)
       .then(() => setCopySuccess(true))
-      .catch(err => console.error('Failed to copy:', err));
+      .catch((err) => console.error("Failed to copy:", err));
   };
 
   const shareOnTwitter = () => {
     if (!selectedPublication) return;
-    
+
     const url = getShareUrl(selectedPublication.id);
     const tweetText = `${selectedPublication.title}\n\nRead this publication: ${url}`;
-    
+
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`,
-      '_blank',
-      'noopener,noreferrer'
+      "_blank",
+      "noopener,noreferrer"
     );
     setShowSharePopup(false);
   };
 
   const shareOnFacebook = () => {
     if (!selectedPublication) return;
-    
+
     const url = getShareUrl(selectedPublication.id);
     window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, 
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       "_blank",
       "noopener,noreferrer"
     );
@@ -377,10 +387,12 @@ const MyPublicationsPage = () => {
 
   const shareOnLinkedIn = () => {
     if (!selectedPublication) return;
-    
+
     const url = getShareUrl(selectedPublication.id);
     window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&title=${encodeURIComponent(selectedPublication.title)}`, 
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+        url
+      )}&title=${encodeURIComponent(selectedPublication.title)}`,
       "_blank",
       "noopener,noreferrer"
     );
@@ -389,29 +401,37 @@ const MyPublicationsPage = () => {
 
   const shareByEmail = () => {
     if (!selectedPublication) return;
-    
+
     const url = getShareUrl(selectedPublication.id);
     const subject = encodeURIComponent(selectedPublication.title);
-    const body = encodeURIComponent(`Check out this publication: ${selectedPublication.title}\n${url}`);
+    const body = encodeURIComponent(
+      `Check out this publication: ${selectedPublication.title}\n${url}`
+    );
     window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
     setShowSharePopup(false);
   };
 
   const useNativeShare = () => {
-    if (!selectedPublication || typeof navigator === 'undefined' || !('share' in navigator)) return;
-    
+    if (
+      !selectedPublication ||
+      typeof navigator === "undefined" ||
+      !("share" in navigator)
+    )
+      return;
+
     const url = getShareUrl(selectedPublication.id);
-    navigator.share({
-      title: selectedPublication.title,
-      text: `Check out this publication: ${selectedPublication.title}`,
-      url: url,
-    })
-    .then(() => setShowSharePopup(false))
-    .catch(err => {
-      if (err.name !== 'AbortError') {
-        console.error('Error sharing:', err);
-      }
-    });
+    navigator
+      .share({
+        title: selectedPublication.title,
+        text: `Check out this publication: ${selectedPublication.title}`,
+        url: url,
+      })
+      .then(() => setShowSharePopup(false))
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("Error sharing:", err);
+        }
+      });
   };
 
   const stats = getPublicationStats();
@@ -585,7 +605,7 @@ const MyPublicationsPage = () => {
               </p>
             </div>
             <button
-              className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               onClick={() => navigate("/portal/publications")}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -701,7 +721,7 @@ const MyPublicationsPage = () => {
               </p>
               {!searchQuery && statusFilter === "all" && (
                 <button
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   onClick={() => navigate("/portal/publications")}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -817,68 +837,72 @@ const MyPublicationsPage = () => {
                             <Share2 className="h-4 w-4" />
                           </button>
 
-                          {showSharePopup && selectedPublication?.id === publication.id && (
-                            <div 
-                              ref={sharePopupRef}
-                              className="absolute right-0 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-4 mt-1 w-64"
-                            >
-                              <h3 className="font-semibold text-gray-900 mb-3 text-center">Share this paper</h3>
-                              
-                              <div className="flex justify-center gap-3 mb-4">
-                                <button 
-                                  onClick={shareOnTwitter}
-                                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
-                                  aria-label="Share on X (Twitter)"
-                                >
-                                  <XIcon />
-                                </button>
-                                
-                                <button 
-                                  onClick={shareOnFacebook}
-                                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
-                                  aria-label="Share on Facebook"
-                                >
-                                  <FacebookIcon />
-                                </button>
-                                
-                                <button 
-                                  onClick={shareOnLinkedIn}
-                                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
-                                  aria-label="Share on LinkedIn"
-                                >
-                                  <Linkedin className="w-5 h-5 text-gray-700" />
-                                </button>
-                                
-                                <button 
-                                  onClick={shareByEmail}
-                                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
-                                  aria-label="Share by Email"
-                                >
-                                  <Mail className="w-5 h-5 text-gray-700" />
-                                </button>
-                              </div>
-                              
-                              <button 
-                                onClick={copyToClipboard}
-                                className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
-                                aria-label="Copy link to clipboard"
+                          {showSharePopup &&
+                            selectedPublication?.id === publication.id && (
+                              <div
+                                ref={sharePopupRef}
+                                className="absolute right-0 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-4 mt-1 w-64"
                               >
-                                <Copy className="w-4 h-4" /> 
-                                {copySuccess ? "Copied!" : "Copy link"}
-                              </button>
-                              
-                              {typeof navigator !== 'undefined' && 'share' in navigator && (
-                                <button 
-                                  onClick={useNativeShare}
-                                  className="mt-2 flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
-                                  aria-label="Share using native share dialog"
+                                <h3 className="font-semibold text-gray-900 mb-3 text-center">
+                                  Share this paper
+                                </h3>
+
+                                <div className="flex justify-center gap-3 mb-4">
+                                  <button
+                                    onClick={shareOnTwitter}
+                                    className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                                    aria-label="Share on X (Twitter)"
+                                  >
+                                    <XIcon />
+                                  </button>
+
+                                  <button
+                                    onClick={shareOnFacebook}
+                                    className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                                    aria-label="Share on Facebook"
+                                  >
+                                    <FacebookIcon />
+                                  </button>
+
+                                  <button
+                                    onClick={shareOnLinkedIn}
+                                    className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                                    aria-label="Share on LinkedIn"
+                                  >
+                                    <Linkedin className="w-5 h-5 text-gray-700" />
+                                  </button>
+
+                                  <button
+                                    onClick={shareByEmail}
+                                    className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                                    aria-label="Share by Email"
+                                  >
+                                    <Mail className="w-5 h-5 text-gray-700" />
+                                  </button>
+                                </div>
+
+                                <button
+                                  onClick={copyToClipboard}
+                                  className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
+                                  aria-label="Copy link to clipboard"
                                 >
-                                  <Share2 className="w-4 h-4" /> 
-                                  Share via...
+                                  <Copy className="w-4 h-4" />
+                                  {copySuccess ? "Copied!" : "Copy link"}
                                 </button>
-                              )}
-                            </div>
-                          )}
+
+                                {typeof navigator !== "undefined" &&
+                                  "share" in navigator && (
+                                    <button
+                                      onClick={useNativeShare}
+                                      className="mt-2 flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg py-2 transition"
+                                      aria-label="Share using native share dialog"
+                                    >
+                                      <Share2 className="w-4 h-4" />
+                                      Share via...
+                                    </button>
+                                  )}
+                              </div>
+                            )}
                         </div>
                       )}
 
