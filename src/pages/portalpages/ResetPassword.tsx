@@ -17,33 +17,30 @@ function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [validLink, setValidLink] = useState(false);
 
   // Check for password reset token in URL
   useEffect(() => {
-    const accessToken = searchParams.get("access_token");
-    const refreshToken = searchParams.get("refresh_token");
-    const tokenType = searchParams.get("token_type");
     const type = searchParams.get("type");
+    const token = searchParams.get("token");
 
-    if (type === "recovery" && accessToken && refreshToken && tokenType) {
-      // Attempt to authenticate with the tokens
-      supabase.auth
-        .setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-        .catch((err) => {
-          setError("Invalid or expired reset link. Please request a new one.");
-          console.error("Error setting session:", err);
-        });
+    if (type === "recovery" && token) {
+      // The link is valid, we'll verify it when the form is submitted
+      setValidLink(true);
     } else {
       setError("Invalid reset link. Please use the link from your email.");
+      setValidLink(false);
     }
   }, [searchParams]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
+    if (!validLink) {
+      setError("Invalid reset link. Please use the link from your email.");
+      return;
+    }
 
     if (!password || !confirmPassword) {
       setError("Please enter and confirm your new password");
@@ -63,35 +60,42 @@ function ResetPassword() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { data, error: authError } = await supabase.auth.getSession();
+      
+      if (authError || !data?.session) {
+        // If no session exists, try to exchange the token for a session
+        const token = searchParams.get("token");
+        if (token) {
+          const { error: exchangeError } = await supabase.auth.verifyOtp({
+            type: 'recovery',
+            token_hash: token,
+          });
+          
+          if (exchangeError) throw exchangeError;
+        } else {
+          throw new Error("No valid session or token found");
+        }
+      }
 
-      if (error) throw error;
+      // Now update the password
+      const { error: updateError } = await supabase.auth.updateUser({ 
+        password 
+      });
+
+      if (updateError) throw updateError;
 
       setSuccess(true);
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       setError(
         err instanceof Error
-          ? err.message.includes("session")
-            ? "Reset link expired. Please request a new one."
+          ? err.message.includes("session") || err.message.includes("token")
+            ? "Reset link expired or invalid. Please request a new one."
             : err.message
           : "An unexpected error occurred"
       );
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (email: string) => {
-    try {
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      setSuccess(true);
-      setError("Check your email for the password reset link.");
-    } catch (err) {
-      setError("An error occurred while sending the reset email.");
-      console.error("Error sending reset email:", err);
     }
   };
 
@@ -177,7 +181,7 @@ function ResetPassword() {
               <div>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !validLink}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
