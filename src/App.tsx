@@ -35,6 +35,8 @@ import WebinarDetails from "./pages/trainingpage/WebinarDetails";
 import AbstractSubmission from "./pages/trainingpage/AbstractSubmission";
 import AbstractGuidelines from "./pages/trainingpage/AbstractGuidelines";
 import AllReviewsPage from "./pages/specialistpage/AllReviewsPage";
+import AllResourcesPage from "./pages/resourcespage/AllResourcesPage";
+import AllVideosPage from "./pages/resourcespage/AllVideosPage";
 
 // Member Portal Components
 import Login from "./pages/portalpages/Login";
@@ -162,6 +164,8 @@ function App() {
           <Route path="terms-of-service" element={<TermsOfService />} />
           <Route path="cookie-policy" element={<CookiePolicy />} />
           <Route path="all-publications" element={<AllPublicationsPage />} />
+          <Route path="all-resources" element={<AllResourcesPage />} />
+          <Route path="all-videos" element={<AllVideosPage />} />
           <Route path="read-publication/:id" element={<ReadPaperPage />} />
           <Route path="abstract-submission" element={<AbstractSubmission />} />
           <Route path="abstract-guidelines" element={<AbstractGuidelines />} />

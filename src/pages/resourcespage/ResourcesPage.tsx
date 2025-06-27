@@ -327,7 +327,9 @@ const ResourcesPage = () => {
           </div>
 
           <div className="text-center mt-8">
-            <Button variant="primary">View All Resources</Button>
+            <Link to="/all-resources">
+              <Button variant="primary">View All Resources</Button>
+            </Link>
           </div>
         </Section>
       </div>
@@ -375,7 +377,9 @@ const ResourcesPage = () => {
         </div>
 
         <div className="text-center mt-8">
-          <Button variant="primary">View All Videos</Button>
+          <Link to="/all-videos">
+            <Button variant="primary">View All Videos</Button>
+          </Link>
         </div>
       </Section>
 
