@@ -24,6 +24,13 @@ const searchIndex: SearchItem[] = [
     keywords: ["home", "eacna", "east african", "child neurology", "main", "homepage"],
     category: "navigation"
   },
+  {
+    title: "Our Leadership",
+    description: "Meet the leadership team of EACNA",
+    url: "/#leadership",
+    keywords: ["leadership", "team", "board", "president"],
+    category: "about"
+  },
 
   // About Us
   {
@@ -33,25 +40,19 @@ const searchIndex: SearchItem[] = [
     keywords: ["about", "organization", "mission", "vision", "history", "established", "values", "mandate"],
     category: "about"
   },
-  {
-    title: "Our Leadership",
-    description: "Meet the leadership team of EACNA",
-    url: "/leadership",
-    keywords: ["leadership", "team", "board", "president", "director", "committee", "executives", "dr samantha njeri", "dr benjamin omondi", "dr faith mueni", "dr lawrence mwangi"],
-    category: "about"
-  },
+  
   {
     title: "Core Values",
     description: "The principles that guide our work at EACNA",
-    url: "/values",
-    keywords: ["values", "excellence", "collaboration", "integrity", "capacity building", "innovation", "principles"],
+    url: "/about#values",
+    keywords: ["values", "excellence", "collaboration"],
     category: "about"
   },
   {
     title: "Our Partners",
     description: "Organizations partnering with EACNA",
-    url: "/partners",
-    keywords: ["partners", "collaborations", "affiliations", "kenya pediatric association", "gertrudes children hospital", "british paediatric neurology association", "international league against epilepsy", "global health partnerships"],
+    url: "/about#partners",
+    keywords: ["partners", "collaborations"],
     category: "about"
   },
 
@@ -66,28 +67,28 @@ const searchIndex: SearchItem[] = [
   {
     title: "Membership Categories",
     description: "Different types of membership available at EACNA",
-    url: "/membership/categories",
-    keywords: ["membership categories", "full membership", "associate membership", "student membership", "institutional membership", "honorary membership", "types"],
+    url: "/membership#categories",
+    keywords: ["membership categories"],
     category: "membership"
   },
   {
     title: "How to Join",
     description: "Step-by-step guide to joining EACNA",
-    url: "/membership/join",
-    keywords: ["join", "application", "how to join", "application process", "form", "register", "signup", "enroll"],
+    url: "/membership#membership-form",
+    keywords: ["join", "application"],
     category: "membership"
   },
   {
     title: "Member Benefits",
     description: "Benefits of being an EACNA member",
-    url: "/membership/benefits",
+    url: "/membership#benefits",
     keywords: ["benefits", "advantages", "perks", "research access", "journals", "career growth", "scholarships", "networking", "member advantages"],
     category: "membership"
   },
   {
     title: "Membership FAQ",
     description: "Frequently asked questions about EACNA membership",
-    url: "/membership/faq",
+    url: "/membership#faq",
     keywords: ["faq", "questions", "answers", "help", "membership questions", "frequently asked questions"],
     category: "membership"
   },
@@ -103,35 +104,42 @@ const searchIndex: SearchItem[] = [
   {
     title: "Paediatric Epilepsy Training (PET)",
     description: "Specialized training programs for pediatric epilepsy management",
-    url: "/training/pet",
+    url: "/training#pet",
+    keywords: ["pet", "paediatric epilepsy training", "epilepsy", "bpna", "ilae", "pet1", "pet2", "pet3", "pet4ward", "epilepsy training"],
+    category: "training"
+  },
+  {
+    title: "PET Courses (PET)",
+    description: "Specialized training programs for pediatric epilepsy management",
+    url: "/training#pet-courses",
     keywords: ["pet", "paediatric epilepsy training", "epilepsy", "bpna", "ilae", "pet1", "pet2", "pet3", "pet4ward", "epilepsy training"],
     category: "training"
   },
   {
     title: "Upcoming Events",
     description: "Calendar of upcoming EACNA training events and conferences",
-    url: "/training/events",
+    url: "/training#upcoming-events",
     keywords: ["events", "upcoming", "calendar", "schedule", "training events", "conferences", "seminars", "workshops", "pet training", "annual conference", "webinars"],
     category: "training"
   },
   {
     title: "Annual Conferences",
     description: "Information about EACNA's annual conferences",
-    url: "/training/conferences",
+    url: "/training#conferences",
     keywords: ["conferences", "annual", "annual meeting", "symposium", "convention", "event", "2021", "2022", "2023", "archives"],
     category: "training"
   },
   {
     title: "Webinars & Online Events",
     description: "Virtual educational events hosted by EACNA",
-    url: "/training/webinars",
+    url: "/training#conferences",
     keywords: ["webinars", "online", "virtual", "digital", "remote", "zoom", "epilepsy webinar", "online training", "recordings"],
     category: "training"
   },
   {
     title: "Abstract Submission",
     description: "Submit research abstracts for EACNA conferences",
-    url: "/training/abstracts",
+    url: "/training#abstracts",
     keywords: ["abstracts", "research", "submission", "present", "call for abstracts", "research presentations", "guidelines", "deadlines"],
     category: "training"
   },
@@ -147,28 +155,28 @@ const searchIndex: SearchItem[] = [
   {
     title: "Latest Publications",
     description: "Recent research papers and publications by EACNA members",
-    url: "/resources/publications",
+    url: "/resources#publications",
     keywords: ["publications", "papers", "research", "articles", "journals", "studies", "case studies", "epilepsy management", "neurodevelopmental disorders"],
     category: "resources"
   },
   {
     title: "Clinical Resources",
     description: "Practical clinical tools and guidelines for pediatric neurology",
-    url: "/resources/clinical",
+    url: "/resources#clinical-resources",
     keywords: ["clinical", "guidelines", "protocols", "handbooks", "assessment tools", "management", "diagnosis", "treatment", "evaluation"],
     category: "resources"
   },
   {
     title: "Educational Videos",
     description: "Instructional videos on pediatric neurology topics",
-    url: "/resources/videos",
+    url: "/resources#videos",
     keywords: ["videos", "tutorials", "educational", "instructional", "lectures", "demonstrations", "seizure recognition", "neurological examination", "developmental milestones"],
     category: "resources"
   },
   {
     title: "Recommended Reading",
     description: "Suggested books and literature for pediatric neurology professionals",
-    url: "/resources/reading",
+    url: "/resources#reading",
     keywords: ["reading", "books", "literature", "textbooks", "journals", "bibliography", "references", "swaiman", "volpe", "pellock"],
     category: "resources"
   },
@@ -184,14 +192,14 @@ const searchIndex: SearchItem[] = [
   {
     title: "Specialist Directory",
     description: "Complete directory of EACNA registered specialists",
-    url: "/find-specialist/directory",
+    url: "/find-specialist#specialist-list",
     keywords: ["directory", "list", "specialists", "experts", "doctors", "neurologists", "profiles", "contacts", "kenya", "uganda", "tanzania", "rwanda"],
     category: "specialists"
   },
   {
     title: "Join Our Directory",
     description: "Information for specialists wishing to be listed in the EACNA directory",
-    url: "/find-specialist/join",
+    url: "/find-specialist#directory",
     keywords: ["join directory", "add profile", "list practice", "specialist registration", "doctor listing"],
     category: "specialists"
   },
@@ -213,70 +221,25 @@ const searchIndex: SearchItem[] = [
     keywords: ["contact", "email", "phone", "address", "message", "inquiries", "support", "help", "location", "office"],
     category: "contact"
   },
-
-  // Specific Conditions and Topics
-  {
-    title: "Epilepsy Resources",
-    description: "Resources and information on pediatric epilepsy",
-    url: "/resources/epilepsy",
-    keywords: ["epilepsy", "seizures", "convulsions", "anticonvulsants", "status epilepticus", "aeds", "eeg", "epileptic"],
-    category: "conditions"
-  },
-  {
-    title: "Neurodevelopmental Disorders",
-    description: "Information on neurodevelopmental disorders in children",
-    url: "/resources/neurodevelopmental",
-    keywords: ["neurodevelopmental", "developmental", "autism", "adhd", "learning disabilities", "intellectual disability", "developmental delay"],
-    category: "conditions"
-  },
-  {
-    title: "Autism Spectrum Disorders",
-    description: "Resources on autism spectrum disorders in East African children",
-    url: "/resources/autism",
-    keywords: ["autism", "asd", "spectrum", "autistic", "asperger", "developmental disorder"],
-    category: "conditions"
-  },
-  {
-    title: "ADHD Resources",
-    description: "Information on Attention Deficit Hyperactivity Disorder",
-    url: "/resources/adhd",
-    keywords: ["adhd", "attention deficit", "hyperactivity", "attention", "focus", "concentration", "impulsivity"],
-    category: "conditions"
-  },
-  {
-    title: "Movement Disorders",
-    description: "Resources on pediatric movement disorders",
-    url: "/resources/movement",
-    keywords: ["movement disorders", "dystonia", "chorea", "tics", "tremor", "ataxia", "dyskinesia"],
-    category: "conditions"
-  },
-
   // Other Important Pages
-  {
-    title: "Newsletter Subscription",
-    description: "Subscribe to EACNA's newsletter",
-    url: "/newsletter",
-    keywords: ["newsletter", "subscribe", "updates", "email", "subscription", "news"],
-    category: "communication"
-  },
   {
     title: "Privacy Policy",
     description: "EACNA's privacy policy",
-    url: "/privacy",
+    url: "/privacy-policy",
     keywords: ["privacy", "policy", "data", "information", "gdpr", "confidentiality"],
     category: "legal"
   },
   {
     title: "Terms of Service",
     description: "Terms of service for using EACNA's website",
-    url: "/terms",
+    url: "/terms-of-service",
     keywords: ["terms", "conditions", "service", "agreement", "legal", "usage"],
     category: "legal"
   },
   {
     title: "Cookie Policy",
     description: "EACNA's policy on cookies and tracking",
-    url: "/cookies",
+    url: "/cookie-policy",
     keywords: ["cookies", "tracking", "policy", "browser", "data"],
     category: "legal"
   }

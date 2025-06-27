@@ -86,6 +86,14 @@ export function search(
     return { item, score };
   });
   
+  // Add special handling for hash links
+  matches.forEach(match => {
+    if (match.item.url.includes('#')) {
+      // Slightly boost hash links as they're more specific
+      match.score += 2;
+    }
+  });
+  
   // Filter out items with zero relevance
   matches = matches.filter(match => match.score > 0);
   

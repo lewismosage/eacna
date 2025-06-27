@@ -177,6 +177,7 @@ const HomePage = () => {
 
       {/* Executive Committee Section */}
       <Section
+        id="leadership"
         className="py-16 text-white"
         style={{ backgroundColor: "#6b21a8" }} // Inline fallback
       >

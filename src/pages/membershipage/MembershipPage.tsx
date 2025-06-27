@@ -355,7 +355,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       </section>
 
       {/* Membership Categories */}
-      <Section>
+      <Section id="categories" >
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
             Membership Categories
@@ -507,7 +507,8 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       </Section>
 
       {/* Member Benefits Section - Updated to Purple */}
-      <Section
+      <Section 
+        id="benefits"
         className="py-16 text-white"
         style={{ backgroundColor: "#6b21a8" }}
       >
@@ -692,7 +693,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       </Section>
 
       {/* FAQs */}
-      <Section>
+      <Section id="faq" >
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
             Frequently Asked Questions

@@ -147,7 +147,7 @@ const TrainingPage = () => {
       </section>
 
       {/* PET Courses Section */}
-      <Section>
+      <Section id="pet">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold mb-6 text-primary-800">
@@ -233,6 +233,7 @@ const TrainingPage = () => {
 
       {/* Call for Abstracts */}
       <Section
+        id="abstracts"
         className="py-16 text-white"
         style={{ backgroundColor: "#6b21a8" }}
       >

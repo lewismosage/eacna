@@ -232,7 +232,7 @@ const EventsSection = () => {
       </Section>
 
       {/* Webinars & Annual Meetings */}
-      <Section background="light">
+      <Section id="conferences" background="light">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
             Annual Meetings & Webinars

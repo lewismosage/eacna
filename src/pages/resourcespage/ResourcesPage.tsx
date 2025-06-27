@@ -233,7 +233,7 @@ const ResourcesPage = () => {
       </section>
 
       {/* Publications Section */}
-      <Section>
+      <Section id="publications">
         <div className="grid lg:grid-cols-3 gap-12">
           <div className="lg:col-span-1">
             <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
@@ -335,7 +335,7 @@ const ResourcesPage = () => {
       </div>
 
       {/* Educational Videos */}
-      <Section>
+      <Section id="videos">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
             Educational Videos
@@ -384,7 +384,7 @@ const ResourcesPage = () => {
       </Section>
 
       {/* Additional Resources */}
-      <Section background="light">
+      <Section id="reading" background="light">
         <div className="grid md:grid-cols-2 gap-12">
           <div>
             <h2 className="text-2xl font-bold mb-6 text-primary-800">

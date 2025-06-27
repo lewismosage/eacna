@@ -15,6 +15,8 @@ import kpa from "../../assets/kpa.jpg";
 import BPNA from "../../assets/BPNA.webp";
 import gertrudes from "../../assets/Gertrudes.webp";
 import GHP from "../../assets/GHP.png";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 const AboutPage = () => {
   const fadeIn = {
@@ -101,6 +103,43 @@ const AboutPage = () => {
         "We embrace new ideas, technologies, and research to improve outcomes in child neurology.",
     },
   ];
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleScrollToSection = () => {
+      // Check for hash in URL first
+      const hashFromUrl = window.location.hash.substring(1);
+      // Then check for hash passed via state
+      const hashFromState = location.state?.scrollTo;
+      const hash = hashFromState || hashFromUrl;
+      if (hash) {
+        // Small timeout to ensure DOM is ready
+        setTimeout(() => {
+          const element = document.getElementById(hash);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth" });
+            // Update URL without adding to history
+            if (hashFromState && !hashFromUrl) {
+              window.history.replaceState(
+                { ...location.state, scrollTo: undefined },
+                "",
+                `#${hash}`
+              );
+            }
+          }
+        }, 100);
+      }
+    };
+
+    // Handle initial load
+    handleScrollToSection();
+
+    // Handle hash changes
+    window.addEventListener("hashchange", handleScrollToSection);
+    return () =>
+      window.removeEventListener("hashchange", handleScrollToSection);
+  }, [location.state]);
 
   return (
     <div className="bg-gray-50">
@@ -254,7 +293,7 @@ const AboutPage = () => {
       </Section>
 
       {/* Values Section */}
-      <Section className="py-16 bg-gray-50">
+      <Section id="values" className="py-16 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Title Card */}
@@ -265,7 +304,7 @@ const AboutPage = () => {
               whileInView="visible"
             >
               <h2 className="text-3xl font-bold mb-6 text-primary-800">
-                Our Values
+                Core Values
               </h2>
               <p className="text-gray-600">
                 The fundamental principles that guide our organization's work
@@ -299,7 +338,7 @@ const AboutPage = () => {
       </Section>
 
       {/* Partners Section */}
-      <Section background="light" className="py-16">
+      <Section id="partners" background="light" className="py-16">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold mb-4 text-primary-800">
             Our Partners

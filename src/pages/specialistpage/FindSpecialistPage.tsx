@@ -422,7 +422,7 @@ const FindSpecialistPage = () => {
           </div>
 
           {/* Specialists List */}
-          <div className="lg:col-span-3">
+          <div id= "specialist-list" className="lg:col-span-3">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-primary-800">
                 Available Specialists
@@ -623,7 +623,7 @@ const FindSpecialistPage = () => {
       </Section>
 
       {/* Join Directory CTA */}
-      <section className="relative bg-white text-primary-800">
+      <section id="directory" className="relative bg-white text-primary-800">
         {/* Background Image and Overlay */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3938023/pexels-photo-3938023.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center"></div>

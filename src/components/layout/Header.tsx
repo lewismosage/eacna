@@ -28,6 +28,7 @@ const Header = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const [pendingHash, setPendingHash] = useState<string | null>(null);
 
   // Check auth state on component mount
   useEffect(() => {
@@ -91,14 +92,24 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close search results when clicking outside
+  // Improved click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         searchRef.current &&
         !searchRef.current.contains(event.target as Node)
       ) {
-        setShowSearchResults(false);
+        // Only close if clicking outside both input and results
+        const isSearchInput = (event.target as HTMLElement).closest(
+          'input[type="text"]'
+        );
+        const isSearchResult = (event.target as HTMLElement).closest(
+          ".search-result-item"
+        );
+
+        if (!isSearchInput && !isSearchResult) {
+          setShowSearchResults(false);
+        }
       }
     };
 
@@ -108,14 +119,38 @@ const Header = () => {
     };
   }, []);
 
+  // Improved handleResultClick
   const handleResultClick = (url: string) => {
     setShowSearchResults(false);
     setSearchQuery("");
     setSearchResults([]);
-    const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
-    navigate(normalizedUrl);
+
+    if (url.includes("#")) {
+      const [path, hash] = url.split("#");
+      if (location.pathname !== path) {
+        navigate(path, { state: { scrollTo: hash } });
+      } else {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    } else {
+      navigate(url);
+    }
     closeMenu();
   };
+
+  // Scroll to hash after navigation
+  useEffect(() => {
+    if (pendingHash) {
+      const element = document.getElementById(pendingHash);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+        setPendingHash(null);
+      }
+    }
+  }, [location, pendingHash]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,7 +161,7 @@ const Header = () => {
     }
   };
 
-  // Search handler
+  // Improved handleSearchChange with debounce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -196,9 +231,7 @@ const Header = () => {
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    onFocus={() =>
-                      searchQuery.length > 0 && setShowSearchResults(true)
-                    }
+                    onFocus={() => setShowSearchResults(searchQuery.length > 0)}
                     className="w-48 px-4 py-2 text-sm text-gray-900 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <button
@@ -213,7 +246,7 @@ const Header = () => {
                     {searchResults.map((result, index) => (
                       <div
                         key={index}
-                        className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer search-result-item"
                         onClick={() => handleResultClick(result.url)}
                       >
                         <div className="font-medium text-primary-600">
