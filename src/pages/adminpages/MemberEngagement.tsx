@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -8,14 +8,174 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Card, { CardContent } from "../../components/common/Card";
+import { createClient } from "@supabase/supabase-js";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
 
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const MemberEngagement: React.FC = () => {
-  const data = days.map((day, i) => ({
-    day,
-    logins: [12, 18, 9, 14, 20, 25, 22][i],
-  }));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [forumPostsCount, setForumPostsCount] = useState(0);
+  const [eventSignupsCount, setEventSignupsCount] = useState(0);
+  const [loginData, setLoginData] = useState(
+    days.map((day) => ({ day, logins: 0 }))
+  );
+
+  const getWeeklyLoginData = async (): Promise<number[]> => {
+    try {
+      // Get start and end of current week (Monday to Sunday)
+      const now = new Date();
+      const today = now.getDay(); // 0=Sunday, 1=Monday, etc.
+      const diff = today === 0 ? 6 : today - 1; // Days since Monday
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - diff);
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      // Query Supabase auth logs for login actions
+      const { data, error } = await supabase
+        .from("auth.logs")
+        .select("created_at")
+        .eq("action", "login")
+        .gte("created_at", startOfWeek.toISOString())
+        .lte("created_at", endOfWeek.toISOString());
+
+      if (error) throw error;
+
+      // Initialize counts for each day
+      const loginCounts = Array(7).fill(0);
+
+      // Count logins per day
+      data?.forEach((log) => {
+        const loginDate = new Date(log.created_at);
+        const dayOfWeek = loginDate.getDay(); // 0=Sunday, 1=Monday, etc.
+        // Convert to our Mon-Sun format (0=Monday)
+        const index = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        loginCounts[index]++;
+      });
+
+      return loginCounts;
+    } catch (error) {
+      console.error("Error fetching login data:", error);
+      return Array(7).fill(0); // Return zeros if error occurs
+    }
+  };
+
+  useEffect(() => {
+    const fetchEngagementData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch forum posts count
+        const { count: postsCount, error: postsError } = await supabase
+          .from("posts")
+          .select("*", { count: "exact", head: true });
+
+        if (postsError) throw postsError;
+
+        // Fetch event signups (webinar + event registrations)
+        const [
+          { count: webinarRegistrations, error: webinarError },
+          { count: eventRegistrations, error: eventError },
+        ] = await Promise.all([
+          supabase
+            .from("webinar_registrations")
+            .select("*", { count: "exact", head: true }),
+          supabase
+            .from("event_registrations")
+            .select("*", { count: "exact", head: true }),
+        ]);
+
+        if (webinarError || eventError) {
+          throw webinarError || eventError;
+        }
+
+        // Fetch login data
+        const loginCounts = await getWeeklyLoginData();
+
+        setForumPostsCount(postsCount || 0);
+        setEventSignupsCount((webinarRegistrations || 0) + (eventRegistrations || 0));
+        setLoginData(
+          days.map((day, i) => ({
+            day,
+            logins: loginCounts[i] || 0,
+          }))
+        );
+      } catch (err) {
+        console.error("Error fetching engagement data:", err);
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEngagementData();
+
+    // Set up real-time subscriptions
+    const postsSubscription = supabase
+      .channel("posts_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        () => fetchEngagementData()
+      )
+      .subscribe();
+
+    const registrationsSubscription = supabase
+      .channel("registrations_changes")
+      .on(
+        "system",
+        { event: "*", schema: "public", table: /^(webinar|event)_registrations$/ },
+        () => fetchEngagementData()
+      )
+      .subscribe();
+
+    // Subscribe to auth log changes (if needed)
+    const authSubscription = supabase
+      .channel("auth_logs_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "auth", table: "logs" },
+        () => fetchEngagementData()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postsSubscription);
+      supabase.removeChannel(registrationsSubscription);
+      supabase.removeChannel(authSubscription);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex justify-center items-center h-64">
+          <LoadingSpinner />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardContent className="text-red-500 text-center p-4">
+          {error}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
@@ -33,7 +193,9 @@ const MemberEngagement: React.FC = () => {
                   <h3 className="text-sm font-medium text-blue-800">
                     Forum Posts
                   </h3>
-                  <p className="text-2xl font-bold text-blue-900 mt-1">45</p>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">
+                    {forumPostsCount}
+                  </p>
                 </div>
                 <div className="bg-blue-100 p-2 rounded-full">
                   <svg
@@ -59,7 +221,9 @@ const MemberEngagement: React.FC = () => {
                   <h3 className="text-sm font-medium text-green-800">
                     Event Signups
                   </h3>
-                  <p className="text-2xl font-bold text-green-900 mt-1">23</p>
+                  <p className="text-2xl font-bold text-green-900 mt-1">
+                    {eventSignupsCount}
+                  </p>
                 </div>
                 <div className="bg-green-100 p-2 rounded-full">
                   <svg
@@ -87,7 +251,7 @@ const MemberEngagement: React.FC = () => {
             </h3>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
+                <BarChart data={loginData}>
                   <XAxis
                     dataKey="day"
                     tick={{ fontSize: 12 }}

@@ -79,7 +79,7 @@ const MembershipPieChart: React.FC<MembershipPieChartProps> = ({ members }) => {
   }
 
   return (
-    <div className="w-full h-64">
+    <div className="w-full h-64 pl-4">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -91,6 +91,7 @@ const MembershipPieChart: React.FC<MembershipPieChartProps> = ({ members }) => {
             outerRadius={80}
             fill="#8884d8"
             dataKey="value"
+            paddingAngle={2}
           >
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
