@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import Card from "../../../components/common/Card";
 import Button from "../../../components/common/Button";
 import Badge from "../../../components/common/Badge";
+import MembershipPieChart from "../../../components/common/MembershipPieChart";
 import { MembershipTier, membershipTiers } from "../../../types/membership";
 
 // Initialize Supabase client
@@ -39,17 +40,17 @@ const supabase = createClient(
 interface Member {
   id: string;
   user_id: string;
-  first_name: string;        // From applications
-  last_name: string;         // From applications
-  email: string;             // From applications
-  phone: string;             // From applications
+  first_name: string; // From applications
+  last_name: string; // From applications
+  email: string; // From applications
+  phone: string; // From applications
   membership_type: MembershipTier; // From payments or applications
-  membership_id: string;     // From payments
-  member_since: string;      // From payments or applications
-  expiry_date: string;       // From payments
+  membership_id: string; // From payments
+  member_since: string; // From payments or applications
+  expiry_date: string; // From payments
   status: "active" | "expired"; // Calculated from expiry_date
-  institution: string;       // From applications (current_employer)
-  nationality?: string;      // From applications (country)
+  institution: string; // From applications (current_employer)
+  nationality?: string; // From applications (country)
   country_of_residence?: string; // From applications (country)
   current_profession: string; // From applications (profession)
 }
@@ -235,33 +236,35 @@ const Directory = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      
+
       // Directly query the membership_directory table
       const { data: directoryData, error } = await supabase
-        .from('membership_directory')
-        .select('*')
-        .order('member_since', { ascending: false });
-  
+        .from("membership_directory")
+        .select("*")
+        .order("member_since", { ascending: false });
+
       if (error) throw error;
-  
-      const transformedData = directoryData.map((member): Member => ({
-        id: member.user_id,
-        user_id: member.user_id,
-        first_name: member.first_name,
-        last_name: member.last_name,
-        email: member.email,
-        phone: member.phone,
-        membership_type: member.membership_type,
-        membership_id: member.membership_id,
-        member_since: member.member_since,
-        expiry_date: member.expiry_date,
-        status: member.status,
-        institution: member.institution,
-        nationality: member.nationality,
-        country_of_residence: member.country_of_residence,
-        current_profession: member.current_profession
-      }));
-  
+
+      const transformedData = directoryData.map(
+        (member): Member => ({
+          id: member.user_id,
+          user_id: member.user_id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          email: member.email,
+          phone: member.phone,
+          membership_type: member.membership_type,
+          membership_id: member.membership_id,
+          member_since: member.member_since,
+          expiry_date: member.expiry_date,
+          status: member.status,
+          institution: member.institution,
+          nationality: member.nationality,
+          country_of_residence: member.country_of_residence,
+          current_profession: member.current_profession,
+        })
+      );
+
       setMembers(transformedData);
       setFilteredMembers(transformedData);
     } catch (err) {
@@ -416,35 +419,36 @@ const Directory = () => {
 
       // Process application data if exists
       const applicationDetails = applicationData
-      ? {
-          id: applicationData.id,
-          user_id: applicationData.user_id,
-          first_name: applicationData.first_name,
-          middle_name: applicationData.middle_name || undefined,
-          last_name: applicationData.last_name,
-          gender: applicationData.gender || undefined,
-          nationality: applicationData.country || undefined,
-          country_of_residence: applicationData.country || undefined,
-          email: applicationData.email,
-          phone: applicationData.phone,
-          id_number: applicationData.national_id || undefined,
-          membership_type: applicationData.membership_tier,
-          membership_id: paymentDetails?.membership_number || undefined,
-          current_profession: applicationData.profession || undefined,
-          institution: applicationData.current_employer || undefined,
-          work_address: applicationData.residential_address || undefined,
-          registration_number: applicationData.medical_registration_number || undefined,
-          highest_degree: applicationData.highest_qualification || undefined,
-          university: applicationData.institution_attended || undefined,
-          created_at: applicationData.created_at
-        }
-      : null;
+        ? {
+            id: applicationData.id,
+            user_id: applicationData.user_id,
+            first_name: applicationData.first_name,
+            middle_name: applicationData.middle_name || undefined,
+            last_name: applicationData.last_name,
+            gender: applicationData.gender || undefined,
+            nationality: applicationData.country || undefined,
+            country_of_residence: applicationData.country || undefined,
+            email: applicationData.email,
+            phone: applicationData.phone,
+            id_number: applicationData.national_id || undefined,
+            membership_type: applicationData.membership_tier,
+            membership_id: paymentDetails?.membership_number || undefined,
+            current_profession: applicationData.profession || undefined,
+            institution: applicationData.current_employer || undefined,
+            work_address: applicationData.residential_address || undefined,
+            registration_number:
+              applicationData.medical_registration_number || undefined,
+            highest_degree: applicationData.highest_qualification || undefined,
+            university: applicationData.institution_attended || undefined,
+            created_at: applicationData.created_at,
+          }
+        : null;
 
-        setSelectedMember({
-          member,
-          applicationDetails,
-          paymentDetails,
-        });
+      setSelectedMember({
+        member,
+        applicationDetails,
+        paymentDetails,
+      });
     } catch (err) {
       console.error("Error fetching details:", err);
       setError("Failed to load member details");
@@ -843,11 +847,7 @@ const Directory = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <div className="h-64">
-              <div className="flex items-center justify-center h-full bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-gray-500">
-                  Pie chart visualization of membership types
-                </p>
-              </div>
+              <MembershipPieChart members={members} />
             </div>
           </div>
           <div>

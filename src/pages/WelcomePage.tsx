@@ -149,22 +149,6 @@ const WelcomePage = () => {
                 <span className="font-semibold">{userEmail}</span>. You're now
                 ready to complete your membership application.
               </p>
-              <div className="space-y-3">
-                <Button
-                  variant="primary"
-                  onClick={handleContinue}
-                  className="w-full"
-                >
-                  Complete Application
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/")}
-                  className="w-full"
-                >
-                  Go to Homepage
-                </Button>
-              </div>
             </>
           ) : (
             <>
