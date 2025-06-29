@@ -53,6 +53,38 @@ const Login = () => {
 
       if (signInError) throw signInError;
       if (!data.session) throw new Error("No session returned from sign in");
+      if (!data.user) throw new Error("No user returned from sign in");
+
+      // Track the login
+      const trackLogin = async (session: any) => {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-login`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({}), // No need to send user_id anymore
+            }
+          );
+
+          if (!response.ok) {
+            const error = await response.text();
+            console.error("Tracking failed:", await response.json());
+            throw new Error(error || "Failed to track login");
+          }
+
+          return await response.json();
+        } catch (err) {
+          console.error("Non-critical login tracking error:", err);
+          return null;
+        }
+      };
+
+      // Call it right after successful login
+      await trackLogin(data.session);
 
       // If rememberMe is checked, persist the session
       if (rememberMe) {

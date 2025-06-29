@@ -399,20 +399,15 @@ export default function MembershipRenewalPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Select a tier</option>
-                    {Object.keys(membershipTiers)
-                      .filter((tier) => {
-                        const currentTierIndex =
-                          Object.keys(membershipTiers).indexOf(originalTier);
-                        const thisTierIndex =
-                          Object.keys(membershipTiers).indexOf(tier);
-                        return thisTierIndex > currentTierIndex;
+                    {Object.entries(membershipTiers)
+                      .filter(([tier, tierData]) => {
+                        const currentTierRank =
+                          membershipTiers[originalTier].rank;
+                        return tierData.rank > currentTierRank;
                       })
-                      .map((tier) => (
+                      .map(([tier, tierData]) => (
                         <option key={tier} value={tier}>
-                          {tier} - KES{" "}
-                          {membershipTiers[
-                            tier as MembershipTier
-                          ].price.toLocaleString()}
+                          {tier} - KES {tierData.price.toLocaleString()}
                         </option>
                       ))}
                   </select>

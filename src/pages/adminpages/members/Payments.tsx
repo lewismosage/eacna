@@ -16,7 +16,6 @@ import {
   FileText,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import emailjs from "@emailjs/browser";
 import AlertModal from "../../../components/common/AlertModal";
 import Card, { CardContent } from "../../../components/common/Card";
 import Button from "../../../components/common/Button";
@@ -27,8 +26,48 @@ import {
   membershipTiers as tierData,
 } from "../../../types/membership";
 
-// Initialize emailjs
-emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
+// Add this interface for Brevo response
+interface BrevoResponse {
+  messageId?: string;
+  error?: string;
+}
+
+const sendEmailViaBrevo = async (
+  recipientName: string,
+  recipientEmail: string,
+  subject: string,
+  htmlContent: string,
+  senderName = "EACNA"
+): Promise<BrevoResponse> => {
+  try {
+    const response = await fetch(
+      "https://jajnicjmctsqgxcbgpmd.supabase.co/functions/v1/send-email",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SERVICE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: recipientEmail,
+          subject: subject,
+          htmlContent: htmlContent,
+          senderName: senderName,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to send email");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Brevo API error:", error);
+    throw error;
+  }
+};
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -327,11 +366,11 @@ const Payments = () => {
         `,
       };
 
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        templateParams,
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      await sendEmailViaBrevo(
+        templateParams.to_name,
+        templateParams.to_email,
+        templateParams.subject,
+        templateParams.message
       );
     } catch (error) {
       console.error("Error sending payment confirmation email:", error);

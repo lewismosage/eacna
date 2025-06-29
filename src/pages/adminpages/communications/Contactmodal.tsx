@@ -1,9 +1,60 @@
-import { useState, useEffect } from 'react';
-import { X, Mail, Phone, Send, Save, Clock, AlertCircle, CheckCircle, Eye } from 'lucide-react';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { getEmailTemplateHTML } from '../../../components/common/EmailTemplate';
-import emailjs from '@emailjs/browser';
-emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
+import { useState, useEffect } from "react";
+import {
+  X,
+  Mail,
+  Phone,
+  Send,
+  Save,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Eye,
+} from "lucide-react";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { getEmailTemplateHTML } from "../../../components/common/EmailTemplate";
+
+// Add this interface for Brevo response
+interface BrevoResponse {
+  messageId?: string;
+  error?: string;
+}
+
+const sendEmailViaBrevo = async (
+  recipientName: string,
+  recipientEmail: string,
+  subject: string,
+  htmlContent: string,
+  senderName = "EACNA"
+): Promise<BrevoResponse> => {
+  try {
+    const response = await fetch(
+      "https://jajnicjmctsqgxcbgpmd.supabase.co/functions/v1/send-email",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SERVICE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: recipientEmail,
+          subject: subject,
+          htmlContent: htmlContent,
+          senderName: senderName,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to send email");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Brevo API error:", error);
+    throw error;
+  }
+};
 
 interface ContactTemplateType {
   id: string;
@@ -29,31 +80,51 @@ interface AlertModalProps {
   onClose: () => void;
   title: string;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: "success" | "error" | "info";
 }
 
 // Alert Modal Component
-function AlertModal({ isOpen, onClose, title, message, type = 'info' }: AlertModalProps) {
+function AlertModal({
+  isOpen,
+  onClose,
+  title,
+  message,
+  type = "info",
+}: AlertModalProps) {
   if (!isOpen) return null;
-  
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <div className={`px-6 py-4 border-b border-gray-200 flex items-center ${
-          type === 'success' ? 'text-green-600' : 
-          type === 'error' ? 'text-red-600' : 
-          'text-primary-600'
-        }`}>
-          {type === 'success' ? <CheckCircle className="w-5 h-5 mr-2" /> : 
-           type === 'error' ? <AlertCircle className="w-5 h-5 mr-2" /> : 
-           <AlertCircle className="w-5 h-5 mr-2" />}
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className={`px-6 py-4 border-b border-gray-200 flex items-center ${
+            type === "success"
+              ? "text-green-600"
+              : type === "error"
+              ? "text-red-600"
+              : "text-primary-600"
+          }`}
+        >
+          {type === "success" ? (
+            <CheckCircle className="w-5 h-5 mr-2" />
+          ) : type === "error" ? (
+            <AlertCircle className="w-5 h-5 mr-2" />
+          ) : (
+            <AlertCircle className="w-5 h-5 mr-2" />
+          )}
           <h3 className="text-lg font-semibold">{title}</h3>
         </div>
-        
+
         <div className="p-6">
           <p className="text-gray-700">{message}</p>
         </div>
-        
+
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
           <button
             type="button"
@@ -68,12 +139,16 @@ function AlertModal({ isOpen, onClose, title, message, type = 'info' }: AlertMod
   );
 }
 
-const getEmailTemplate = (recipientName: string, subject: string, message: string) => {
+const getEmailTemplate = (
+  recipientName: string,
+  subject: string,
+  message: string
+) => {
   return getEmailTemplateHTML({
     title: subject,
     recipientName: recipientName,
     content: message,
-    type: 'contact'
+    type: "contact",
   });
 };
 
@@ -81,7 +156,7 @@ const getSMSTemplate = (message: string) => {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 300px; margin: 0 auto; padding: 15px; border: 1px solid #eaeaea; border-radius: 8px; background-color: #f5f5f5;">
       <div style="margin-bottom: 15px; font-size: 14px; line-height: 1.4;">
-        ${message.replace(/\n/g, '<br>')}
+        ${message.replace(/\n/g, "<br>")}
       </div>
       <div style="font-size: 10px; color: #777; text-align: right;">
         EACNA
@@ -99,50 +174,56 @@ export default function ContactModal({
   preferredContactMethod,
   subjectContext,
   messageContext,
-  supabase
+  supabase,
 }: ContactModalProps) {
-  const [contactMethod, setContactMethod] = useState<'email' | 'phone'>(
-    preferredContactMethod === 'phone' && recipientPhone ? 'phone' : 'email'
+  const [contactMethod, setContactMethod] = useState<"email" | "phone">(
+    preferredContactMethod === "phone" && recipientPhone ? "phone" : "email"
   );
-  const [subject, setSubject] = useState(subjectContext || '');
-  const [message, setMessage] = useState(messageContext || '');
+  const [subject, setSubject] = useState(subjectContext || "");
+  const [message, setMessage] = useState(messageContext || "");
   const [templates, setTemplates] = useState<ContactTemplateType[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
-  const [templateTitle, setTemplateTitle] = useState('');
-  const [sentHistory, setSentHistory] = useState<{date: string, method: string, recipient: string}[]>([]);
+  const [templateTitle, setTemplateTitle] = useState("");
+  const [sentHistory, setSentHistory] = useState<
+    { date: string; method: string; recipient: string }[]
+  >([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  
+
   // Alert modal state
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
-    type: 'success' | 'error' | 'info';
+    type: "success" | "error" | "info";
   }>({
     isOpen: false,
-    title: '',
-    message: '',
-    type: 'info'
+    title: "",
+    message: "",
+    type: "info",
   });
-  
+
   // Helper function to show alerts
-  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showAlert = (
+    title: string,
+    message: string,
+    type: "success" | "error" | "info" = "info"
+  ) => {
     setAlertModal({
       isOpen: true,
       title,
       message,
-      type
+      type,
     });
   };
-  
+
   // Close alert modal
   const closeAlert = () => {
-    setAlertModal(prev => ({ ...prev, isOpen: false }));
+    setAlertModal((prev) => ({ ...prev, isOpen: false }));
   };
-  
+
   useEffect(() => {
     if (isOpen) {
       fetchTemplates();
@@ -156,48 +237,50 @@ export default function ContactModal({
   const fetchTemplates = async () => {
     try {
       const { data, error } = await supabase
-        .from('contact_templates')
-        .select('*')
-        .order('title', { ascending: true });
-        
+        .from("contact_templates")
+        .select("*")
+        .order("title", { ascending: true });
+
       if (error) throw error;
-      setTemplates(data as ContactTemplateType[] || []);
+      setTemplates((data as ContactTemplateType[]) || []);
     } catch (error) {
-      console.error('Error fetching templates:', error);
-      showAlert('Error', 'Failed to load templates', 'error');
+      console.error("Error fetching templates:", error);
+      showAlert("Error", "Failed to load templates", "error");
     }
   };
-  
+
   const fetchContactHistory = async () => {
     try {
       const { data, error } = await supabase
-        .from('contact_history')
-        .select('*')
-        .eq('recipient_email', recipientEmail)
-        .order('created_at', { ascending: false })
+        .from("contact_history")
+        .select("*")
+        .eq("recipient_email", recipientEmail)
+        .order("created_at", { ascending: false })
         .limit(5);
-        
+
       if (error) throw error;
-      
+
       if (data) {
-        setSentHistory(data.map(item => ({
-          date: new Date(item.created_at).toLocaleString(),
-          method: item.contact_method,
-          recipient: item.recipient_name
-        })));
+        setSentHistory(
+          data.map((item) => ({
+            date: new Date(item.created_at).toLocaleString(),
+            method: item.contact_method,
+            recipient: item.recipient_name,
+          }))
+        );
       }
     } catch (error) {
-      console.error('Error fetching contact history:', error);
-      showAlert('Error', 'Failed to load contact history', 'error');
+      console.error("Error fetching contact history:", error);
+      showAlert("Error", "Failed to load contact history", "error");
     }
   };
 
   const handleTemplateSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const templateId = e.target.value;
     setSelectedTemplate(templateId);
-    
+
     if (templateId) {
-      const selected = templates.find(t => t.id === templateId);
+      const selected = templates.find((t) => t.id === templateId);
       if (selected) {
         setSubject(selected.subject);
         setMessage(selected.message);
@@ -207,35 +290,39 @@ export default function ContactModal({
 
   const saveTemplate = async () => {
     if (!templateTitle.trim()) {
-      showAlert('Missing Information', 'Please enter a template title', 'error');
+      showAlert(
+        "Missing Information",
+        "Please enter a template title",
+        "error"
+      );
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const { data, error } = await supabase
-        .from('contact_templates')
+        .from("contact_templates")
         .insert([
           {
             title: templateTitle,
             subject,
-            message
-          }
+            message,
+          },
         ])
         .select();
-        
+
       if (error) throw error;
-      
+
       if (data) {
         setTemplates([...templates, data[0] as ContactTemplateType]);
         setSaveAsTemplate(false);
-        setTemplateTitle('');
-        showAlert('Success', 'Template saved successfully!', 'success');
+        setTemplateTitle("");
+        showAlert("Success", "Template saved successfully!", "success");
       }
     } catch (error) {
-      console.error('Error saving template:', error);
-      showAlert('Error', 'Failed to save template', 'error');
+      console.error("Error saving template:", error);
+      showAlert("Error", "Failed to save template", "error");
     } finally {
       setIsLoading(false);
     }
@@ -243,90 +330,98 @@ export default function ContactModal({
 
   const sendContactMessage = async () => {
     // Validation
-    if (contactMethod === 'email' && (!subject.trim() || !message.trim())) {
-      showAlert('Missing Information', 'Please enter both subject and message', 'error');
+    if (contactMethod === "email" && (!subject.trim() || !message.trim())) {
+      showAlert(
+        "Missing Information",
+        "Please enter both subject and message",
+        "error"
+      );
       return;
     }
-    
-    if (contactMethod === 'phone' && (!message.trim() || !recipientPhone)) {
-      showAlert('Missing Information', 'Please enter a message and ensure phone number is provided', 'error');
+
+    if (contactMethod === "phone" && (!message.trim() || !recipientPhone)) {
+      showAlert(
+        "Missing Information",
+        "Please enter a message and ensure phone number is provided",
+        "error"
+      );
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      if (contactMethod === 'email') {
+      if (contactMethod === "email") {
         const templateParams = {
           to_name: recipientName,
-          to_email: recipientEmail, 
-          from_name: 'EACNA',
+          to_email: recipientEmail,
+          from_name: "EACNA",
           subject: subject,
           message: getEmailTemplate(recipientName, subject, message),
-          reply_to: recipientEmail 
+          reply_to: recipientEmail,
         };
-  
-        const response = await emailjs.send(
-          import.meta.env.VITE_EMAILJS_SERVICE_ID,
-          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-          templateParams,
-          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+
+        const response = await sendEmailViaBrevo(
+          recipientName,
+          recipientEmail,
+          subject,
+          getEmailTemplate(recipientName, subject, message)
         );
-  
-        if (response.status !== 200) {
-          throw new Error('Email failed to send');
+
+        if (response.error) {
+          throw new Error(response.error);
         }
-      } 
-      else if (contactMethod === 'phone' && recipientPhone) {
-        const { error } = await supabase.functions.invoke('send-sms', {
+      } else if (contactMethod === "phone" && recipientPhone) {
+        const { error } = await supabase.functions.invoke("send-sms", {
           body: JSON.stringify({
             to: recipientPhone,
-            message: message
-          })
+            message: message,
+          }),
         });
-        
+
         if (error) throw error;
       }
-  
+
       const { error: historyError } = await supabase
-        .from('contact_history')
+        .from("contact_history")
         .insert({
           recipient_name: recipientName,
           recipient_email: recipientEmail,
           recipient_phone: recipientPhone,
           contact_method: contactMethod,
-          subject: contactMethod === 'email' ? subject : null,
+          subject: contactMethod === "email" ? subject : null,
           message: message,
-          user_id: (await supabase.auth.getUser()).data.user?.id
+          user_id: (await supabase.auth.getUser()).data.user?.id,
         });
-      
+
       if (historyError) {
-        console.error('Database insert error:', historyError);
-        throw new Error('Failed to save contact record');
+        console.error("Database insert error:", historyError);
+        throw new Error("Failed to save contact record");
       }
-      
+
       showAlert(
-        'Message Sent', 
-        `${contactMethod === 'email' ? 'Email' : 'SMS'} sent successfully to ${recipientName}`,
-        'success'
+        "Message Sent",
+        `${
+          contactMethod === "email" ? "Email" : "SMS"
+        } sent successfully to ${recipientName}`,
+        "success"
       );
-      
+
       setTimeout(() => {
         closeAlert();
         onClose();
       }, 1500);
-      
     } catch (error) {
-      console.error('Error sending message:', error);
-      
-      let errorMessage = 'Failed to send message. ';
+      console.error("Error sending message:", error);
+
+      let errorMessage = "Failed to send message. ";
       if (error instanceof Error) {
         errorMessage += error.message;
-      } else if (typeof error === 'string') {
+      } else if (typeof error === "string") {
         errorMessage += error;
       }
-      
-      showAlert('Error', errorMessage, 'error');
+
+      showAlert("Error", errorMessage, "error");
     } finally {
       setIsLoading(false);
     }
@@ -344,14 +439,14 @@ export default function ContactModal({
             <h3 className="text-lg font-semibold text-gray-900">
               Contact {recipientName}
             </h3>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="text-gray-500 hover:text-gray-700"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           {/* Scrollable Content */}
           <div className="p-6 overflow-y-auto flex-1">
             {/* Recipient Info */}
@@ -378,18 +473,18 @@ export default function ContactModal({
                 </div>
               )}
             </div>
-            
+
             {/* Contact Method Toggle */}
             {recipientPhone && (
               <div className="mb-6">
                 <div className="flex space-x-2">
                   <button
                     type="button"
-                    onClick={() => setContactMethod('email')}
+                    onClick={() => setContactMethod("email")}
                     className={`px-4 py-2 rounded-md flex items-center ${
-                      contactMethod === 'email'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-200 text-gray-700'
+                      contactMethod === "email"
+                        ? "bg-primary-600 text-white"
+                        : "bg-gray-200 text-gray-700"
                     }`}
                   >
                     <Mail className="w-4 h-4 mr-2" />
@@ -397,11 +492,11 @@ export default function ContactModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setContactMethod('phone')}
+                    onClick={() => setContactMethod("phone")}
                     className={`px-4 py-2 rounded-md flex items-center ${
-                      contactMethod === 'phone'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-200 text-gray-700'
+                      contactMethod === "phone"
+                        ? "bg-primary-600 text-white"
+                        : "bg-gray-200 text-gray-700"
                     }`}
                   >
                     <Phone className="w-4 h-4 mr-2" />
@@ -410,10 +505,13 @@ export default function ContactModal({
                 </div>
               </div>
             )}
-            
+
             {/* Template Selector */}
             <div className="mb-6">
-              <label htmlFor="template" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="template"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Use Template
               </label>
               <select
@@ -423,18 +521,21 @@ export default function ContactModal({
                 onChange={handleTemplateSelect}
               >
                 <option value="">Select a template</option>
-                {templates.map(template => (
+                {templates.map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.title}
                   </option>
                 ))}
               </select>
             </div>
-            
+
             {/* Contact Form */}
-            {contactMethod === 'email' && (
+            {contactMethod === "email" && (
               <div className="mb-4">
-                <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="subject"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Subject
                 </label>
                 <input
@@ -447,9 +548,12 @@ export default function ContactModal({
                 />
               </div>
             )}
-            
+
             <div className="mb-4">
-              <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="message"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Message
               </label>
               <textarea
@@ -461,7 +565,7 @@ export default function ContactModal({
                 placeholder={`Type your message to ${recipientName}...`}
               ></textarea>
             </div>
-            
+
             {/* Preview Button */}
             <div className="mb-4">
               <button
@@ -473,7 +577,7 @@ export default function ContactModal({
                 Preview Message
               </button>
             </div>
-            
+
             {/* Save as Template Option */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
@@ -484,11 +588,14 @@ export default function ContactModal({
                   checked={saveAsTemplate}
                   onChange={() => setSaveAsTemplate(!saveAsTemplate)}
                 />
-                <label htmlFor="save-template" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="save-template"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Save as template for future use
                 </label>
               </div>
-              
+
               {saveAsTemplate && (
                 <div className="mt-2 pl-6">
                   <input
@@ -501,7 +608,7 @@ export default function ContactModal({
                 </div>
               )}
             </div>
-            
+
             {/* Contact History */}
             <div className="mb-4">
               <button
@@ -510,12 +617,14 @@ export default function ContactModal({
                 className="flex items-center text-sm text-primary-600 hover:underline"
               >
                 <Clock className="w-4 h-4 mr-1" />
-                {showHistory ? 'Hide contact history' : 'Show contact history'}
+                {showHistory ? "Hide contact history" : "Show contact history"}
               </button>
-              
+
               {showHistory && sentHistory.length > 0 && (
                 <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Recent communications</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    Recent communications
+                  </h4>
                   <ul className="space-y-2">
                     {sentHistory.map((record, index) => (
                       <li key={index} className="text-xs text-gray-600">
@@ -525,15 +634,17 @@ export default function ContactModal({
                   </ul>
                 </div>
               )}
-              
+
               {showHistory && sentHistory.length === 0 && (
                 <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm text-gray-600">No previous communication found.</p>
+                  <p className="text-sm text-gray-600">
+                    No previous communication found.
+                  </p>
                 </div>
               )}
             </div>
           </div>
-          
+
           {/* Footer with buttons */}
           <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
             <button
@@ -543,7 +654,7 @@ export default function ContactModal({
             >
               Cancel
             </button>
-            
+
             {/* Other action buttons */}
             {saveAsTemplate && (
               <button
@@ -556,7 +667,7 @@ export default function ContactModal({
                 Save Template
               </button>
             )}
-            
+
             <button
               type="button"
               onClick={sendContactMessage}
@@ -568,14 +679,14 @@ export default function ContactModal({
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-1" />
-                  Send {contactMethod === 'email' ? 'Email' : 'SMS'}
+                  Send {contactMethod === "email" ? "Email" : "SMS"}
                 </>
               )}
             </button>
           </div>
         </div>
       </div>
-      
+
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -584,8 +695,8 @@ export default function ContactModal({
               <h3 className="text-lg font-semibold text-gray-900">
                 Message Preview
               </h3>
-              <button 
-                onClick={() => setShowPreview(false)} 
+              <button
+                onClick={() => setShowPreview(false)}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="w-5 h-5" />
@@ -593,14 +704,18 @@ export default function ContactModal({
             </div>
             <div className="p-6 overflow-y-auto flex-1">
               <div className="bg-gray-50 p-4 rounded-lg">
-                {contactMethod === 'email' ? (
-                  <div dangerouslySetInnerHTML={{ 
-                    __html: getEmailTemplate(recipientName, subject, message) 
-                  }} />
+                {contactMethod === "email" ? (
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: getEmailTemplate(recipientName, subject, message),
+                    }}
+                  />
                 ) : (
-                  <div dangerouslySetInnerHTML={{ 
-                    __html: getSMSTemplate(message) 
-                  }} />
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: getSMSTemplate(message),
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -616,14 +731,14 @@ export default function ContactModal({
           </div>
         </div>
       )}
-      
+
       {/* Alert Modal */}
-      <AlertModal 
-        isOpen={alertModal.isOpen} 
-        onClose={closeAlert} 
-        title={alertModal.title} 
-        message={alertModal.message} 
-        type={alertModal.type} 
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
       />
     </>
   );

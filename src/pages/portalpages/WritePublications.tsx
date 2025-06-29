@@ -352,7 +352,7 @@ const WritePublications = () => {
         id // Pass the ID if editing
       );
 
-      console.log("Publication submitted:", savedPublication);
+      
       setSubmitStatus("success");
     } catch (error) {
       console.error("Error submitting publication:", error);
