@@ -11,11 +11,18 @@ import {
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { MembershipTier, membershipTiers } from "../../types/membership";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { StripePayment } from "../../components/protectedroute/StripePayment";
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""
+);
 
 interface MemberData {
   id: string;
@@ -90,12 +97,6 @@ export default function MembershipRenewalPage() {
     swiftReference: "",
     bankName: "",
     accountNumber: "",
-  });
-  const [cardDetails, setCardDetails] = useState({
-    number: "",
-    name: "",
-    expiry: "",
-    cvv: "",
   });
 
   // UI state
@@ -172,7 +173,10 @@ export default function MembershipRenewalPage() {
     }
   };
 
-  const handleSubmitPayment = async (e: React.FormEvent) => {
+  const handleSubmitPayment = async (
+    e: React.FormEvent,
+    paymentIntentId?: string
+  ) => {
     e.preventDefault();
     setSubmitLoading(true);
 
@@ -187,17 +191,10 @@ export default function MembershipRenewalPage() {
         ) {
           throw new Error("Please provide all bank transfer details");
         }
-      } else if (paymentMethod === "online") {
-        if (
-          !cardDetails.number ||
-          !cardDetails.name ||
-          !cardDetails.expiry ||
-          !cardDetails.cvv
-        ) {
-          throw new Error("Please provide all credit card details");
+      } else if (paymentMethod === "mobile") {
+        if (!transactionId || transactionId.length < 8) {
+          throw new Error("Please enter a valid transaction ID");
         }
-      } else if (!transactionId || transactionId.length < 8) {
-        throw new Error("Please enter a valid transaction ID");
       }
 
       if (!memberData) {
@@ -230,9 +227,7 @@ export default function MembershipRenewalPage() {
       if (paymentMethod === "bank") {
         paymentTransactionId = bankTransferDetails.reference;
       } else if (paymentMethod === "online") {
-        const generatedId = `ONLINE-${Date.now()}`;
-        setTransactionId(generatedId);
-        paymentTransactionId = generatedId;
+        paymentTransactionId = paymentIntentId || "";
       }
 
       // Calculate correct amount for upgrade or renewal
@@ -270,11 +265,6 @@ export default function MembershipRenewalPage() {
                   bankName: bankTransferDetails.bankName,
                   swiftReference: bankTransferDetails.swiftReference,
                   accountNumber: bankTransferDetails.accountNumber,
-                }
-              : paymentMethod === "online"
-              ? {
-                  cardholderName: cardDetails.name,
-                  last4: cardDetails.number.slice(-4),
                 }
               : null,
         })
@@ -541,30 +531,7 @@ export default function MembershipRenewalPage() {
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Payment Details
-            </h2>
-
-            {/* Upgrade Summary Section */}
-            {actionType === "upgrade" && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-gray-800 mb-3">
-                  Upgrade Summary
-                </h3>
-                <div className="flex flex-col md:flex-row md:space-x-8 space-y-2 md:space-y-0">
-                  <div>
-                    <span className="text-gray-600">Current Membership:</span>
-                    <span className="font-medium ml-2">{originalTier}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Upgrading to:</span>
-                    <span className="font-medium ml-2">{membershipTier}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitPayment} className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Payment Method
@@ -651,100 +618,29 @@ export default function MembershipRenewalPage() {
 
                   {/* Credit Card Inputs */}
                   {paymentMethod === "online" && (
-                    <div className="space-y-4 pt-4">
-                      <div>
-                        <label
-                          htmlFor="cardNumber"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Card Number
-                        </label>
-                        <input
-                          id="cardNumber"
-                          type="text"
-                          value={cardDetails.number}
-                          onChange={(e) =>
-                            setCardDetails({
-                              ...cardDetails,
-                              number: e.target.value,
-                            })
-                          }
-                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                          placeholder="1234 5678 9012 3456"
-                          required
+                    <div className="pt-4">
+                      <Elements
+                        stripe={stripePromise}
+                        options={{
+                          mode: "payment",
+                          amount: price * 100,
+                          currency: "kes",
+                          paymentMethodCreation: "manual",
+                        }}
+                      >
+                        <StripePayment
+                          amount={price}
+                          currency="kes"
+                          onSuccess={(paymentIntent) => {
+                            setTransactionId(paymentIntent.id);
+                            handleSubmitPayment(
+                              new Event("submit") as any,
+                              paymentIntent.id
+                            );
+                          }}
+                          onError={(error) => setSubmitStatus(error)}
                         />
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="cardName"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Name on Card
-                        </label>
-                        <input
-                          id="cardName"
-                          type="text"
-                          value={cardDetails.name}
-                          onChange={(e) =>
-                            setCardDetails({
-                              ...cardDetails,
-                              name: e.target.value,
-                            })
-                          }
-                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                          placeholder="John Doe"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label
-                            htmlFor="cardExpiry"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            Expiry Date
-                          </label>
-                          <input
-                            id="cardExpiry"
-                            type="text"
-                            value={cardDetails.expiry}
-                            onChange={(e) =>
-                              setCardDetails({
-                                ...cardDetails,
-                                expiry: e.target.value,
-                              })
-                            }
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                            placeholder="MM/YY"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="cardCvv"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            CVV
-                          </label>
-                          <input
-                            id="cardCvv"
-                            type="text"
-                            value={cardDetails.cvv}
-                            onChange={(e) =>
-                              setCardDetails({
-                                ...cardDetails,
-                                cvv: e.target.value,
-                              })
-                            }
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                            placeholder="123"
-                            required
-                          />
-                        </div>
-                      </div>
+                      </Elements>
                     </div>
                   )}
 
@@ -884,7 +780,7 @@ export default function MembershipRenewalPage() {
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
 
@@ -971,12 +867,12 @@ export default function MembershipRenewalPage() {
                 </div>
                 <div>{bankTransferDetails.swiftReference}</div>
               </>
-            ) : (
+            ) : paymentMethod === "mobile" ? (
               <>
                 <div className="text-gray-500">Transaction ID:</div>
                 <div>{transactionId}</div>
               </>
-            )}
+            ) : null}
 
             <div className="text-gray-500">Status:</div>
             <div className="text-orange-600 font-medium">

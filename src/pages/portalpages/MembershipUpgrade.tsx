@@ -13,11 +13,18 @@ import {
 } from "lucide-react";
 import { membershipTiers, MembershipTier } from "../../types/membership";
 import { createClient } from "@supabase/supabase-js";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { StripePayment } from "../../components/protectedroute/StripePayment";
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""
+);
 
 type MembershipUpgradeProps = {
   currentMembership: {
@@ -56,12 +63,6 @@ const MembershipUpgrade = ({
   const [memberDetails, setMemberDetails] = useState<MemberDetails | null>(
     null
   );
-  const [cardDetails, setCardDetails] = useState({
-    number: "",
-    name: "",
-    expiry: "",
-    cvv: "",
-  });
   const [bankTransferDetails, setBankTransferDetails] = useState({
     reference: "",
     swiftReference: "",
@@ -134,8 +135,11 @@ const MembershipUpgrade = ({
   const daysRemaining = calculateDaysRemaining();
 
   // Handle payment submission
-  const handleSubmitPayment = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmitPayment = async (
+    e: React.FormEvent<HTMLFormElement> | Event,
+    paymentIntentId?: string
+  ) => {
+    if (e && "preventDefault" in e) e.preventDefault();
     setSubmitLoading(true);
     setSubmitStatus("");
 
@@ -170,14 +174,9 @@ const MembershipUpgrade = ({
         throw new Error("Please provide all bank transfer details");
       }
 
-      if (
-        selectedMethod === "credit_card" &&
-        (!cardDetails.number ||
-          !cardDetails.name ||
-          !cardDetails.expiry ||
-          !cardDetails.cvv)
-      ) {
-        throw new Error("Please provide all credit card details");
+      // StripePayment will provide paymentIntentId for credit_card
+      if (selectedMethod === "credit_card") {
+        paymentIntentId = paymentIntentId || "";
       }
 
       const dbPaymentMethod = selectedMethod || "other";
@@ -186,9 +185,7 @@ const MembershipUpgrade = ({
       if (selectedMethod === "bank_transfer") {
         paymentTransactionId = bankTransferDetails.reference;
       } else if (selectedMethod === "credit_card") {
-        const generatedId = `ONLINE-${Date.now()}`;
-        setTransactionId(generatedId);
-        paymentTransactionId = generatedId;
+        paymentTransactionId = paymentIntentId || "";
       }
 
       const { data: paymentData, error: paymentError } = await supabase
@@ -214,11 +211,6 @@ const MembershipUpgrade = ({
                   bankName: bankTransferDetails.bankName,
                   swiftReference: bankTransferDetails.swiftReference,
                   accountNumber: bankTransferDetails.accountNumber,
-                }
-              : selectedMethod === "credit_card"
-              ? {
-                  cardholderName: cardDetails.name,
-                  last4: cardDetails.number.slice(-4),
                 }
               : null,
         })
@@ -847,144 +839,40 @@ const MembershipUpgrade = ({
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
-          <form onSubmit={handleSubmitPayment} className="space-y-4">
-            <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6">
-              <h3 className="font-medium text-blue-800 mb-2">Secure Payment</h3>
-              <p className="text-blue-700">
-                All transactions are secure and encrypted. We do not store your
-                credit card details.
-              </p>
+          {/* Stripe Elements for card payment */}
+          <Elements
+            stripe={stripePromise}
+            options={{
+              mode: "payment",
+              amount: upgradeFee * 100,
+              currency: "kes",
+              paymentMethodCreation: "manual",
+            }}
+          >
+            <StripePayment
+              amount={upgradeFee}
+              currency="kes"
+              onSuccess={(paymentIntent) => {
+                setTransactionId(paymentIntent.id);
+                handleSubmitPayment(
+                  new Event("submit") as any,
+                  paymentIntent.id
+                );
+              }}
+              onError={(error) => setSubmitStatus(error)}
+            />
+          </Elements>
+          {submitStatus && (
+            <div
+              className={`text-center p-3 rounded-md ${
+                submitStatus === "PAYMENT VERIFICATION IN PROGRESS"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}
+            >
+              {submitStatus}
             </div>
-
-            <div>
-              <label
-                htmlFor="cardNumber"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Card Number
-              </label>
-              <input
-                id="cardNumber"
-                type="text"
-                value={cardDetails.number}
-                onChange={(e) =>
-                  setCardDetails({ ...cardDetails, number: e.target.value })
-                }
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                placeholder="1234 5678 9012 3456"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="cardName"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Name on Card
-              </label>
-              <input
-                id="cardName"
-                type="text"
-                value={cardDetails.name}
-                onChange={(e) =>
-                  setCardDetails({ ...cardDetails, name: e.target.value })
-                }
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                placeholder="John Doe"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="cardExpiry"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Expiry Date
-                </label>
-                <input
-                  id="cardExpiry"
-                  type="text"
-                  value={cardDetails.expiry}
-                  onChange={(e) =>
-                    setCardDetails({ ...cardDetails, expiry: e.target.value })
-                  }
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="MM/YY"
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="cardCvv"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  CVV
-                </label>
-                <input
-                  id="cardCvv"
-                  type="text"
-                  value={cardDetails.cvv}
-                  onChange={(e) =>
-                    setCardDetails({ ...cardDetails, cvv: e.target.value })
-                  }
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="123"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <LockIcon />
-              <span>Your payment is secured with 256-bit SSL encryption</span>
-            </div>
-
-            {submitStatus && (
-              <div
-                className={`text-center p-3 rounded-md ${
-                  submitStatus === "PAYMENT VERIFICATION IN PROGRESS"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
-                }`}
-              >
-                {submitStatus}
-              </div>
-            )}
-
-            <div className="flex justify-between items-center pt-4">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                Back
-              </button>
-
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center"
-                disabled={submitLoading || submitted}
-              >
-                {submitLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : submitted ? (
-                  <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Submitted
-                  </>
-                ) : (
-                  "Pay KSH " + upgradeFee
-                )}
-              </button>
-            </div>
-          </form>
+          )}
         </div>
 
         <div className="md:col-span-1">

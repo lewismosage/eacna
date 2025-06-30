@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   ArrowRight,
@@ -10,12 +10,41 @@ import {
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { MembershipTier, membershipTiers } from "../../types/membership";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { StripePayment } from "../../components/protectedroute/StripePayment";
 
 // Initialize Supabase client
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_KEY
 );
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""
+);
+
+const appearance = {
+  theme: "flat",
+  variables: {
+    colorPrimary: "#4f46e5", // Your primary color
+    colorBackground: "#ffffff",
+    colorText: "#374151",
+    colorDanger: "#ef4444",
+    fontFamily: "Inter, sans-serif",
+    borderRadius: "0.375rem",
+  },
+  rules: {
+    ".Input, .Block": {
+      backgroundColor: "var(--colorBackground)",
+      border: "1px solid #d1d5db",
+    },
+    ".Input:focus, .Block:focus": {
+      borderColor: "var(--colorPrimary)",
+      boxShadow: "0 0 0 1px var(--colorPrimary)",
+    },
+  },
+};
 
 // Mock payment methods
 const paymentMethods = [
@@ -222,7 +251,10 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
     }
   };
 
-  const handleSubmitPayment = async (e: React.FormEvent) => {
+  const handleSubmitPayment = async (
+    e: React.FormEvent,
+    stripePaymentIntentId?: string
+  ) => {
     e.preventDefault();
     if (!memberData) return;
 
@@ -240,17 +272,14 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         ) {
           throw new Error("Please provide all bank transfer details");
         }
-      } else if (paymentMethod === "online") {
-        if (
-          !cardDetails.number ||
-          !cardDetails.name ||
-          !cardDetails.expiry ||
-          !cardDetails.cvv
-        ) {
-          throw new Error("Please provide all credit card details");
+      } else if (paymentMethod === "mobile") {
+        if (!transactionId || transactionId.length < 8) {
+          throw new Error("Please enter a valid transaction ID");
         }
-      } else if (!transactionId || transactionId.length < 8) {
-        throw new Error("Please enter a valid transaction ID");
+      } else if (paymentMethod === "online") {
+        if (!stripePaymentIntentId) {
+          throw new Error("Stripe payment ID is missing.");
+        }
       }
 
       // Get the tier details
@@ -270,13 +299,11 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] ||
         "other";
 
-      let paymentTransactionId = transactionId;
+      let paymentTransactionId = transactionId; // For M-Pesa
       if (paymentMethod === "bank") {
         paymentTransactionId = bankTransferDetails.reference;
-      } else if (paymentMethod === "online") {
-        const generatedId = `ONLINE-${Date.now()}`;
-        setTransactionId(generatedId);
-        paymentTransactionId = generatedId;
+      } else if (paymentMethod === "online" && stripePaymentIntentId) {
+        paymentTransactionId = stripePaymentIntentId;
       }
 
       // Submit payment
@@ -301,11 +328,6 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                   bankName: bankTransferDetails.bankName,
                   swiftReference: bankTransferDetails.swiftReference,
                   accountNumber: bankTransferDetails.accountNumber,
-                }
-              : paymentMethod === "online"
-              ? {
-                  cardholderName: cardDetails.name,
-                  last4: cardDetails.number.slice(-4),
                 }
               : null,
         })
@@ -551,97 +573,37 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                   )}
 
                   {paymentMethod === "online" && (
-                    <div className="space-y-4 pt-4">
-                      <div>
-                        <label
-                          htmlFor="cardNumber"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Card Number
-                        </label>
-                        <input
-                          id="cardNumber"
-                          type="text"
-                          value={cardDetails.number}
-                          onChange={(e) =>
-                            setCardDetails({
-                              ...cardDetails,
-                              number: e.target.value,
-                            })
-                          }
-                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                          placeholder="1234 5678 9012 3456"
-                          required
+                    <div className="mt-4">
+                      <Elements
+                        stripe={stripePromise}
+                        options={{
+                          mode: "payment",
+                          amount: tier.price * 100,
+                          currency: "kes",
+                          paymentMethodCreation: "manual",
+                        }}
+                      >
+                        <StripePayment
+                          amount={tier.price}
+                          currency="kes"
+                          onSuccess={(paymentIntent) => {
+                            handleSubmitPayment(
+                              new Event("submit") as any,
+                              paymentIntent.id
+                            );
+                          }}
+                          onError={(error) => setSubmitStatus(error)}
                         />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label
-                            htmlFor="cardName"
-                            className="block text-sm font-medium text-gray-700 mb-1"
+                      </Elements>
+
+                      {submitStatus &&
+                        submitStatus !== "PAYMENT VERIFICATION IN PROGRESS" && (
+                          <div
+                            className={`p-3 rounded-md text-center mt-4 bg-red-50 text-red-700 border border-red-200`}
                           >
-                            Name on Card
-                          </label>
-                          <input
-                            id="cardName"
-                            type="text"
-                            value={cardDetails.name}
-                            onChange={(e) =>
-                              setCardDetails({
-                                ...cardDetails,
-                                name: e.target.value,
-                              })
-                            }
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                            placeholder="John Doe"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label
-                            htmlFor="cardExpiry"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            Expiry Date
-                          </label>
-                          <input
-                            id="cardExpiry"
-                            type="text"
-                            value={cardDetails.expiry}
-                            onChange={(e) =>
-                              setCardDetails({
-                                ...cardDetails,
-                                expiry: e.target.value,
-                              })
-                            }
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                            placeholder="MM/YY"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="cardCvv"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          CVV
-                        </label>
-                        <input
-                          id="cardCvv"
-                          type="text"
-                          value={cardDetails.cvv}
-                          onChange={(e) =>
-                            setCardDetails({
-                              ...cardDetails,
-                              cvv: e.target.value,
-                            })
-                          }
-                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                          placeholder="123"
-                          required
-                        />
-                      </div>
+                            {submitStatus}
+                          </div>
+                        )}
                     </div>
                   )}
 
@@ -739,47 +701,51 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                 </>
               )}
 
-              {submitStatus && (
-                <div
-                  className={`p-3 rounded-md text-center ${
-                    submitStatus === "PAYMENT VERIFICATION IN PROGRESS"
-                      ? "bg-green-50 text-green-700 border border-green-200"
-                      : "bg-red-50 text-red-700 border border-red-200"
-                  }`}
-                >
-                  {submitStatus}
-                </div>
-              )}
-
-              <div className="flex justify-between items-center pt-4">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmitPayment}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
-                  disabled={submitLoading || submitted || !paymentMethod}
-                >
-                  {submitLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : submitted ? (
-                    <>
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      Submitted
-                    </>
-                  ) : (
-                    "Submit Payment"
+              {/* Buttons for non-Stripe methods */}
+              {paymentMethod !== "online" && paymentMethod && (
+                <>
+                  {submitStatus && (
+                    <div
+                      className={`p-3 rounded-md text-center mt-4 ${
+                        submitStatus === "PAYMENT VERIFICATION IN PROGRESS"
+                          ? "bg-green-50 text-green-700 border border-green-200"
+                          : "bg-red-50 text-red-700 border border-red-200"
+                      }`}
+                    >
+                      {submitStatus}
+                    </div>
                   )}
-                </button>
-              </div>
+                  <div className="flex justify-between items-center pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSubmitPayment}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
+                      disabled={submitLoading || submitted || !paymentMethod}
+                    >
+                      {submitLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : submitted ? (
+                        <>
+                          <CheckCircle className="w-5 h-5 mr-2" />
+                          Submitted
+                        </>
+                      ) : (
+                        "Submit Payment"
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -873,10 +839,12 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                 <div>{bankTransferDetails.swiftReference}</div>
               </>
             ) : (
-              <>
-                <div className="text-gray-500">Transaction ID:</div>
-                <div>{transactionId}</div>
-              </>
+              paymentMethod === "mobile" && (
+                <>
+                  <div className="text-gray-500">Transaction ID:</div>
+                  <div>{transactionId}</div>
+                </>
+              )
             )}
             <div className="text-gray-500">Status:</div>
             <div className="text-orange-600 font-medium">
@@ -897,7 +865,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">
