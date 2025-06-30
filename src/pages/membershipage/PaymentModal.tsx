@@ -129,7 +129,6 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
     expiry: "",
     cvv: "",
   });
-  const [mpesaPhone, setMpesaPhone] = useState("");
 
   // UI state
   const [step, setStep] = useState(1); // 1: search, 2: payment, 3: success
@@ -353,45 +352,6 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
     }
   };
 
-  const handleMpesaPayment = async () => {
-    if (!memberData || !mpesaPhone) return;
-
-    setSubmitLoading(true);
-    setSubmitStatus("");
-
-    try {
-      const tier = membershipTiers[memberData.membership_tier];
-      if (!tier) throw new Error("Invalid membership tier");
-
-      // Initiate STK Push
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mpesa-stkpush`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            phone: mpesaPhone,
-            amount: tier.price,
-            reference: `MEM-${memberData.membership_id}`,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-
-      setSubmitStatus("Check your phone to complete M-Pesa payment");
-      setTransactionId(data.CheckoutRequestID); // Save for verification
-    } catch (error) {
-      setSubmitStatus(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSubmitLoading(false);
-    }
-  };
-
   const renderSearchStep = () => (
     <div className="bg-white rounded-lg p-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">
@@ -590,58 +550,25 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                   </div>
 
                   {paymentMethod === "mobile" && (
-                    <div className="space-y-4 pt-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          M-Pesa Phone Number
-                        </label>
-                        <input
-                          type="text"
-                          value={mpesaPhone}
-                          onChange={(e) => setMpesaPhone(e.target.value)}
-                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-                          placeholder="e.g. 0712345678"
-                          required
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                        Enter your M-Pesa phone number to receive a payment prompt (STK Push)
-                        </p>
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="transactionId"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Transaction ID
-                        </label>
-                        <input
-                          id="transactionId"
-                          type="text"
-                          value={transactionId}
-                          onChange={(e) => setTransactionId(e.target.value)}
-                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-                          placeholder="Enter transaction ID"
-                          required
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Enter the transaction ID from your confirmation
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleMpesaPayment}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
-                        disabled={submitLoading || !mpesaPhone}
+                    <div className="pt-4">
+                      <label
+                        htmlFor="transactionId"
+                        className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        {submitLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Sending STK Push...
-                          </>
-                        ) : (
-                          "Pay with M-Pesa"
-                        )}
-                      </button>
+                        Transaction ID
+                      </label>
+                      <input
+                        id="transactionId"
+                        type="text"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                        placeholder="Enter transaction ID"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the transaction ID from your confirmation
+                      </p>
                     </div>
                   )}
 
