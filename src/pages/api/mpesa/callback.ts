@@ -24,10 +24,26 @@ const SAFARICOM_IPS = [
   '196.201.212.75'
 ] as const
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(200).end();
+  }
+
+  // Set CORS headers for all responses
+  Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+
   // 1. Verify the request method
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
