@@ -24,11 +24,12 @@ const paymentMethods = [
     name: "Bank Transfer",
     description: "Direct bank transfer to our account",
     instructions: [
-      "Bank: Kenya Commercial Bank",
-      "Account Name: EACNA",
+      "Bank Name: Equity Bank",
+      "Account Name: EACNA Membership",
       "Account Number: 1234567890",
       "Branch: Nairobi CBD",
-      "Swift Code: KCBKENYA",
+      "SWIFT Code: EQBLKENA",
+      "Please include 'EACNA' as your reference",
     ],
   },
   {
@@ -40,7 +41,7 @@ const paymentMethods = [
       'Select "Lipa na M-Pesa"',
       'Select "Pay Bill"',
       "Enter Business Number: 123456",
-      "Enter Account Number: EACNA[YourID]",
+      "Enter Account Number: EACNA",
       "Enter the amount",
       "Enter your PIN and confirm",
     ],
@@ -50,9 +51,9 @@ const paymentMethods = [
     name: "Credit/Debit Card",
     description: "Pay via credit/debit card",
     instructions: [
-      "You will be redirected to a secure payment gateway",
       "Enter your card details",
       "Complete the payment",
+      "All transactions are secure and encrypted. We do not store your credit card details",
     ],
   },
 ];
@@ -87,6 +88,18 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   // Payment state
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionId, setTransactionId] = useState("");
+  const [bankTransferDetails, setBankTransferDetails] = useState({
+    reference: "",
+    swiftReference: "",
+    bankName: "",
+    accountNumber: "",
+  });
+  const [cardDetails, setCardDetails] = useState({
+    number: "",
+    name: "",
+    expiry: "",
+    cvv: "",
+  });
 
   // UI state
   const [step, setStep] = useState(1); // 1: search, 2: payment, 3: success
@@ -94,6 +107,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
   const [searchError, setSearchError] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,8 +231,25 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
 
     try {
       // Validate inputs
-      if (!paymentMethod) throw new Error("Please select a payment method");
-      if (!transactionId || transactionId.length < 8) {
+      if (paymentMethod === "bank") {
+        if (
+          !bankTransferDetails.reference ||
+          !bankTransferDetails.swiftReference ||
+          !bankTransferDetails.bankName ||
+          !bankTransferDetails.accountNumber
+        ) {
+          throw new Error("Please provide all bank transfer details");
+        }
+      } else if (paymentMethod === "online") {
+        if (
+          !cardDetails.number ||
+          !cardDetails.name ||
+          !cardDetails.expiry ||
+          !cardDetails.cvv
+        ) {
+          throw new Error("Please provide all credit card details");
+        }
+      } else if (!transactionId || transactionId.length < 8) {
         throw new Error("Please enter a valid transaction ID");
       }
 
@@ -239,12 +270,21 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
         paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] ||
         "other";
 
+      let paymentTransactionId = transactionId;
+      if (paymentMethod === "bank") {
+        paymentTransactionId = bankTransferDetails.reference;
+      } else if (paymentMethod === "online") {
+        const generatedId = `ONLINE-${Date.now()}`;
+        setTransactionId(generatedId);
+        paymentTransactionId = generatedId;
+      }
+
       // Submit payment
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .insert({
           user_id: memberData.user_id,
-          transaction_id: transactionId,
+          transaction_id: paymentTransactionId,
           amount: tier.price,
           currency: "KES",
           payment_method: dbPaymentMethod,
@@ -255,15 +295,31 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
           payment_type: "application",
           membership_id: memberData.membership_id,
           membership_tier: memberData.membership_tier,
-          notes: "Payment submitted through member portal",
+          additional_info:
+            paymentMethod === "bank"
+              ? {
+                  bankName: bankTransferDetails.bankName,
+                  swiftReference: bankTransferDetails.swiftReference,
+                  accountNumber: bankTransferDetails.accountNumber,
+                }
+              : paymentMethod === "online"
+              ? {
+                  cardholderName: cardDetails.name,
+                  last4: cardDetails.number.slice(-4),
+                }
+              : null,
         })
         .select()
         .single();
 
       if (paymentError) throw paymentError;
 
-      setSubmitStatus("success");
-      setStep(3);
+      setSubmitStatus("PAYMENT VERIFICATION IN PROGRESS");
+      setSubmitted(true);
+
+      setTimeout(() => {
+        setStep(3);
+      }, 1000);
     } catch (error) {
       console.error("Payment processing error:", error);
       setSubmitStatus(
@@ -462,7 +518,7 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                     <h3 className="font-medium text-blue-800 mb-2">
                       Payment Instructions
                     </h3>
-                    <ol className="list-decimal pl-5 space-y-1 text-blue-700">
+                    <ol className="list-decimal pl-5 space-y-2 text-blue-700">
                       {paymentMethods
                         .find((m) => m.id === paymentMethod)
                         ?.instructions.map((step, i) => (
@@ -471,37 +527,231 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                     </ol>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Transaction ID
-                    </label>
-                    <input
-                      type="text"
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Enter transaction ID"
-                      required
-                    />
-                  </div>
+                  {paymentMethod === "mobile" && (
+                    <div className="pt-4">
+                      <label
+                        htmlFor="transactionId"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Transaction ID
+                      </label>
+                      <input
+                        id="transactionId"
+                        type="text"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                        placeholder="Enter transaction ID"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the transaction ID from your confirmation
+                      </p>
+                    </div>
+                  )}
+
+                  {paymentMethod === "online" && (
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <label
+                          htmlFor="cardNumber"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Card Number
+                        </label>
+                        <input
+                          id="cardNumber"
+                          type="text"
+                          value={cardDetails.number}
+                          onChange={(e) =>
+                            setCardDetails({
+                              ...cardDetails,
+                              number: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="1234 5678 9012 3456"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label
+                            htmlFor="cardName"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Name on Card
+                          </label>
+                          <input
+                            id="cardName"
+                            type="text"
+                            value={cardDetails.name}
+                            onChange={(e) =>
+                              setCardDetails({
+                                ...cardDetails,
+                                name: e.target.value,
+                              })
+                            }
+                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                            placeholder="John Doe"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="cardExpiry"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Expiry Date
+                          </label>
+                          <input
+                            id="cardExpiry"
+                            type="text"
+                            value={cardDetails.expiry}
+                            onChange={(e) =>
+                              setCardDetails({
+                                ...cardDetails,
+                                expiry: e.target.value,
+                              })
+                            }
+                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                            placeholder="MM/YY"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="cardCvv"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          CVV
+                        </label>
+                        <input
+                          id="cardCvv"
+                          type="text"
+                          value={cardDetails.cvv}
+                          onChange={(e) =>
+                            setCardDetails({
+                              ...cardDetails,
+                              cvv: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="123"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === "bank" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                      <div>
+                        <label
+                          htmlFor="bankReference"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Reference Number
+                        </label>
+                        <input
+                          id="bankReference"
+                          type="text"
+                          value={bankTransferDetails.reference}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              reference: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="e.g., EACNA"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="swiftReference"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          SWIFT Transaction Reference Number
+                        </label>
+                        <input
+                          id="swiftReference"
+                          type="text"
+                          value={bankTransferDetails.swiftReference}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              swiftReference: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="e.g., SWIFTREF123"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="bankName"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Your Bank Name
+                        </label>
+                        <input
+                          id="bankName"
+                          type="text"
+                          value={bankTransferDetails.bankName}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              bankName: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="e.g., KCB"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="accountNumber"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Your Account Number
+                        </label>
+                        <input
+                          id="accountNumber"
+                          type="text"
+                          value={bankTransferDetails.accountNumber}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              accountNumber: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="Account you paid from"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
               {submitStatus && (
                 <div
-                  className={`p-3 rounded-md ${
-                    submitStatus === "success"
+                  className={`p-3 rounded-md text-center ${
+                    submitStatus === "PAYMENT VERIFICATION IN PROGRESS"
                       ? "bg-green-50 text-green-700 border border-green-200"
                       : "bg-red-50 text-red-700 border border-red-200"
                   }`}
                 >
-                  {submitStatus === "success"
-                    ? "Payment submitted successfully!"
-                    : submitStatus}
+                  {submitStatus}
                 </div>
               )}
 
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-between items-center pt-4">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
@@ -513,12 +763,17 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
                   type="button"
                   onClick={handleSubmitPayment}
                   className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
-                  disabled={submitLoading || !paymentMethod || !transactionId}
+                  disabled={submitLoading || submitted || !paymentMethod}
                 >
                   {submitLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Processing...
+                    </>
+                  ) : submitted ? (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Submitted
                     </>
                   ) : (
                     "Submit Payment"
@@ -608,8 +863,25 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
             <div>{tier.name}</div>
             <div className="text-gray-500">Amount:</div>
             <div>KES {tier.price.toLocaleString()}</div>
-            <div className="text-gray-500">Transaction ID:</div>
-            <div>{transactionId}</div>
+            {paymentMethod === "bank" ? (
+              <>
+                <div className="text-gray-500">Reference Number:</div>
+                <div>{bankTransferDetails.reference}</div>
+                <div className="text-gray-500">
+                  SWIFT Transaction Reference Number:
+                </div>
+                <div>{bankTransferDetails.swiftReference}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-gray-500">Transaction ID:</div>
+                <div>{transactionId}</div>
+              </>
+            )}
+            <div className="text-gray-500">Status:</div>
+            <div className="text-orange-600 font-medium">
+              Verification in Progress
+            </div>
           </div>
         </div>
 

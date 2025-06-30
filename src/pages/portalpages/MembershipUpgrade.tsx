@@ -12,6 +12,12 @@ import {
   Landmark,
 } from "lucide-react";
 import { membershipTiers, MembershipTier } from "../../types/membership";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 type MembershipUpgradeProps = {
   currentMembership: {
@@ -23,7 +29,14 @@ type MembershipUpgradeProps = {
   selectedTierFromStatus?: MembershipTier;
 };
 
-type PaymentMethod = 'mpesa' | 'bank_transfer' | 'credit_card';
+interface MemberDetails {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+type PaymentMethod = "mpesa" | "bank_transfer" | "credit_card";
 
 const MembershipUpgrade = ({
   currentMembership,
@@ -35,19 +48,25 @@ const MembershipUpgrade = ({
   const [selectedTier, setSelectedTier] = useState<MembershipTier | null>(
     selectedTierFromStatus || null
   );
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
+    null
+  );
   const [upgradeFee, setUpgradeFee] = useState(0);
   const [transactionId, setTransactionId] = useState("");
+  const [memberDetails, setMemberDetails] = useState<MemberDetails | null>(
+    null
+  );
   const [cardDetails, setCardDetails] = useState({
-    number: '',
-    name: '',
-    expiry: '',
-    cvv: ''
+    number: "",
+    name: "",
+    expiry: "",
+    cvv: "",
   });
   const [bankTransferDetails, setBankTransferDetails] = useState({
-    reference: '',
-    bankName: '',
-    date: ''
+    reference: "",
+    swiftReference: "",
+    bankName: "",
+    accountNumber: "",
   });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
@@ -83,6 +102,27 @@ const MembershipUpgrade = ({
     }
   }, [selectedTier, currentTierData.price]);
 
+  useEffect(() => {
+    const fetchMemberDetails = async () => {
+      if (currentMembership.membershipId) {
+        const { data, error } = await supabase
+          .from("membership_directory")
+          .select("user_id, first_name, last_name, email")
+          .eq("membership_id", currentMembership.membershipId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching member details:", error);
+          setSubmitStatus("Could not find member details. Please try again.");
+        } else if (data) {
+          setMemberDetails(data);
+        }
+      }
+    };
+
+    fetchMemberDetails();
+  }, [currentMembership.membershipId]);
+
   // Calculate days remaining to expiry
   const calculateDaysRemaining = () => {
     const today = new Date();
@@ -97,29 +137,96 @@ const MembershipUpgrade = ({
   const handleSubmitPayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitLoading(true);
+    setSubmitStatus("");
+
+    if (!memberDetails) {
+      setSubmitStatus("Could not find member details. Please try again.");
+      setSubmitLoading(false);
+      return;
+    }
+
+    if (!selectedTier) {
+      setSubmitStatus("Please select a tier to upgrade to.");
+      setSubmitLoading(false);
+      return;
+    }
 
     try {
       // Validate based on payment method
-      if (selectedMethod === 'mpesa' && (!transactionId || transactionId.length < 8)) {
-        setSubmitStatus("Please enter a valid M-Pesa transaction ID");
-        setSubmitLoading(false);
-        return;
-      }
-      
-      if (selectedMethod === 'bank_transfer' && (!bankTransferDetails.reference || !bankTransferDetails.date)) {
-        setSubmitStatus("Please provide all bank transfer details");
-        setSubmitLoading(false);
-        return;
-      }
-      
-      if (selectedMethod === 'credit_card' && (!cardDetails.number || !cardDetails.name || !cardDetails.expiry || !cardDetails.cvv)) {
-        setSubmitStatus("Please provide all credit card details");
-        setSubmitLoading(false);
-        return;
+      if (
+        selectedMethod === "mpesa" &&
+        (!transactionId || transactionId.length < 8)
+      ) {
+        throw new Error("Please enter a valid M-Pesa transaction ID");
       }
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (
+        selectedMethod === "bank_transfer" &&
+        (!bankTransferDetails.reference ||
+          !bankTransferDetails.swiftReference ||
+          !bankTransferDetails.bankName ||
+          !bankTransferDetails.accountNumber)
+      ) {
+        throw new Error("Please provide all bank transfer details");
+      }
+
+      if (
+        selectedMethod === "credit_card" &&
+        (!cardDetails.number ||
+          !cardDetails.name ||
+          !cardDetails.expiry ||
+          !cardDetails.cvv)
+      ) {
+        throw new Error("Please provide all credit card details");
+      }
+
+      const dbPaymentMethod = selectedMethod || "other";
+
+      let paymentTransactionId = transactionId;
+      if (selectedMethod === "bank_transfer") {
+        paymentTransactionId = bankTransferDetails.reference;
+      } else if (selectedMethod === "credit_card") {
+        const generatedId = `ONLINE-${Date.now()}`;
+        setTransactionId(generatedId);
+        paymentTransactionId = generatedId;
+      }
+
+      const { data: paymentData, error: paymentError } = await supabase
+        .from("payments")
+        .insert({
+          transaction_id: paymentTransactionId,
+          amount: upgradeFee,
+          currency: "KES",
+          payment_method: dbPaymentMethod,
+          status: "pending",
+          user_id: memberDetails.user_id,
+          first_name: memberDetails.first_name,
+          last_name: memberDetails.last_name,
+          email: memberDetails.email,
+          payment_type: "upgrade",
+          membership_tier: selectedTier,
+          membership_id: currentMembership.membershipId,
+          previous_tier: currentMembership.type,
+          expiry_date: currentMembership.expiryDate,
+          additional_info:
+            selectedMethod === "bank_transfer"
+              ? {
+                  bankName: bankTransferDetails.bankName,
+                  swiftReference: bankTransferDetails.swiftReference,
+                  accountNumber: bankTransferDetails.accountNumber,
+                }
+              : selectedMethod === "credit_card"
+              ? {
+                  cardholderName: cardDetails.name,
+                  last4: cardDetails.number.slice(-4),
+                }
+              : null,
+        })
+        .select()
+        .single();
+
+      if (paymentError) throw paymentError;
+      if (!paymentData) throw new Error("Payment record not created");
 
       setSubmitStatus("PAYMENT VERIFICATION IN PROGRESS");
       setSubmitted(true);
@@ -130,7 +237,11 @@ const MembershipUpgrade = ({
       }, 1000);
     } catch (error) {
       console.error("Error submitting payment:", error);
-      setSubmitStatus("Error processing payment. Please try again.");
+      setSubmitStatus(
+        error instanceof Error
+          ? error.message
+          : "Error processing payment. Please try again."
+      );
     } finally {
       setSubmitLoading(false);
     }
@@ -330,19 +441,21 @@ const MembershipUpgrade = ({
 
   const renderPaymentMethodStep = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 className="text-xl font-bold text-primary-800 mb-6">Select Payment Method</h2>
-      
+      <h2 className="text-xl font-bold text-primary-800 mb-6">
+        Select Payment Method
+      </h2>
+
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         {/* M-Pesa Option */}
         <button
           onClick={() => {
-            setSelectedMethod('mpesa');
+            setSelectedMethod("mpesa");
             setStep(3);
           }}
           className={`border rounded-lg p-4 hover:shadow-md transition-all ${
-            selectedMethod === 'mpesa' 
-              ? 'border-primary-600 bg-primary-50' 
-              : 'border-gray-200 hover:border-primary-300'
+            selectedMethod === "mpesa"
+              ? "border-primary-600 bg-primary-50"
+              : "border-gray-200 hover:border-primary-300"
           }`}
         >
           <div className="flex items-center gap-3">
@@ -355,17 +468,17 @@ const MembershipUpgrade = ({
             </div>
           </div>
         </button>
-        
+
         {/* Bank Transfer Option */}
         <button
           onClick={() => {
-            setSelectedMethod('bank_transfer');
+            setSelectedMethod("bank_transfer");
             setStep(3);
           }}
           className={`border rounded-lg p-4 hover:shadow-md transition-all ${
-            selectedMethod === 'bank_transfer' 
-              ? 'border-primary-600 bg-primary-50' 
-              : 'border-gray-200 hover:border-primary-300'
+            selectedMethod === "bank_transfer"
+              ? "border-primary-600 bg-primary-50"
+              : "border-gray-200 hover:border-primary-300"
           }`}
         >
           <div className="flex items-center gap-3">
@@ -378,17 +491,17 @@ const MembershipUpgrade = ({
             </div>
           </div>
         </button>
-        
+
         {/* Credit Card Option */}
         <button
           onClick={() => {
-            setSelectedMethod('credit_card');
+            setSelectedMethod("credit_card");
             setStep(3);
           }}
           className={`border rounded-lg p-4 hover:shadow-md transition-all ${
-            selectedMethod === 'credit_card' 
-              ? 'border-primary-600 bg-primary-50' 
-              : 'border-gray-200 hover:border-primary-300'
+            selectedMethod === "credit_card"
+              ? "border-primary-600 bg-primary-50"
+              : "border-gray-200 hover:border-primary-300"
           }`}
         >
           <div className="flex items-center gap-3">
@@ -402,7 +515,7 @@ const MembershipUpgrade = ({
           </div>
         </button>
       </div>
-      
+
       <div className="flex justify-between">
         <button
           onClick={() => setStep(1)}
@@ -520,8 +633,8 @@ const MembershipUpgrade = ({
         </div>
 
         <div className="md:col-span-1">
-          <OrderSummary 
-            currentMembership={currentMembership} 
+          <OrderSummary
+            currentMembership={currentMembership}
             selectedTier={selectedTier}
             upgradeFee={upgradeFee}
           />
@@ -532,83 +645,157 @@ const MembershipUpgrade = ({
 
   const renderBankTransferForm = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 className="text-xl font-bold text-primary-800 mb-6">Bank Transfer Payment</h2>
-      
+      <h2 className="text-xl font-bold text-primary-800 mb-6">
+        Bank Transfer Payment
+      </h2>
+
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <form onSubmit={handleSubmitPayment} className="space-y-4">
             <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6">
-              <h3 className="font-medium text-blue-800 mb-2">Payment Instructions</h3>
+              <h3 className="font-medium text-blue-800 mb-2">
+                Payment Instructions
+              </h3>
               <div className="space-y-3 text-blue-700">
                 <div>
                   <h4 className="font-medium">Bank Details:</h4>
                   <ul className="list-disc pl-5 space-y-1">
-                    <li>Bank Name: <span className="font-semibold">Equity Bank</span></li>
-                    <li>Account Name: <span className="font-semibold">EACNA Membership</span></li>
-                    <li>Account Number: <span className="font-semibold">1234567890</span></li>
-                    <li>Branch: <span className="font-semibold">Nairobi CBD</span></li>
-                    <li>SWIFT Code: <span className="font-semibold">EQBLKENA</span></li>
+                    <li>
+                      Bank Name:{" "}
+                      <span className="font-semibold">Equity Bank</span>
+                    </li>
+                    <li>
+                      Account Name:{" "}
+                      <span className="font-semibold">EACNA Membership</span>
+                    </li>
+                    <li>
+                      Account Number:{" "}
+                      <span className="font-semibold">1234567890</span>
+                    </li>
+                    <li>
+                      Branch: <span className="font-semibold">Nairobi CBD</span>
+                    </li>
+                    <li>
+                      SWIFT Code:{" "}
+                      <span className="font-semibold">EQBLKENA</span>
+                    </li>
                   </ul>
                 </div>
-                <p>Please include your membership ID (<span className="font-semibold">{currentMembership.membershipId}</span>) in the reference.</p>
+                <p>
+                  Please include your membership ID (
+                  <span className="font-semibold">
+                    {currentMembership.membershipId}
+                  </span>
+                  ) in the reference.
+                </p>
               </div>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label htmlFor="bankReference" className="block text-sm font-medium text-gray-700 mb-1">
-                  Bank Reference Number
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="bankReference"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Reference Number
                 </label>
                 <input
                   id="bankReference"
                   type="text"
                   value={bankTransferDetails.reference}
-                  onChange={(e) => setBankTransferDetails({...bankTransferDetails, reference: e.target.value})}
+                  onChange={(e) =>
+                    setBankTransferDetails({
+                      ...bankTransferDetails,
+                      reference: e.target.value,
+                    })
+                  }
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   placeholder="e.g. EACNA12345"
                   required
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="bankName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="swiftReference"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  SWIFT Transaction Reference Number
+                </label>
+                <input
+                  id="swiftReference"
+                  type="text"
+                  value={bankTransferDetails.swiftReference}
+                  onChange={(e) =>
+                    setBankTransferDetails({
+                      ...bankTransferDetails,
+                      swiftReference: e.target.value,
+                    })
+                  }
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="e.g. SWIFTREF123"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="bankName"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Your Bank Name
                 </label>
                 <input
                   id="bankName"
                   type="text"
                   value={bankTransferDetails.bankName}
-                  onChange={(e) => setBankTransferDetails({...bankTransferDetails, bankName: e.target.value})}
+                  onChange={(e) =>
+                    setBankTransferDetails({
+                      ...bankTransferDetails,
+                      bankName: e.target.value,
+                    })
+                  }
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   placeholder="e.g. KCB"
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="transferDate" className="block text-sm font-medium text-gray-700 mb-1">
-                  Transfer Date
+                <label
+                  htmlFor="accountNumber"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Your Account Number
                 </label>
                 <input
-                  id="transferDate"
-                  type="date"
-                  value={bankTransferDetails.date}
-                  onChange={(e) => setBankTransferDetails({...bankTransferDetails, date: e.target.value})}
+                  id="accountNumber"
+                  type="text"
+                  value={bankTransferDetails.accountNumber}
+                  onChange={(e) =>
+                    setBankTransferDetails({
+                      ...bankTransferDetails,
+                      accountNumber: e.target.value,
+                    })
+                  }
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="Account you paid from"
                   required
                 />
               </div>
             </div>
-            
+
             {submitStatus && (
-              <div className={`text-center p-3 rounded-md ${
-                submitStatus === "PAYMENT VERIFICATION IN PROGRESS" 
-                  ? "bg-green-50 text-green-700 border border-green-200" 
-                  : "bg-red-50 text-red-700 border border-red-200"
-              }`}>
+              <div
+                className={`text-center p-3 rounded-md ${
+                  submitStatus === "PAYMENT VERIFICATION IN PROGRESS"
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                }`}
+              >
                 {submitStatus}
               </div>
             )}
-            
+
             <div className="flex justify-between items-center pt-4">
               <button
                 type="button"
@@ -617,7 +804,7 @@ const MembershipUpgrade = ({
               >
                 Back
               </button>
-              
+
               <button
                 type="submit"
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center"
@@ -640,10 +827,10 @@ const MembershipUpgrade = ({
             </div>
           </form>
         </div>
-        
+
         <div className="md:col-span-1">
-          <OrderSummary 
-            currentMembership={currentMembership} 
+          <OrderSummary
+            currentMembership={currentMembership}
             selectedTier={selectedTier}
             upgradeFee={upgradeFee}
           />
@@ -654,95 +841,120 @@ const MembershipUpgrade = ({
 
   const renderCreditCardForm = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 className="text-xl font-bold text-primary-800 mb-6">Credit Card Payment</h2>
-      
+      <h2 className="text-xl font-bold text-primary-800 mb-6">
+        Credit Card Payment
+      </h2>
+
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <form onSubmit={handleSubmitPayment} className="space-y-4">
             <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6">
               <h3 className="font-medium text-blue-800 mb-2">Secure Payment</h3>
               <p className="text-blue-700">
-                All transactions are secure and encrypted. We do not store your credit card details.
+                All transactions are secure and encrypted. We do not store your
+                credit card details.
               </p>
             </div>
-            
+
             <div>
-              <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="cardNumber"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Card Number
               </label>
               <input
                 id="cardNumber"
                 type="text"
                 value={cardDetails.number}
-                onChange={(e) => setCardDetails({...cardDetails, number: e.target.value})}
+                onChange={(e) =>
+                  setCardDetails({ ...cardDetails, number: e.target.value })
+                }
                 className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                 placeholder="1234 5678 9012 3456"
                 required
               />
             </div>
-            
+
             <div>
-              <label htmlFor="cardName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="cardName"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Name on Card
               </label>
               <input
                 id="cardName"
                 type="text"
                 value={cardDetails.name}
-                onChange={(e) => setCardDetails({...cardDetails, name: e.target.value})}
+                onChange={(e) =>
+                  setCardDetails({ ...cardDetails, name: e.target.value })
+                }
                 className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                 placeholder="John Doe"
                 required
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="cardExpiry" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="cardExpiry"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Expiry Date
                 </label>
                 <input
                   id="cardExpiry"
                   type="text"
                   value={cardDetails.expiry}
-                  onChange={(e) => setCardDetails({...cardDetails, expiry: e.target.value})}
+                  onChange={(e) =>
+                    setCardDetails({ ...cardDetails, expiry: e.target.value })
+                  }
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   placeholder="MM/YY"
                   required
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="cardCvv" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="cardCvv"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   CVV
                 </label>
                 <input
                   id="cardCvv"
                   type="text"
                   value={cardDetails.cvv}
-                  onChange={(e) => setCardDetails({...cardDetails, cvv: e.target.value})}
+                  onChange={(e) =>
+                    setCardDetails({ ...cardDetails, cvv: e.target.value })
+                  }
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   placeholder="123"
                   required
                 />
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <LockIcon />
               <span>Your payment is secured with 256-bit SSL encryption</span>
             </div>
-            
+
             {submitStatus && (
-              <div className={`text-center p-3 rounded-md ${
-                submitStatus === "PAYMENT VERIFICATION IN PROGRESS" 
-                  ? "bg-green-50 text-green-700 border border-green-200" 
-                  : "bg-red-50 text-red-700 border border-red-200"
-              }`}>
+              <div
+                className={`text-center p-3 rounded-md ${
+                  submitStatus === "PAYMENT VERIFICATION IN PROGRESS"
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                }`}
+              >
                 {submitStatus}
               </div>
             )}
-            
+
             <div className="flex justify-between items-center pt-4">
               <button
                 type="button"
@@ -751,7 +963,7 @@ const MembershipUpgrade = ({
               >
                 Back
               </button>
-              
+
               <button
                 type="submit"
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center"
@@ -774,10 +986,10 @@ const MembershipUpgrade = ({
             </div>
           </form>
         </div>
-        
+
         <div className="md:col-span-1">
-          <OrderSummary 
-            currentMembership={currentMembership} 
+          <OrderSummary
+            currentMembership={currentMembership}
             selectedTier={selectedTier}
             upgradeFee={upgradeFee}
           />
@@ -813,8 +1025,27 @@ const MembershipUpgrade = ({
           <div>KSH {upgradeFee}</div>
           <div className="text-gray-500">Payment Method:</div>
           <div className="capitalize">
-            {selectedMethod?.replace('_', ' ') || 'Unknown'}
+            {selectedMethod?.replace("_", " ") || "Unknown"}
           </div>
+
+          {/* Conditional Transaction Details */}
+          {selectedMethod === "mpesa" && (
+            <>
+              <div className="text-gray-500">Transaction ID:</div>
+              <div>{transactionId}</div>
+            </>
+          )}
+          {selectedMethod === "bank_transfer" && (
+            <>
+              <div className="text-gray-500">Reference Number:</div>
+              <div>{bankTransferDetails.reference}</div>
+              <div className="text-gray-500">
+                SWIFT Transaction Reference Number:
+              </div>
+              <div>{bankTransferDetails.swiftReference}</div>
+            </>
+          )}
+
           <div className="text-gray-500">Status:</div>
           <div className="text-orange-600 font-medium">
             Verification in Progress
@@ -853,9 +1084,27 @@ const MembershipUpgrade = ({
 
   // Helper component for lock icon
   const LockIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12.6667 7.33333H3.33333C2.59695 7.33333 2 7.93028 2 8.66666V13.3333C2 14.0697 2.59695 14.6667 3.33333 14.6667H12.6667C13.403 14.6667 14 14.0697 14 13.3333V8.66666C14 7.93028 13.403 7.33333 12.6667 7.33333Z" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M4.66663 7.33333V4.66666C4.66663 3.78261 5.01782 2.93476 5.64294 2.30964C6.26806 1.68452 7.11591 1.33333 7.99996 1.33333C8.88401 1.33333 9.73186 1.68452 10.357 2.30964C10.9821 2.93476 11.3333 3.78261 11.3333 4.66666V7.33333" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12.6667 7.33333H3.33333C2.59695 7.33333 2 7.93028 2 8.66666V13.3333C2 14.0697 2.59695 14.6667 3.33333 14.6667H12.6667C13.403 14.6667 14 14.0697 14 13.3333V8.66666C14 7.93028 13.403 7.33333 12.6667 7.33333Z"
+        stroke="#6B7280"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.66663 7.33333V4.66666C4.66663 3.78261 5.01782 2.93476 5.64294 2.30964C6.26806 1.68452 7.11591 1.33333 7.99996 1.33333C8.88401 1.33333 9.73186 1.68452 10.357 2.30964C10.9821 2.93476 11.3333 3.78261 11.3333 4.66666V7.33333"
+        stroke="#6B7280"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 
@@ -865,20 +1114,22 @@ const MembershipUpgrade = ({
 
       {step === 1 && renderSelectTierStep()}
       {step === 2 && renderPaymentMethodStep()}
-      {step === 3 && selectedMethod === 'mpesa' && renderMpesaPaymentForm()}
-      {step === 3 && selectedMethod === 'bank_transfer' && renderBankTransferForm()}
-      {step === 3 && selectedMethod === 'credit_card' && renderCreditCardForm()}
+      {step === 3 && selectedMethod === "mpesa" && renderMpesaPaymentForm()}
+      {step === 3 &&
+        selectedMethod === "bank_transfer" &&
+        renderBankTransferForm()}
+      {step === 3 && selectedMethod === "credit_card" && renderCreditCardForm()}
       {step === 4 && renderSuccessStep()}
     </div>
   );
 };
 
 // Helper component for order summary
-const OrderSummary = ({ 
+const OrderSummary = ({
   currentMembership,
   selectedTier,
-  upgradeFee
-}: { 
+  upgradeFee,
+}: {
   currentMembership: {
     type: string;
     membershipId: string;
@@ -888,9 +1139,7 @@ const OrderSummary = ({
   upgradeFee: number;
 }) => (
   <div className="bg-gray-50 rounded-lg p-5 border border-gray-100">
-    <h3 className="font-semibold text-gray-800 mb-3">
-      Upgrade Summary
-    </h3>
+    <h3 className="font-semibold text-gray-800 mb-3">Upgrade Summary</h3>
 
     <div className="space-y-3 mb-4">
       <div>
@@ -910,18 +1159,16 @@ const OrderSummary = ({
     </div>
 
     <div className="border-t border-gray-200 pt-4 mt-4">
-      <h4 className="font-medium text-gray-800 mb-2">
-        Membership Period
-      </h4>
+      <h4 className="font-medium text-gray-800 mb-2">Membership Period</h4>
       <div className="space-y-2 text-sm text-gray-600">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gray-500" />
           <span>Current Expiry: {currentMembership.expiryDate}</span>
         </div>
         <p className="text-sm text-gray-500 mt-1">
-          Your upgraded membership will maintain the same expiry date.
-          For future renewals, you'll pay the full rate for your new
-          membership tier.
+          Your upgraded membership will maintain the same expiry date. For
+          future renewals, you'll pay the full rate for your new membership
+          tier.
         </p>
       </div>
     </div>

@@ -41,11 +41,12 @@ const paymentMethods = [
     name: "Bank Transfer",
     description: "Direct bank transfer to our account",
     instructions: [
-      "Bank: Kenya Commercial Bank",
-      "Account Name: EACNA",
+      "Bank Name: Equity Bank",
+      "Account Name: EACNA Membership",
       "Account Number: 1234567890",
       "Branch: Nairobi CBD",
-      "Swift Code: KCBKENYA",
+      "SWIFT Code: EQBLKENA",
+      "Please include your Membership ID in the transaction reference: [YourMembershipID]",
     ],
   },
   {
@@ -67,9 +68,9 @@ const paymentMethods = [
     name: "Credit/Debit Card",
     description: "Pay via credit/debit card",
     instructions: [
-      "You will be redirected to a secure payment gateway",
       "Enter your card details",
       "Complete the payment",
+      "All transactions are secure and encrypted. We do not store your credit card details",
     ],
   },
 ];
@@ -84,6 +85,18 @@ export default function MembershipRenewalPage() {
     "Associate Membership"
   );
   const [transactionId, setTransactionId] = useState("");
+  const [bankTransferDetails, setBankTransferDetails] = useState({
+    reference: "",
+    swiftReference: "",
+    bankName: "",
+    accountNumber: "",
+  });
+  const [cardDetails, setCardDetails] = useState({
+    number: "",
+    name: "",
+    expiry: "",
+    cvv: "",
+  });
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(true);
@@ -164,8 +177,26 @@ export default function MembershipRenewalPage() {
     setSubmitLoading(true);
 
     try {
-      // Validate transaction ID
-      if (!transactionId || transactionId.length < 8) {
+      // Validate transaction ID based on payment method
+      if (paymentMethod === "bank") {
+        if (
+          !bankTransferDetails.reference ||
+          !bankTransferDetails.swiftReference ||
+          !bankTransferDetails.bankName ||
+          !bankTransferDetails.accountNumber
+        ) {
+          throw new Error("Please provide all bank transfer details");
+        }
+      } else if (paymentMethod === "online") {
+        if (
+          !cardDetails.number ||
+          !cardDetails.name ||
+          !cardDetails.expiry ||
+          !cardDetails.cvv
+        ) {
+          throw new Error("Please provide all credit card details");
+        }
+      } else if (!transactionId || transactionId.length < 8) {
         throw new Error("Please enter a valid transaction ID");
       }
 
@@ -195,12 +226,30 @@ export default function MembershipRenewalPage() {
       const newExpiryDate = new Date(currentExpiry);
       newExpiryDate.setDate(newExpiryDate.getDate() + 365);
 
+      let paymentTransactionId = transactionId;
+      if (paymentMethod === "bank") {
+        paymentTransactionId = bankTransferDetails.reference;
+      } else if (paymentMethod === "online") {
+        const generatedId = `ONLINE-${Date.now()}`;
+        setTransactionId(generatedId);
+        paymentTransactionId = generatedId;
+      }
+
+      // Calculate correct amount for upgrade or renewal
+      const selectedTier =
+        actionType === "renew" ? originalTier : membershipTier;
+      const amount =
+        actionType === "upgrade"
+          ? membershipTiers[selectedTier].price -
+            membershipTiers[originalTier].price
+          : membershipTiers[selectedTier].price;
+
       // Create payment record with all required fields
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
         .insert({
-          transaction_id: transactionId,
-          amount: membershipTiers[membershipTier].price,
+          transaction_id: paymentTransactionId,
+          amount: amount,
           currency: "KES",
           payment_method: dbPaymentMethod, // mapped from frontend
           status: "pending",
@@ -214,6 +263,20 @@ export default function MembershipRenewalPage() {
           membership_id: memberData.membership_id, // Existing ID for renewals
           previous_tier: actionType === "upgrade" ? originalTier : null,
           expiry_date: newExpiryDate.toISOString(),
+          // Add bank transfer details if applicable
+          additional_info:
+            paymentMethod === "bank"
+              ? {
+                  bankName: bankTransferDetails.bankName,
+                  swiftReference: bankTransferDetails.swiftReference,
+                  accountNumber: bankTransferDetails.accountNumber,
+                }
+              : paymentMethod === "online"
+              ? {
+                  cardholderName: cardDetails.name,
+                  last4: cardDetails.number.slice(-4),
+                }
+              : null,
         })
         .select()
         .single();
@@ -467,7 +530,12 @@ export default function MembershipRenewalPage() {
     }
 
     const selectedTier = actionType === "renew" ? originalTier : membershipTier;
-    const price = membershipTiers[selectedTier].price;
+    // Calculate upgrade fee if upgrading, otherwise use full price
+    const price =
+      actionType === "upgrade"
+        ? membershipTiers[selectedTier].price -
+          membershipTiers[originalTier].price
+        : membershipTiers[selectedTier].price;
 
     return (
       <div className="grid md:grid-cols-3 gap-6">
@@ -476,6 +544,25 @@ export default function MembershipRenewalPage() {
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
               Payment Details
             </h2>
+
+            {/* Upgrade Summary Section */}
+            {actionType === "upgrade" && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-gray-800 mb-3">
+                  Upgrade Summary
+                </h3>
+                <div className="flex flex-col md:flex-row md:space-x-8 space-y-2 md:space-y-0">
+                  <div>
+                    <span className="text-gray-600">Current Membership:</span>
+                    <span className="font-medium ml-2">{originalTier}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Upgrading to:</span>
+                    <span className="font-medium ml-2">{membershipTier}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmitPayment} className="space-y-4">
               <div>
@@ -511,41 +598,248 @@ export default function MembershipRenewalPage() {
                     <ol className="list-decimal pl-5 space-y-2 text-blue-700">
                       {paymentMethods
                         .find((m) => m.id === paymentMethod)
-                        ?.instructions.map((step, i) => (
-                          <li key={i}>{step}</li>
-                        ))}
+                        ?.instructions.map((step, i) => {
+                          if (step.includes("[YourID]")) {
+                            return (
+                              <li key={i}>
+                                Enter Account Number:{" "}
+                                <span className="font-semibold">
+                                  EACNA-{memberData.membership_id.slice(-4)}
+                                </span>
+                              </li>
+                            );
+                          }
+                          if (step.includes("[YourMembershipID]")) {
+                            return (
+                              <li key={i}>
+                                Please include your Membership ID in the
+                                transaction reference:{" "}
+                                <span className="font-semibold">
+                                  {memberData.membership_id}
+                                </span>
+                              </li>
+                            );
+                          }
+                          return <li key={i}>{step}</li>;
+                        })}
                     </ol>
                   </div>
 
-                  <div>
-                    <label
-                      htmlFor="transactionId"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      {paymentMethod === "online" ? "Payment" : "Transaction"}{" "}
-                      ID
-                    </label>
-                    <input
-                      id="transactionId"
-                      type="text"
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                      placeholder={
-                        paymentMethod === "online"
-                          ? "Enter payment reference"
-                          : "Enter transaction ID"
-                      }
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enter the{" "}
-                      {paymentMethod === "online"
-                        ? "payment reference"
-                        : "transaction ID"}{" "}
-                      from your confirmation
-                    </p>
-                  </div>
+                  {/* Standard Transaction/Payment ID input for mobile and online */}
+                  {paymentMethod === "mobile" && (
+                    <div>
+                      <label
+                        htmlFor="transactionId"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Transaction ID
+                      </label>
+                      <input
+                        id="transactionId"
+                        type="text"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                        placeholder="Enter transaction ID"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the transaction ID from your confirmation
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Credit Card Inputs */}
+                  {paymentMethod === "online" && (
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <label
+                          htmlFor="cardNumber"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Card Number
+                        </label>
+                        <input
+                          id="cardNumber"
+                          type="text"
+                          value={cardDetails.number}
+                          onChange={(e) =>
+                            setCardDetails({
+                              ...cardDetails,
+                              number: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="1234 5678 9012 3456"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="cardName"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Name on Card
+                        </label>
+                        <input
+                          id="cardName"
+                          type="text"
+                          value={cardDetails.name}
+                          onChange={(e) =>
+                            setCardDetails({
+                              ...cardDetails,
+                              name: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="John Doe"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label
+                            htmlFor="cardExpiry"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Expiry Date
+                          </label>
+                          <input
+                            id="cardExpiry"
+                            type="text"
+                            value={cardDetails.expiry}
+                            onChange={(e) =>
+                              setCardDetails({
+                                ...cardDetails,
+                                expiry: e.target.value,
+                              })
+                            }
+                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                            placeholder="MM/YY"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="cardCvv"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            CVV
+                          </label>
+                          <input
+                            id="cardCvv"
+                            type="text"
+                            value={cardDetails.cvv}
+                            onChange={(e) =>
+                              setCardDetails({
+                                ...cardDetails,
+                                cvv: e.target.value,
+                              })
+                            }
+                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                            placeholder="123"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bank Transfer Inputs */}
+                  {paymentMethod === "bank" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                      <div>
+                        <label
+                          htmlFor="bankReference"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Reference Number
+                        </label>
+                        <input
+                          id="bankReference"
+                          type="text"
+                          value={bankTransferDetails.reference}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              reference: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="e.g., EACNA12345"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="swiftReference"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          SWIFT Transaction Reference Number
+                        </label>
+                        <input
+                          id="swiftReference"
+                          type="text"
+                          value={bankTransferDetails.swiftReference}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              swiftReference: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="e.g., SWIFTREF123"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="bankName"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Your Bank Name
+                        </label>
+                        <input
+                          id="bankName"
+                          type="text"
+                          value={bankTransferDetails.bankName}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              bankName: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="e.g., KCB"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="accountNumber"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Your Account Number
+                        </label>
+                        <input
+                          id="accountNumber"
+                          type="text"
+                          value={bankTransferDetails.accountNumber}
+                          onChange={(e) =>
+                            setBankTransferDetails({
+                              ...bankTransferDetails,
+                              accountNumber: e.target.value,
+                            })
+                          }
+                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          placeholder="Account you paid from"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -600,7 +894,7 @@ export default function MembershipRenewalPage() {
 
             <div className="space-y-3 mb-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">{selectedTier} Membership</span>
+                <span className="text-gray-600">{selectedTier}</span>
                 <span className="font-medium">
                   KES {price.toLocaleString()}
                 </span>
@@ -659,10 +953,31 @@ export default function MembershipRenewalPage() {
             <div>{membershipTier}</div>
             <div className="text-gray-500">Amount Paid:</div>
             <div>
-              KES {membershipTiers[membershipTier].price.toLocaleString()}
+              KES{" "}
+              {(actionType === "upgrade"
+                ? membershipTiers[membershipTier].price -
+                  membershipTiers[originalTier].price
+                : membershipTiers[membershipTier].price
+              ).toLocaleString()}
             </div>
-            <div className="text-gray-500">Transaction ID:</div>
-            <div>{transactionId}</div>
+
+            {/* Conditional Transaction Details */}
+            {paymentMethod === "bank" ? (
+              <>
+                <div className="text-gray-500">Reference Number:</div>
+                <div>{bankTransferDetails.reference}</div>
+                <div className="text-gray-500">
+                  SWIFT Transaction Reference Number:
+                </div>
+                <div>{bankTransferDetails.swiftReference}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-gray-500">Transaction ID:</div>
+                <div>{transactionId}</div>
+              </>
+            )}
+
             <div className="text-gray-500">Status:</div>
             <div className="text-orange-600 font-medium">
               Verification in Progress
@@ -685,6 +1000,31 @@ export default function MembershipRenewalPage() {
         HOME
       </button>
     </div>
+  );
+
+  const LockIcon = () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12.6667 7.33333H3.33333C2.59695 7.33333 2 7.93028 2 8.66666V13.3333C2 14.0697 2.59695 14.6667 3.33333 14.6667H12.6667C13.403 14.6667 14 14.0697 14 13.3333V8.66666C14 7.93028 13.403 7.33333 12.6667 7.33333Z"
+        stroke="#6B7280"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.66663 7.33333V4.66666C4.66663 3.78261 5.01782 2.93476 5.64294 2.30964C6.26806 1.68452 7.11591 1.33333 7.99996 1.33333C8.88401 1.33333 9.73186 1.68452 10.357 2.30964C10.9821 2.93476 11.3333 3.78261 11.3333 4.66666V7.33333"
+        stroke="#6B7280"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 
   return (

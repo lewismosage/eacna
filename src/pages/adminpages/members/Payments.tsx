@@ -99,6 +99,13 @@ interface Payment {
   verified_at: string | null;
   notes?: string;
   created_at: string;
+  additional_info?: {
+    bankName?: string;
+    swiftReference?: string;
+    accountNumber?: string;
+    cardholderName?: string;
+    last4?: string;
+  } | null;
 }
 
 const membershipTierOptions = Object.keys(tierData) as MembershipTier[];
@@ -789,224 +796,300 @@ const Payments = () => {
       </Card>
 
       {/* Payment Details Modal */}
-      {selectedPayment && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4 z-50">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-auto p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-primary-800">
-                Payment Details
-              </h3>
-              <button
-                onClick={() => setSelectedPayment(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">
-                    Member Information
-                  </h4>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Name</p>
-                        <p className="font-medium">
-                          {selectedPayment.first_name}
-                          {selectedPayment.last_name}
-                        </p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Email</p>
-                        <p className="font-medium break-all">
-                          {selectedPayment.email}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Membership Tier</p>
-                        <p className="font-medium">
-                          {tierData[selectedPayment.membership_tier].name}
-                          {selectedPayment.membership_tier ===
-                            "Honorary Membership" && (
-                            <span className="text-xs text-gray-500 ml-1">
-                              (by invitation only)
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      {selectedPayment.payment_type === "upgrade" &&
-                        selectedPayment.previous_tier && (
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs text-gray-500">
-                                Previous Tier
-                              </p>
-                              <p className="font-medium">
-                                {selectedPayment.previous_tier}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">New Tier</p>
-                              <p className="font-medium">
-                                {selectedPayment.membership_tier}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  </div>
+      {selectedPayment &&
+        (() => {
+          const additionalInfo =
+            selectedPayment.additional_info &&
+            typeof selectedPayment.additional_info === "string"
+              ? JSON.parse(selectedPayment.additional_info)
+              : selectedPayment.additional_info;
+          return (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4 z-50">
+              <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-auto p-6 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold text-primary-800">
+                    Payment Details
+                  </h3>
+                  <button
+                    onClick={() => setSelectedPayment(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
 
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">
-                    Transaction Information
-                  </h4>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Transaction ID</p>
-                        <p className="font-mono font-medium">
-                          {selectedPayment.transaction_id}
-                        </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">
+                        Member Information
+                      </h4>
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">Name</p>
+                            <p className="font-medium">
+                              {selectedPayment.first_name}
+                              {selectedPayment.last_name}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">Email</p>
+                            <p className="font-medium break-all">
+                              {selectedPayment.email}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Membership Tier
+                            </p>
+                            <p className="font-medium">
+                              {tierData[selectedPayment.membership_tier].name}
+                              {selectedPayment.membership_tier ===
+                                "Honorary Membership" && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                  (by invitation only)
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          {selectedPayment.payment_type === "upgrade" &&
+                            selectedPayment.previous_tier && (
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-xs text-gray-500">
+                                    Previous Tier
+                                  </p>
+                                  <p className="font-medium">
+                                    {selectedPayment.previous_tier}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">
+                                    New Tier
+                                  </p>
+                                  <p className="font-medium">
+                                    {selectedPayment.membership_tier}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Amount</p>
-                        <p className="font-medium">
-                          {selectedPayment.currency}{" "}
-                          {selectedPayment.amount.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Payment Type</p>
-                        <p className="font-medium capitalize">
-                          {selectedPayment.payment_type}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Payment Method</p>
-                        <p className="font-medium capitalize">
-                          {selectedPayment.payment_method.replace("_", " ")}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Status</p>
-                        <div className="mt-1">
-                          {getStatusBadge(selectedPayment.status)}
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">
+                        Transaction Information
+                      </h4>
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">
+                              {selectedPayment.payment_method ===
+                              "bank_transfer"
+                                ? "Reference Number"
+                                : "Transaction ID"}
+                            </p>
+                            <p className="font-mono font-medium">
+                              {selectedPayment.transaction_id}
+                            </p>
+                          </div>
+
+                          {selectedPayment.payment_method === "bank_transfer" &&
+                            additionalInfo && (
+                              <>
+                                <div className="col-span-2">
+                                  <p className="text-xs text-gray-500">
+                                    SWIFT Transaction Reference Number
+                                  </p>
+                                  <p className="font-medium">
+                                    {additionalInfo.swiftReference}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">
+                                    Payer Bank Name
+                                  </p>
+                                  <p className="font-medium">
+                                    {additionalInfo.bankName}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">
+                                    Payer Account Number
+                                  </p>
+                                  <p className="font-medium">
+                                    {additionalInfo.accountNumber}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+
+                          {selectedPayment.payment_method === "credit_card" &&
+                            additionalInfo && (
+                              <>
+                                <div>
+                                  <p className="text-xs text-gray-500">
+                                    Cardholder Name
+                                  </p>
+                                  <p className="font-medium">
+                                    {additionalInfo.cardholderName}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">
+                                    Card (Last 4)
+                                  </p>
+                                  <p className="font-medium">
+                                    **** **** **** {additionalInfo.last4}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+
+                          <div>
+                            <p className="text-xs text-gray-500">Amount</p>
+                            <p className="font-medium">
+                              {selectedPayment.currency}{" "}
+                              {selectedPayment.amount.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Payment Type
+                            </p>
+                            <p className="font-medium capitalize">
+                              {selectedPayment.payment_type}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Payment Method
+                            </p>
+                            <p className="font-medium capitalize">
+                              {selectedPayment.payment_method.replace("_", " ")}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Status</p>
+                            <div className="mt-1">
+                              {getStatusBadge(selectedPayment.status)}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">
-                    Dates & Verification
-                  </h4>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Payment Date</p>
-                        <p className="font-medium">
-                          {formatDate(selectedPayment.created_at)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Verified At</p>
-                        <p className="font-medium">
-                          {selectedPayment.verified_at
-                            ? formatDate(selectedPayment.verified_at)
-                            : "Not verified"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Expiry Date</p>
-                        <p className="font-medium">
-                          {selectedPayment.expiry_date
-                            ? formatDate(selectedPayment.expiry_date)
-                            : "No expiry date"}
-                        </p>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">
+                        Dates & Verification
+                      </h4>
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Payment Date
+                            </p>
+                            <p className="font-medium">
+                              {formatDate(selectedPayment.created_at)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Verified At</p>
+                            <p className="font-medium">
+                              {selectedPayment.verified_at
+                                ? formatDate(selectedPayment.verified_at)
+                                : "Not verified"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Expiry Date</p>
+                            <p className="font-medium">
+                              {selectedPayment.expiry_date
+                                ? formatDate(selectedPayment.expiry_date)
+                                : "No expiry date"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
+                    {selectedPayment.notes && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">
+                          Notes
+                        </h4>
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <p className="text-sm text-gray-700">
+                            {selectedPayment.notes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {selectedPayment.notes && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-2">
-                      Notes
-                    </h4>
-                    <div className="bg-gray-50 p-4 rounded-md">
-                      <p className="text-sm text-gray-700">
-                        {selectedPayment.notes}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedPayment(null)}
+                  >
+                    Close
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      (window.location.href = `mailto:${selectedPayment.email}`)
+                    }
+                    className="flex items-center"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Member
+                  </Button>
+
+                  {selectedPayment.status === "pending" && (
+                    <>
+                      <Button
+                        variant="danger"
+                        onClick={() =>
+                          updatePaymentStatus(selectedPayment.id, "failed")
+                        }
+                        disabled={isProcessing}
+                        className="flex items-center"
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4 mr-2" />
+                        )}
+                        Mark as Failed
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={() =>
+                          updatePaymentStatus(selectedPayment.id, "completed")
+                        }
+                        disabled={isProcessing}
+                        className="flex items-center"
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4 mr-2" />
+                        )}
+                        Verify Payment
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-              <Button
-                variant="outline"
-                onClick={() => setSelectedPayment(null)}
-              >
-                Close
-              </Button>
-
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  (window.location.href = `mailto:${selectedPayment.email}`)
-                }
-                className="flex items-center"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Email Member
-              </Button>
-
-              {selectedPayment.status === "pending" && (
-                <>
-                  <Button
-                    variant="danger"
-                    onClick={() =>
-                      updatePaymentStatus(selectedPayment.id, "failed")
-                    }
-                    disabled={isProcessing}
-                    className="flex items-center"
-                  >
-                    {isProcessing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <X className="h-4 w-4 mr-2" />
-                    )}
-                    Mark as Failed
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={() =>
-                      updatePaymentStatus(selectedPayment.id, "completed")
-                    }
-                    disabled={isProcessing}
-                    className="flex items-center"
-                  >
-                    {isProcessing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4 mr-2" />
-                    )}
-                    Verify Payment
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+          );
+        })()}
 
       <AlertModal
         isOpen={alert.open}

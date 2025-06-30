@@ -348,7 +348,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
               href="renew-membership"
               className="mt-4"
             >
-              Renew Membership
+              Renew or Upgrade Membership
             </Button>
           </motion.div>
         </div>
