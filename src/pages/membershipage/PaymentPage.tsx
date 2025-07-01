@@ -10,10 +10,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import { MembershipTier, membershipTiers } from "../../types/membership";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { StripePayment } from "../../components/protectedroute/StripePayment";
+import { MembershipTier, membershipTiers } from "../../types/membership";
 import { MemberSearchModal } from "../../components/common/MemberSearchModal";
 
 // Initialize Supabase client
@@ -42,7 +42,6 @@ interface MemberData {
   current_profession: string;
 }
 
-// Add payment methods array
 const paymentMethods = [
   {
     id: "bank",
@@ -83,15 +82,9 @@ const paymentMethods = [
   },
 ];
 
-export default function MembershipRenewalPage() {
+export default function PaymentPage() {
   // Member data state
   const [memberData, setMemberData] = useState<MemberData | null>(null);
-  const [membershipTier, setMembershipTier] = useState<MembershipTier>(
-    "Associate Membership"
-  );
-  const [originalTier, setOriginalTier] = useState<MembershipTier>(
-    "Associate Membership"
-  );
   const [transactionId, setTransactionId] = useState("");
   const [bankTransferDetails, setBankTransferDetails] = useState({
     reference: "",
@@ -102,7 +95,6 @@ export default function MembershipRenewalPage() {
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(true);
-  const [actionType, setActionType] = useState<"renew" | "upgrade">("renew");
   const [step, setStep] = useState(1);
 
   // Loading and error states
@@ -120,7 +112,7 @@ export default function MembershipRenewalPage() {
     email: "",
   });
 
-  // Add payment method state variable
+  // Payment method state
   const [paymentMethod, setPaymentMethod] = useState("");
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -159,8 +151,6 @@ export default function MembershipRenewalPage() {
       if (data && data.length > 0) {
         const member = data[0];
         setMemberData(member);
-        setMembershipTier(member.membership_type as MembershipTier);
-        setOriginalTier(member.membership_type as MembershipTier);
         setStep(2);
         setIsModalOpen(false);
       } else {
@@ -217,13 +207,6 @@ export default function MembershipRenewalPage() {
         paymentMethodMap[paymentMethod as keyof typeof paymentMethodMap] ||
         "other";
 
-      // Calculate new expiry date (365 days from current expiry or from now if no expiry)
-      const currentExpiry = memberData.expiry_date
-        ? new Date(memberData.expiry_date)
-        : new Date();
-      const newExpiryDate = new Date(currentExpiry);
-      newExpiryDate.setDate(newExpiryDate.getDate() + 365);
-
       let paymentTransactionId = transactionId;
       if (paymentMethod === "bank") {
         paymentTransactionId = bankTransferDetails.reference;
@@ -231,14 +214,8 @@ export default function MembershipRenewalPage() {
         paymentTransactionId = paymentIntentId || "";
       }
 
-      // Calculate correct amount for upgrade or renewal
-      const selectedTier =
-        actionType === "renew" ? originalTier : membershipTier;
-      const amount =
-        actionType === "upgrade"
-          ? membershipTiers[selectedTier].price -
-            membershipTiers[originalTier].price
-          : membershipTiers[selectedTier].price;
+      // Calculate amount based on membership type
+      const amount = membershipTiers[memberData.membership_type].price;
 
       // Create payment record with all required fields
       const { data: paymentData, error: paymentError } = await supabase
@@ -247,19 +224,18 @@ export default function MembershipRenewalPage() {
           transaction_id: paymentTransactionId,
           amount: amount,
           currency: "KES",
-          payment_method: dbPaymentMethod, // mapped from frontend
+          payment_method: dbPaymentMethod,
           status: "pending",
           user_id: memberData.user_id,
           first_name: memberData.first_name,
           last_name: memberData.last_name,
           email: memberData.email,
-
-          payment_type: actionType === "renew" ? "renewal" : "upgrade",
-          membership_tier: membershipTier,
-          membership_id: memberData.membership_id, // Existing ID for renewals
-          previous_tier: actionType === "upgrade" ? originalTier : null,
-          expiry_date: newExpiryDate.toISOString(),
-          // Add bank transfer details if applicable
+          payment_type: "application",
+          membership_tier: memberData.membership_type,
+          membership_id: memberData.membership_id,
+          expiry_date: new Date(
+            Date.now() + 365 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           additional_info:
             paymentMethod === "bank"
               ? {
@@ -279,7 +255,7 @@ export default function MembershipRenewalPage() {
       setSubmitted(true);
 
       setTimeout(() => {
-        setStep(4);
+        setStep(3);
       }, 1000);
     } catch (error) {
       console.error("Error submitting payment:", error);
@@ -293,7 +269,7 @@ export default function MembershipRenewalPage() {
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center space-x-2 mb-6">
-      {[1, 2, 3, 4].map((s) => (
+      {[1, 2, 3].map((s) => (
         <div
           key={s}
           className={`flex items-center ${
@@ -315,7 +291,7 @@ export default function MembershipRenewalPage() {
           >
             {s < step ? <CheckCircle className="w-5 h-5" /> : s}
           </div>
-          {s < 4 && (
+          {s < 3 && (
             <div
               className={`w-10 h-0.5 ${
                 s < step ? "bg-green-500" : "bg-gray-300"
@@ -327,7 +303,7 @@ export default function MembershipRenewalPage() {
     </div>
   );
 
-  const renderPlanSelectionStep = () => {
+  const renderMemberInfoStep = () => {
     if (!memberData) {
       return (
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
@@ -352,145 +328,46 @@ export default function MembershipRenewalPage() {
     }
 
     return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Member Information
-            </h2>
-            <button
-              onClick={() => {
-                setStep(1);
-                setIsModalOpen(true);
-              }}
-              className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
-            >
-              Change <ArrowRight className="ml-1 w-4 h-4" />
-            </button>
-          </div>
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">
+            Member Information
+          </h2>
+          <button
+            onClick={() => {
+              setStep(1);
+              setIsModalOpen(true);
+            }}
+            className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+          >
+            Change <ArrowRight className="ml-1 w-4 h-4" />
+          </button>
+        </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">Full Name</p>
-              <p className="font-medium">
-                {memberData.first_name} {memberData.last_name}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Phone Number</p>
-              <p className="font-medium">{memberData.phone}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Current Membership</p>
-              <p className="font-medium">{originalTier}</p>
-            </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Full Name</p>
+            <p className="font-medium">
+              {memberData.first_name} {memberData.last_name}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Phone Number</p>
+            <p className="font-medium">{memberData.phone}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Membership Type</p>
+            <p className="font-medium">{memberData.membership_type}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Select Action
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Renewal Card */}
-            <div
-              className={`border-2 rounded-lg p-5 cursor-pointer transition-all ${
-                actionType === "renew"
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-              onClick={() => setActionType("renew")}
-            >
-              <div className="flex items-center mb-4">
-                <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full mr-3">
-                  <RefreshCw className="h-5 w-5 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-semibold">
-                  Renew Current Membership
-                </h3>
-              </div>
-
-              <p className="text-gray-600 mb-3">
-                Keep your {originalTier} membership active for another year.
-              </p>
-
-              <p className="font-semibold text-lg text-gray-800">
-                KES {membershipTiers[originalTier].price.toLocaleString()}
-              </p>
-            </div>
-
-            {/* Upgrade Card */}
-            <div
-              className={`border-2 rounded-lg p-5 cursor-pointer transition-all ${
-                actionType === "upgrade"
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-              onClick={() => setActionType("upgrade")}
-            >
-              <div className="flex items-center mb-4">
-                <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full mr-3">
-                  <ArrowUpRight className="h-5 w-5 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-semibold">Upgrade Membership</h3>
-              </div>
-
-              <p className="text-gray-600 mb-3">
-                Upgrade to a higher tier for additional benefits.
-              </p>
-
-              {actionType === "upgrade" && (
-                <div className="mt-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select New Tier
-                  </label>
-                  <select
-                    value={membershipTier}
-                    onChange={(e) =>
-                      setMembershipTier(e.target.value as MembershipTier)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select a tier</option>
-                    {Object.entries(membershipTiers)
-                      .filter(([tier, tierData]) => {
-                        const currentTierRank =
-                          membershipTiers[originalTier].rank;
-                        return tierData.rank > currentTierRank;
-                      })
-                      .map(([tier, tierData]) => (
-                        <option key={tier} value={tier}>
-                          {tier} - KES {tierData.price.toLocaleString()}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={() => {
-                if (actionType === "renew") {
-                  setMembershipTier(originalTier);
-                  setStep(3);
-                } else if (
-                  actionType === "upgrade" &&
-                  membershipTier &&
-                  membershipTier !== originalTier
-                ) {
-                  setStep(3);
-                } else if (actionType === "upgrade") {
-                  setSearchError("Please select a new membership tier");
-                }
-              }}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-            >
-              Continue to Payment
-            </button>
-          </div>
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={() => setStep(2)}
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          >
+            Continue to Payment
+          </button>
         </div>
       </div>
     );
@@ -520,13 +397,7 @@ export default function MembershipRenewalPage() {
       );
     }
 
-    const selectedTier = actionType === "renew" ? originalTier : membershipTier;
-    // Calculate upgrade fee if upgrading, otherwise use full price
-    const price =
-      actionType === "upgrade"
-        ? membershipTiers[selectedTier].price -
-          membershipTiers[originalTier].price
-        : membershipTiers[selectedTier].price;
+    const price = membershipTiers[memberData.membership_type].price;
 
     return (
       <div className="grid md:grid-cols-3 gap-6">
@@ -593,7 +464,6 @@ export default function MembershipRenewalPage() {
                     </ol>
                   </div>
 
-                  {/* Standard Transaction/Payment ID input for mobile and online */}
                   {paymentMethod === "mobile" && (
                     <div>
                       <label
@@ -617,7 +487,6 @@ export default function MembershipRenewalPage() {
                     </div>
                   )}
 
-                  {/* Credit Card Inputs */}
                   {paymentMethod === "online" && (
                     <div className="pt-4">
                       <Elements
@@ -645,7 +514,6 @@ export default function MembershipRenewalPage() {
                     </div>
                   )}
 
-                  {/* Bank Transfer Inputs */}
                   {paymentMethod === "bank" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                       <div>
@@ -755,7 +623,7 @@ export default function MembershipRenewalPage() {
               <div className="flex justify-between items-center pt-4">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(1)}
                   className="text-blue-600 hover:text-blue-800"
                 >
                   Back
@@ -791,7 +659,9 @@ export default function MembershipRenewalPage() {
 
             <div className="space-y-3 mb-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">{selectedTier}</span>
+                <span className="text-gray-600">
+                  {memberData.membership_type}
+                </span>
                 <span className="font-medium">
                   KES {price.toLocaleString()}
                 </span>
@@ -805,10 +675,10 @@ export default function MembershipRenewalPage() {
 
             <div className="border-t border-gray-200 pt-4 mt-4">
               <h4 className="font-medium text-gray-800 mb-2">
-                Selected Plan Benefits
+                Membership Benefits
               </h4>
               <ul className="space-y-2">
-                {membershipTiers[selectedTier].features.map(
+                {membershipTiers[memberData.membership_type].features.map(
                   (feature, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" />
@@ -835,9 +705,8 @@ export default function MembershipRenewalPage() {
       </h2>
 
       <p className="text-gray-600 mb-6">
-        Your {actionType === "renew" ? "renewal" : "upgrade"} request has been
-        received and is now being processed. You will receive a confirmation
-        once the payment has been verified.
+        Your payment request has been received and is now being processed. You
+        will receive a confirmation once the payment has been verified.
       </p>
 
       {memberData && (
@@ -847,15 +716,13 @@ export default function MembershipRenewalPage() {
           </h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="text-gray-500">Membership Type:</div>
-            <div>{membershipTier}</div>
+            <div>{memberData.membership_type}</div>
             <div className="text-gray-500">Amount Paid:</div>
             <div>
               KES{" "}
-              {(actionType === "upgrade"
-                ? membershipTiers[membershipTier].price -
-                  membershipTiers[originalTier].price
-                : membershipTiers[membershipTier].price
-              ).toLocaleString()}
+              {membershipTiers[
+                memberData.membership_type
+              ].price.toLocaleString()}
             </div>
 
             {/* Conditional Transaction Details */}
@@ -894,34 +761,9 @@ export default function MembershipRenewalPage() {
         onClick={() => (window.location.href = "/")}
         className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
       >
-        HOME
+        Return to Home
       </button>
     </div>
-  );
-
-  const LockIcon = () => (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M12.6667 7.33333H3.33333C2.59695 7.33333 2 7.93028 2 8.66666V13.3333C2 14.0697 2.59695 14.6667 3.33333 14.6667H12.6667C13.403 14.6667 14 14.0697 14 13.3333V8.66666C14 7.93028 13.403 7.33333 12.6667 7.33333Z"
-        stroke="#6B7280"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4.66663 7.33333V4.66666C4.66663 3.78261 5.01782 2.93476 5.64294 2.30964C6.26806 1.68452 7.11591 1.33333 7.99996 1.33333C8.88401 1.33333 9.73186 1.68452 10.357 2.30964C10.9821 2.93476 11.3333 3.78261 11.3333 4.66666V7.33333"
-        stroke="#6B7280"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 
   return (
@@ -933,13 +775,12 @@ export default function MembershipRenewalPage() {
         </div>
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative py-16 md:py-24">
           <h1 className="text-3xl md:text-5xl font-bold mb-6 max-w-3xl">
-            Renew or Upgrade Your EACNA Membership
+            Complete Your EACNA Membership Payment
           </h1>
 
           <p className="text-lg max-w-2xl mb-8 text-white/90">
-            Continue your professional journey with EACNA by renewing your
-            membership or upgrading to access additional benefits and
-            opportunities.
+            Finalize your membership application by completing the payment
+            process.
           </p>
 
           {!memberData && (
@@ -947,7 +788,7 @@ export default function MembershipRenewalPage() {
               onClick={() => setIsModalOpen(true)}
               className="px-6 py-3 bg-white text-primary-800 font-medium rounded-md hover:bg-gray-100 shadow-md flex items-center transition-all"
             >
-              Find My Membership Record
+              Find My Application
               <Search className="ml-2 h-5 w-5" />
             </button>
           )}
@@ -959,9 +800,9 @@ export default function MembershipRenewalPage() {
         {memberData && renderStepIndicator()}
 
         <div className="mt-6">
-          {step === 2 && renderPlanSelectionStep()}
-          {step === 3 && renderPaymentStep()}
-          {step === 4 && renderSuccessStep()}
+          {step === 1 && renderMemberInfoStep()}
+          {step === 2 && renderPaymentStep()}
+          {step === 3 && renderSuccessStep()}
         </div>
       </div>
 
@@ -973,19 +814,18 @@ export default function MembershipRenewalPage() {
           setSearchLoading(true);
           setSearchError("");
           try {
-            // Your search logic here
-            const { data, error } = await supabase
-              .from("membership_directory")
-              .select("*")
-              .ilike("first_name", `%${query.firstName}%`)
-              .ilike("last_name", `%${query.lastName}%`)
-              .ilike("phone", `%${query.phone}%`)
-              .ilike("email", `%${query.email}%`);
+            // Your payment page search logic
+            let search = supabase.from("membership_directory").select("*");
+            if (query.firstName)
+              search = search.ilike("first_name", `%${query.firstName}%`);
+            if (query.lastName)
+              search = search.ilike("last_name", `%${query.lastName}%`);
+            if (query.phone) search = search.ilike("phone", `%${query.phone}%`);
+            if (query.email) search = search.ilike("email", `%${query.email}%`);
+            const { data, error } = await search;
             if (data && data.length > 0) {
               const member = data[0];
               setMemberData(member);
-              setMembershipTier(member.membership_type as MembershipTier);
-              setOriginalTier(member.membership_type as MembershipTier);
               setStep(2);
               setIsModalOpen(false);
             } else {
@@ -997,8 +837,8 @@ export default function MembershipRenewalPage() {
             setSearchLoading(false);
           }
         }}
-        title="Find Your Membership Record"
-        searchButtonText="Find Record"
+        title="Find Your Application"
+        searchButtonText="Find Application"
         loading={searchLoading}
         error={searchError}
       />

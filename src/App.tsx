@@ -12,6 +12,7 @@ import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/aboutpage/AboutUs";
 import TrainingPage from "./pages/trainingpage/TrainingPage";
 import MembershipPage from "./pages/membershipage/MembershipPage";
+import PaymentPage from "./pages/membershipage/PaymentPage";
 import WelcomePage from "./pages/WelcomePage";
 import ResourcesPage from "./pages/resourcespage/ResourcesPage";
 import GalleryPage from "./pages/GalleryPage";
@@ -66,13 +67,10 @@ import TrainingEvents from "./pages/adminpages/events/TrainingEvents";
 import Webinars from "./pages/adminpages/events/Webinars";
 import AbtractSubmissions from "./pages/adminpages/events/Submissions";
 
-// Modals
-import PaymentModal from "./pages/membershipage/PaymentModal";
-import LoadingSpinner from "./components/common/LoadingSpinner";
-
 // Route protection
 import ProtectedRoute from "./components/protectedroute/ProtectedRoute";
 import UnsubscribePage from "./pages/UnsubscribePage";
+import LoadingSpinner from "./components/common/LoadingSpinner";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -92,9 +90,7 @@ const supabase = createClient(
   }
 );
 
-
 function App() {
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -140,12 +136,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="training" element={<TrainingPage />} />
-          <Route
-            path="membership"
-            element={
-              <MembershipPage setShowPaymentModal={setShowPaymentModal} />
-            }
-          />
+          <Route path="membership" element={<MembershipPage />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="gallery" element={<GalleryPage />} />
           <Route path="gallery/:year" element={<GalleryPage />} />
@@ -153,6 +144,7 @@ function App() {
           <Route path="specialist/:id" element={<SpecialistProfilePage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="renew-membership" element={<RenewMembershipPage />} />
+          <Route path="payment" element={<PaymentPage />} />
           <Route path="join-directory" element={<JoinDirectory />} />
           <Route path="events" element={<EventsSection />} />
           <Route path="event/:id" element={<EventDetails />} />
@@ -236,11 +228,6 @@ function App() {
           <Route path="unsubscribe" element={<UnsubscribePage />} />
         </Route>
       </Routes>
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <PaymentModal onClose={() => setShowPaymentModal(false)} />
-      )}
     </SupabaseProvider>
   );
 }

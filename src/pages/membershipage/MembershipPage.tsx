@@ -14,7 +14,7 @@ import Accordion from "../../components/common/Accordion";
 import MembershipForm from "./MembershipForm";
 
 interface MembershipPageProps {
-  setShowPaymentModal: (value: boolean) => void;
+  setShowPaymentModal?: (value: boolean) => void;
 }
 const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
   const membershipCategories = [
@@ -355,7 +355,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       </section>
 
       {/* Membership Categories */}
-      <Section id="categories" >
+      <Section id="categories">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
             Membership Categories
@@ -500,14 +500,14 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
           <p className="text-gray-600 mb-4">
             Your application must be approved before payment can be processed.
           </p>
-          <Button variant="outline" onClick={() => setShowPaymentModal(true)}>
+          <Button variant="outline" href="/payment">
             Proceed to Payment
           </Button>
         </div>
       </Section>
 
       {/* Member Benefits Section - Updated to Purple */}
-      <Section 
+      <Section
         id="benefits"
         className="py-16 text-white"
         style={{ backgroundColor: "#6b21a8" }}
@@ -693,7 +693,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
       </Section>
 
       {/* FAQs */}
-      <Section id="faq" >
+      <Section id="faq">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
             Frequently Asked Questions
