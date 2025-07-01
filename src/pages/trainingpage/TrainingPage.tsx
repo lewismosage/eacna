@@ -243,9 +243,10 @@ const TrainingPage = () => {
               Call for Abstracts & Research Presentations
             </h2>
             <p className="text-lg mb-6 text-white/90">
-              EACNA invites abstract submissions for the upcoming 4th Annual
-              Conference in Nairobi, Kenya. This is an excellent opportunity to
-              showcase your research and connect with colleagues in the field.
+              EACNA invites abstract submissions for the upcoming Annual
+              Conference in <strong>Dar es Salaam, Tanzania.</strong> This is an
+              excellent opportunity to showcase your research and connect with
+              colleagues in the field.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button variant="primary" size="lg" href="abstract-submission">
@@ -270,7 +271,7 @@ const TrainingPage = () => {
                 </div>
                 <div>
                   <p className="font-semibold">Abstract Submission Deadline</p>
-                  <p className="text-white/80 text-sm">August 15, 2024</p>
+                  <p className="text-white/80 text-sm">November 30, 2025</p>
                 </div>
               </li>
               <li className="flex items-center space-x-3">
@@ -279,7 +280,7 @@ const TrainingPage = () => {
                 </div>
                 <div>
                   <p className="font-semibold">Notification of Acceptance</p>
-                  <p className="text-white/80 text-sm">September 1, 2024</p>
+                  <p className="text-white/80 text-sm">December 5, 2025</p>
                 </div>
               </li>
               <li className="flex items-center space-x-3">
@@ -288,7 +289,7 @@ const TrainingPage = () => {
                 </div>
                 <div>
                   <p className="font-semibold">Early Registration Deadline</p>
-                  <p className="text-white/80 text-sm">September 15, 2024</p>
+                  <p className="text-white/80 text-sm">December 15, 2025</p>
                 </div>
               </li>
             </ul>

@@ -169,7 +169,7 @@ const AboutPage = () => {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <h2 className="text-3xl font-bold mb-6 text-primary-800">
-              Our Organization
+              Our Association
             </h2>
             <p className="text-gray-700 mb-6 leading-relaxed">
               The East African Child Neurology Association (EACNA) is a

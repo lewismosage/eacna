@@ -16,18 +16,18 @@ const AbstractGuidelines = forwardRef<HTMLDivElement>((props, ref) => (
           />
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Abstract Submission Guidelines</h1>
-        <p className="text-gray-600">4th Annual EACNA Conference - Nairobi, Kenya</p>
+        <p className="text-gray-600">Annual EACNA Conference - <strong>Dar es Salaam, Tanzania.</strong></p>
       </div>
 
       <div className="p-6 print:p-0">
         <div className="prose max-w-none print:max-w-full">
           <h3 className="text-lg font-semibold text-gray-800 mb-2">General Information</h3>
           <ul className="list-disc pl-5 space-y-2 mb-6">
-            <li>Abstracts must be submitted by August 15, 2024.</li>
+            <li>Abstracts must be submitted by November 30, 2025.</li>
             <li>Abstracts must be original work that has not been published previously.</li>
             <li>All abstracts must be submitted in English.</li>
             <li>The abstract text should be no more than 300 words (excluding title and authors).</li>
-            <li>You will receive notification of acceptance by September 1, 2024.</li>
+            <li>You will receive notification of acceptance by December 5, 2025.</li>
           </ul>
           
           <h3 className="text-lg font-semibold text-gray-800 mb-2">Abstract Structure</h3>
