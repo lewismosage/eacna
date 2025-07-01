@@ -151,7 +151,7 @@ export default function PaymentPage() {
       if (data && data.length > 0) {
         const member = data[0];
         setMemberData(member);
-        setStep(2);
+        setStep(1);
         setIsModalOpen(false);
       } else {
         setSearchError("No matching membership record found");
@@ -826,7 +826,7 @@ export default function PaymentPage() {
             if (data && data.length > 0) {
               const member = data[0];
               setMemberData(member);
-              setStep(2);
+              setStep(1);
               setIsModalOpen(false);
             } else {
               setSearchError("No matching membership record found");
