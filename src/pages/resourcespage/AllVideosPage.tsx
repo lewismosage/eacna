@@ -65,16 +65,6 @@ const AllVideosPage = () => {
     },
     {
       id: 3,
-      title: "Developmental Milestones Assessment",
-      duration: "35 min",
-      thumbnail:
-        "https://images.pexels.com/photos/6823802/pexels-photo-6823802.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "Development",
-      description:
-        "How to assess developmental milestones and identify potential delays.",
-    },
-    {
-      id: 4,
       title: "Cerebral Palsy: Early Diagnosis and Intervention",
       duration: "50 min",
       thumbnail:
@@ -84,7 +74,7 @@ const AllVideosPage = () => {
         "Strategies for early diagnosis and intervention in cerebral palsy cases.",
     },
     {
-      id: 5,
+      id: 4,
       title: "Neonatal Neurological Assessment",
       duration: "40 min",
       thumbnail:
@@ -94,7 +84,7 @@ const AllVideosPage = () => {
         "Specialized neurological assessment techniques for newborn infants.",
     },
     {
-      id: 6,
+      id: 5,
       title: "Management of Childhood Headaches",
       duration: "38 min",
       thumbnail:
@@ -104,7 +94,7 @@ const AllVideosPage = () => {
         "Approach to diagnosis and management of common childhood headaches.",
     },
     {
-      id: 7,
+      id: 6, 
       title: "Autism Spectrum Disorder: Early Signs",
       duration: "42 min",
       thumbnail:
@@ -114,7 +104,7 @@ const AllVideosPage = () => {
         "Recognizing early signs of autism spectrum disorder in young children.",
     },
     {
-      id: 8,
+      id: 7,
       title: "Neurocutaneous Syndromes in Children",
       duration: "55 min",
       thumbnail:

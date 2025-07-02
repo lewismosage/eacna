@@ -14,6 +14,7 @@ import Button from "../../components/common/Button";
 import Card, { CardContent } from "../../components/common/Card";
 import { createClient } from "@supabase/supabase-js";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import EducationalVideos from "./EducationalVideos";
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
@@ -151,31 +152,6 @@ const ResourcesPage = () => {
       description:
         "Best practices for remote consultation and follow-up of pediatric neurology patients.",
       icon: <LinkIcon className="h-6 w-6" />,
-    },
-  ];
-
-  // Educational Videos (unchanged)
-  const videos = [
-    {
-      id: 1,
-      title: "Pediatric Seizure Recognition and Management",
-      duration: "45 min",
-      thumbnail:
-        "https://images.pexels.com/photos/8942991/pexels-photo-8942991.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    {
-      id: 2,
-      title: "Neurological Examination in Children",
-      duration: "30 min",
-      thumbnail:
-        "https://images.pexels.com/photos/4226122/pexels-photo-4226122.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    {
-      id: 3,
-      title: "Developmental Milestones Assessment",
-      duration: "35 min",
-      thumbnail:
-        "https://images.pexels.com/photos/6823802/pexels-photo-6823802.jpeg?auto=compress&cs=tinysrgb&w=600",
     },
   ];
 
@@ -335,53 +311,7 @@ const ResourcesPage = () => {
       </div>
 
       {/* Educational Videos */}
-      <Section id="videos">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary-800">
-            Educational Videos
-          </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Watch instructional videos on various topics in pediatric neurology,
-            created specifically for healthcare professionals in East Africa.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {videos.map((video) => (
-            <div
-              key={video.id}
-              className="rounded-lg overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300"
-            >
-              <div className="relative">
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                  <button className="w-12 h-12 rounded-full bg-white bg-opacity-80 flex items-center justify-center transition-transform hover:scale-110">
-                    <Play className="h-5 w-5 text-primary-700 ml-1" />
-                  </button>
-                </div>
-                <span className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs font-medium py-1 px-2 rounded">
-                  {video.duration}
-                </span>
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-primary-800">
-                  {video.title}
-                </h3>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="text-center mt-8">
-          <Link to="/all-videos">
-            <Button variant="primary">View All Videos</Button>
-          </Link>
-        </div>
-      </Section>
+      <EducationalVideos />
 
       {/* Additional Resources */}
       <Section id="reading" background="light">
