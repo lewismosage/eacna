@@ -294,7 +294,7 @@ const ResourcesPage = () => {
                   </p>
                   <div className="flex justify-center">
                     <Button variant="outline" size="sm">
-                      <Download className="mr-1 h-4 w-4" /> Download
+                      Read
                     </Button>
                   </div>
                 </CardContent>

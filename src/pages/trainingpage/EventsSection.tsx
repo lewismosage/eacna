@@ -53,6 +53,7 @@ interface Webinar {
 const EventsSection = () => {
   const [events, setEvents] = useState<TrainingEvent[]>([]);
   const [webinars, setWebinars] = useState<Webinar[]>([]);
+  const [conferences, setConferences] = useState<any[]>([]); // Use correct Conference type if imported
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,13 +75,22 @@ const EventsSection = () => {
       const { data: webinarsData, error: webinarsError } = await supabase
         .from("webinars")
         .select("*")
-        .or("status.eq.published,status.eq.completed") // Include both published and completed
-        .order("date", { ascending: false }); // Newest first for completed events
+        .or("status.eq.published,status.eq.completed")
+        .order("date", { ascending: false });
 
-      if (eventsError || webinarsError) throw eventsError || webinarsError;
+      // Fetch conferences (most recent 3)
+      const { data: conferencesData, error: conferencesError } = await supabase
+        .from("conferences")
+        .select("*")
+        .order("year", { ascending: false })
+        .limit(3);
+
+      if (eventsError || webinarsError || conferencesError)
+        throw eventsError || webinarsError || conferencesError;
 
       setEvents((eventsData as TrainingEvent[]) || []);
       setWebinars((webinarsData as Webinar[]) || []);
+      setConferences(conferencesData || []);
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load events data");
@@ -244,6 +254,7 @@ const EventsSection = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
+          {/* Annual Conferences - dynamic */}
           <div className="bg-white rounded-lg shadow-card p-6">
             <h3 className="text-xl font-bold mb-4 text-primary-800 flex items-center">
               <BookOpen className="h-5 w-5 mr-2" /> Annual Conferences
@@ -253,41 +264,51 @@ const EventsSection = () => {
               Africa and beyond to share the latest research and best practices
               in pediatric neurology.
             </p>
-            <ul className="space-y-4 mb-6">
-              <li className="flex items-start">
-                <span className="bg-secondary-100 text-secondary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1">
-                  2023
-                </span>
-                <div>
-                  <h4 className="font-semibold">3rd Annual EACNA Conference</h4>
-                  <p className="text-gray-600 text-sm">
-                    Kigali, Rwanda | December 5-7, 2023
-                  </p>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="bg-secondary-100 text-secondary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1">
-                  2022
-                </span>
-                <div>
-                  <h4 className="font-semibold">2nd Annual EACNA Conference</h4>
-                  <p className="text-gray-600 text-sm">
-                    Dar es Salaam, Tanzania | November 10-12, 2022
-                  </p>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="bg-secondary-100 text-secondary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1">
-                  2021
-                </span>
-                <div>
-                  <h4 className="font-semibold">Inaugural EACNA Conference</h4>
-                  <p className="text-gray-600 text-sm">
-                    Nairobi, Kenya | October 15-17, 2021
-                  </p>
-                </div>
-              </li>
-            </ul>
+            {conferences.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">
+                  No conferences found. Please check back later.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-4 mb-6">
+                {conferences.map((conf) => (
+                  <li
+                    key={conf.id}
+                    className="flex items-start w-full justify-between"
+                  >
+                    <div className="flex items-start">
+                      <span className="bg-secondary-100 text-secondary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mt-1">
+                        {conf.year}
+                      </span>
+                      <div>
+                        <h4 className="font-semibold">{conf.title}</h4>
+                        <p className="text-gray-600 text-sm">
+                          {conf.location} | {conf.dates}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Registration Ongoing Button */}
+                    {conf.registration_link && (
+                      <a
+                        href={conf.registration_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-4"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          Registration Ongoing
+                        </Button>
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button variant="outline" to="/conference-archives">
               View All Conference Archives
             </Button>

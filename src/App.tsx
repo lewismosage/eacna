@@ -203,7 +203,7 @@ function App() {
             <Route path="members/applications" element={<MemberApplications />}/>
             <Route path="members/payments" element={<MembershipPayments />} />
             <Route path="members/directory" element={<Directory />} />
-            <Route path="events/meetings" element={<AnnualMeetings />} />
+            <Route path="events/meetings" element={<AnnualMeetings supabase={supabase} />} />
             <Route
               path="events/training"
               element={<TrainingEvents supabase={supabase} />}

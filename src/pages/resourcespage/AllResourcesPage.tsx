@@ -189,8 +189,8 @@ const AllResourcesPage = () => {
             animate="visible"
             transition={{ delay: 0.2 }}
           >
-            Evidence-based tools and guidelines for clinical practice in pediatric
-            neurology designed for the East African context.
+            Evidence-based tools and guidelines for clinical practice in
+            pediatric neurology designed for the East African context.
           </motion.p>
         </div>
       </section>
@@ -272,7 +272,7 @@ const AllResourcesPage = () => {
                     </p>
                     <div className="flex justify-center">
                       <Button variant="outline" size="sm">
-                        <Download className="mr-1 h-4 w-4" /> Download
+                        Read
                       </Button>
                     </div>
                   </CardContent>
