@@ -7,19 +7,13 @@ import {
   Clock,
   ArrowLeft,
   AlertCircle,
+  X,
 } from "lucide-react";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-
-interface Video {
-  id: number;
-  title: string;
-  duration: string;
-  thumbnail: string;
-  category?: string;
-  description?: string;
-}
+import YouTube from "react-youtube";
+import { videos, Video } from "./videos";
 
 const AllVideosPage = () => {
   const fadeIn = {
@@ -41,80 +35,6 @@ const AllVideosPage = () => {
     },
   };
 
-  // Mock data for videos (replace with actual data fetching if needed)
-  const allVideos: Video[] = [
-    {
-      id: 1,
-      title: "Pediatric Seizure Recognition and Management",
-      duration: "45 min",
-      thumbnail:
-        "https://images.pexels.com/photos/8942991/pexels-photo-8942991.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "Seizures",
-      description:
-        "Comprehensive guide to recognizing and managing pediatric seizures in various settings.",
-    },
-    {
-      id: 2,
-      title: "Neurological Examination in Children",
-      duration: "30 min",
-      thumbnail:
-        "https://images.pexels.com/photos/4226122/pexels-photo-4226122.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "Examination",
-      description:
-        "Step-by-step demonstration of pediatric neurological examination techniques.",
-    },
-    {
-      id: 3,
-      title: "Cerebral Palsy: Early Diagnosis and Intervention",
-      duration: "50 min",
-      thumbnail:
-        "https://images.pexels.com/photos/7578808/pexels-photo-7578808.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "Cerebral Palsy",
-      description:
-        "Strategies for early diagnosis and intervention in cerebral palsy cases.",
-    },
-    {
-      id: 4,
-      title: "Neonatal Neurological Assessment",
-      duration: "40 min",
-      thumbnail:
-        "https://images.pexels.com/photos/8460155/pexels-photo-8460155.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "Neonatal",
-      description:
-        "Specialized neurological assessment techniques for newborn infants.",
-    },
-    {
-      id: 5,
-      title: "Management of Childhood Headaches",
-      duration: "38 min",
-      thumbnail:
-        "https://images.pexels.com/photos/4226140/pexels-photo-4226140.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "Headaches",
-      description:
-        "Approach to diagnosis and management of common childhood headaches.",
-    },
-    {
-      id: 6, 
-      title: "Autism Spectrum Disorder: Early Signs",
-      duration: "42 min",
-      thumbnail:
-        "https://images.pexels.com/photos/4145354/pexels-photo-4145354.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "ASD",
-      description:
-        "Recognizing early signs of autism spectrum disorder in young children.",
-    },
-    {
-      id: 7,
-      title: "Neurocutaneous Syndromes in Children",
-      duration: "55 min",
-      thumbnail:
-        "https://images.pexels.com/photos/5726709/pexels-photo-5726709.jpeg?auto=compress&cs=tinysrgb&w=600",
-      category: "Syndromes",
-      description:
-        "Identification and management of common neurocutaneous syndromes.",
-    },
-  ];
-
   // State for loading and error
   const [isLoading] = useState(false);
   const [error] = useState<string | null>(null);
@@ -124,10 +44,10 @@ const AllVideosPage = () => {
   const [filterCategory, setFilterCategory] = useState("all");
 
   // Extract all unique categories for filters
-  const categories = [...new Set(allVideos.map((video) => video.category))];
+  const categories = [...new Set(videos.map((video) => video.category))];
 
   // Filtered videos
-  const filteredVideos = allVideos.filter((video) => {
+  const filteredVideos = videos.filter((video) => {
     const matchesSearch =
       video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (video.description &&
@@ -138,6 +58,9 @@ const AllVideosPage = () => {
 
     return matchesSearch && matchesCategory;
   });
+
+  // State for currently playing video
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -254,32 +177,63 @@ const AllVideosPage = () => {
                 variants={fadeIn}
                 className="rounded-lg overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300"
               >
-                <div className="relative">
-                  <img
-                    src={video.thumbnail}
-                    alt={video.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                    <button className="w-12 h-12 rounded-full bg-white bg-opacity-80 flex items-center justify-center transition-transform hover:scale-110">
-                      <Play className="h-5 w-5 text-primary-700 ml-1" />
-                    </button>
-                  </div>
-                  <span className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs font-medium py-1 px-2 rounded flex items-center">
-                    <Clock className="h-3 w-3 mr-1" /> {video.duration}
-                  </span>
+                <div className="relative w-full h-48">
+                  {playingVideoId === video.youtubeId && video.youtubeId ? (
+                    <>
+                      <YouTube
+                        videoId={video.youtubeId}
+                        opts={{
+                          height: "100%",
+                          width: "100%",
+                          playerVars: { autoplay: 1 },
+                        }}
+                        className="w-full h-full"
+                      />
+                      <button
+                        onClick={() => setPlayingVideoId(null)}
+                        className="absolute top-2 right-2 bg-black bg-opacity-60 rounded-full p-1 text-white hover:bg-opacity-80 z-10"
+                      >
+                        <X className="h-6 w-6" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="w-full h-48 object-cover"
+                      />
+                      {video.youtubeId && (
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                          <button
+                            onClick={() => setPlayingVideoId(video.youtubeId!)}
+                            className="w-12 h-12 rounded-full bg-white bg-opacity-80 flex items-center justify-center transition-transform hover:scale-110"
+                          >
+                            <Play className="h-5 w-5 text-primary-700 ml-1" />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-primary-800 mb-2">
-                    {video.title}
-                  </h3>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-primary-800">
+                      {video.title}
+                    </h3>
+                    <span className="text-gray-500 text-sm">
+                      {video.duration}
+                    </span>
+                  </div>
                   {video.category && (
                     <span className="inline-block bg-primary-50 text-primary-700 px-2 py-1 rounded-full text-xs font-medium mb-2">
                       {video.category}
                     </span>
                   )}
                   {video.description && (
-                    <p className="text-gray-600 text-sm">{video.description}</p>
+                    <p className="text-gray-600 text-sm mt-2">
+                      {video.description}
+                    </p>
                   )}
                 </div>
               </motion.div>

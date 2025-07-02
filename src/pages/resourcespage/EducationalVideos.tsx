@@ -4,52 +4,7 @@ import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import { Link } from "react-router-dom";
 import YouTube from "react-youtube";
-
-interface Video {
-  id: number;
-  title: string;
-  duration: string;
-  thumbnail: string;
-  category: string;
-  description: string;
-  youtubeId: string;
-}
-
-const videos: Video[] = [
-  {
-    id: 1,
-    title: "Pediatric Seizure Recognition and Management",
-    duration: "45 min",
-    thumbnail:
-      "https://images.pexels.com/photos/8942991/pexels-photo-8942991.jpeg?auto=compress&cs=tinysrgb&w=600",
-    category: "Seizures",
-    description:
-      "Comprehensive guide to recognizing and managing pediatric seizures in various settings.",
-    youtubeId: "j5z10be-ApY",
-  },
-  {
-    id: 2,
-    title: "Neurological Examination in Children",
-    duration: "30 min",
-    thumbnail:
-      "https://images.pexels.com/photos/4226122/pexels-photo-4226122.jpeg?auto=compress&cs=tinysrgb&w=600",
-    category: "Examination",
-    description:
-      "Step-by-step demonstration of pediatric neurological examination techniques.",
-    youtubeId: "PDeKrM4pkqM",
-  },
-  {
-    id: 3,
-    title: "Cerebral Palsy: Early Diagnosis and Intervention",
-    duration: "50 min",
-    thumbnail:
-      "https://images.pexels.com/photos/7578808/pexels-photo-7578808.jpeg?auto=compress&cs=tinysrgb&w=600",
-    category: "Cerebral Palsy",
-    description:
-      "Strategies for early diagnosis and intervention in cerebral palsy cases.",
-    youtubeId: "HLnFeiOVCVo",
-  },
-];
+import { videos, Video } from "./videos";
 
 const EducationalVideos = () => {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
@@ -67,7 +22,7 @@ const EducationalVideos = () => {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {videos.map((video) => (
+        {videos.slice(0, 3).map((video: Video) => (
           <div
             key={video.id}
             className="rounded-lg overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300"
@@ -111,7 +66,9 @@ const EducationalVideos = () => {
             </div>
             <div className="p-4">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-primary-800">{video.title}</h3>
+                <h3 className="font-semibold text-primary-800">
+                  {video.title}
+                </h3>
                 <span className="text-gray-500 text-sm">{video.duration}</span>
               </div>
               {video.category && (
