@@ -56,7 +56,7 @@ const AboutPage = () => {
     },
     {
       id: 4,
-      name: "Africa Child Neurology Association",
+      //name: "Africa Child Neurology Association",
       logo: ACNA,
     },
     {
@@ -145,9 +145,9 @@ const AboutPage = () => {
     <div className="bg-gray-50">
       {/* Organization Info Section */}
       <Section className="pt-16 pb-12">
-        <div className="text-center mb-16">
+        <div className="mb-16">
           <motion.h1
-            className="text-4xl md:text-5xl font-bold mb-4 text-primary-800"
+            className="text-3xl font-bold mb-6 text-primary-800 text-left"
             variants={fadeIn}
             initial="hidden"
             animate="visible"
@@ -155,18 +155,34 @@ const AboutPage = () => {
             About EACNA
           </motion.h1>
           <motion.p
-            className="text-xl text-gray-600 max-w-3xl mx-auto"
+            className="text-xl text-gray-600 max-w-3xl text-left"
             variants={fadeIn}
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.1 }}
           >
-            The East African Child Neurology Association brings together
+            The East African Child Neurology Association brings together{" "}
+            <br></br>
             professionals dedicated to advancing pediatric neurological care.
           </motion.p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="relative h-full min-h-[400px]">
+            <img
+              src="https://www.shutterstock.com/image-photo/pediatrician-doctor-consulting-black-kid-600nw-2197738017.jpg"
+              alt="Pediatrician consulting child"
+              className="rounded-xl shadow-lg w-full h-full object-cover"
+            />
+            <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl max-w-xs border border-gray-100">
+              <p className="text-primary-700 font-medium">
+                "Our goal is to build a network of skilled professionals across
+                East Africa to address the unique neurological needs of children
+                in our region."
+              </p>
+            </div>
+          </div>
+
           <div>
             <h2 className="text-3xl font-bold mb-6 text-primary-800">
               Our Association
@@ -192,21 +208,6 @@ const AboutPage = () => {
             >
               Join Our Association
             </Button>
-          </div>
-
-          <div className="relative h-full min-h-[400px]">
-            <img
-              src="https://www.shutterstock.com/image-photo/pediatrician-doctor-consulting-black-kid-600nw-2197738017.jpg"
-              alt="Pediatrician consulting child"
-              className="rounded-xl shadow-lg w-full h-full object-cover"
-            />
-            <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl max-w-xs border border-gray-100">
-              <p className="text-primary-700 font-medium">
-                "Our goal is to build a network of skilled professionals across
-                East Africa to address the unique neurological needs of children
-                in our region."
-              </p>
-            </div>
           </div>
         </div>
       </Section>
@@ -298,18 +299,14 @@ const AboutPage = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Title Card */}
             <motion.div
-              className="bg-[#f8f9fa] p-8 rounded-lg shadow-sm border border-gray-200"
+              className="bg-white p-8 rounded-lg flex items-center justify-center min-h-[140px]"
               variants={fadeIn}
               initial="hidden"
               whileInView="visible"
             >
-              <h2 className="text-3xl font-bold mb-6 text-primary-800">
-                Core Values
+              <h2 className="text-3xl font-bold text-primary-800 text-center m-0">
+                Our <br></br> Core Values
               </h2>
-              <p className="text-gray-600">
-                The fundamental principles that guide our organization's work
-                and culture.
-              </p>
             </motion.div>
 
             {/* Value Cards */}
@@ -357,12 +354,9 @@ const AboutPage = () => {
             >
               <img
                 src={partner.logo}
-                alt={partner.name}
                 className="max-h-32 max-w-full object-contain mb-4"
               />
-              <p className="text-center text-gray-700 font-medium text-sm">
-                {partner.name}
-              </p>
+              <p className="text-center text-gray-700 font-medium text-sm"></p>
             </div>
           ))}
         </div>

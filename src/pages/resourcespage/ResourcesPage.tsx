@@ -234,28 +234,43 @@ const ResourcesPage = () => {
               whileInView="visible"
               viewport={{ once: true, amount: 0.1 }}
             >
-              {publications.map((publication) => (
-                <motion.div
-                  key={publication.id}
-                  variants={fadeIn}
-                  className="bg-white rounded-lg shadow-card p-5 hover:shadow-card-hover transition-shadow duration-300"
-                >
-                  <h3 className="text-lg font-semibold mb-2 text-primary-800">
-                    {publication.title}
-                  </h3>
-                  <p className="text-gray-600 mb-2">{publication.authors}</p>
-                  <p className="text-gray-500 text-sm mb-3">
-                    {publication.journal && `${publication.journal}, `}
-                    {publication.year}
+              {publications.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <FileText className="h-8 w-8 text-gray-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-2">
+                    No Publications Found
+                  </h2>
+                  <p className="text-gray-600 max-w-md mx-auto mb-6">
+                    There are no publication articles at the moment. Please
+                    check back later.
                   </p>
-                  <Link
-                    to={`/read-publication/${publication.id}`}
-                    className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
+                </div>
+              ) : (
+                publications.map((publication) => (
+                  <motion.div
+                    key={publication.id}
+                    variants={fadeIn}
+                    className="bg-white rounded-lg shadow-card p-5 hover:shadow-card-hover transition-shadow duration-300"
                   >
-                    Read Paper <ExternalLink className="ml-1 h-4 w-4" />
-                  </Link>
-                </motion.div>
-              ))}
+                    <h3 className="text-lg font-semibold mb-2 text-primary-800">
+                      {publication.title}
+                    </h3>
+                    <p className="text-gray-600 mb-2">{publication.authors}</p>
+                    <p className="text-gray-500 text-sm mb-3">
+                      {publication.journal && `${publication.journal}, `}
+                      {publication.year}
+                    </p>
+                    <Link
+                      to={`/read-publication/${publication.id}`}
+                      className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      Read Paper <ExternalLink className="ml-1 h-4 w-4" />
+                    </Link>
+                  </motion.div>
+                ))
+              )}
             </motion.div>
           </div>
         </div>

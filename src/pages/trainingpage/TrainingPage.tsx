@@ -7,6 +7,7 @@ import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import Accordion from "../../components/common/Accordion";
 import EventsSection from "../../pages/trainingpage/EventsSection";
+import PET123Logo from "../../assets/PET123.png";
 
 const TrainingPage = () => {
   const fadeIn = {
@@ -150,6 +151,19 @@ const TrainingPage = () => {
       <Section id="pet">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
+            <img
+              src="https://images.pexels.com/photos/5327584/pexels-photo-5327584.jpeg?auto=compress&cs=tinysrgb&w=600"
+              alt="Healthcare professionals in training"
+              className="rounded-lg shadow-xl w-full h-auto"
+            />
+          </div>
+
+          <div>
+            <img
+              src={PET123Logo}
+              alt="PET123 Logo"
+              className="mb-4 max-w-[220px] w-full h-auto"
+            />
             <h2 className="text-2xl md:text-3xl font-bold mb-6 text-primary-800">
               Paediatric Epilepsy Training (PET)
             </h2>
@@ -176,14 +190,6 @@ const TrainingPage = () => {
             <Button variant="primary" href="#pet-courses">
               Explore PET Courses
             </Button>
-          </div>
-
-          <div>
-            <img
-              src="https://images.pexels.com/photos/5327584/pexels-photo-5327584.jpeg?auto=compress&cs=tinysrgb&w=600"
-              alt="Healthcare professionals in training"
-              className="rounded-lg shadow-xl w-full h-auto"
-            />
           </div>
         </div>
       </Section>

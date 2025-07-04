@@ -35,7 +35,7 @@ const OurReach = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl font-bold mb-4 text-primary-800">
-           OUR REACH
+           Our Reach
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             EACNA serves the entire East African region with a growing network of professionals.

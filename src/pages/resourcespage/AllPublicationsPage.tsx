@@ -267,7 +267,14 @@ const AllPublicationsPage = () => {
           initial="hidden"
           animate="visible"
         >
-          {filteredPublications.length > 0 ? (
+          {publications.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-xl text-gray-500">
+                There are no publication articles at the moment. Please check
+                back later.
+              </p>
+            </div>
+          ) : filteredPublications.length > 0 ? (
             filteredPublications.map((publication) => (
               <motion.div
                 key={publication.id}
@@ -329,7 +336,7 @@ const AllPublicationsPage = () => {
         </motion.div>
 
         {/* Pagination */}
-        {filteredPublications.length > 0 && (
+        {filteredPublications.length > 0 && publications.length > 0 && (
           <div className="mt-12 flex justify-center">
             <nav className="flex items-center space-x-2">
               <Button variant="outline" size="sm" className="px-3">
