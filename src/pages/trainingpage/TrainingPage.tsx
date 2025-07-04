@@ -8,6 +8,8 @@ import Button from "../../components/common/Button";
 import Accordion from "../../components/common/Accordion";
 import EventsSection from "../../pages/trainingpage/EventsSection";
 import PET123Logo from "../../assets/PET123.png";
+import Training from "../../assets/training.jpg";
+import LaughingAfricanBoy from "../../assets/laughing-african-boy.webp";
 
 const TrainingPage = () => {
   const fadeIn = {
@@ -110,7 +112,10 @@ const TrainingPage = () => {
       <section className="relative bg-secondary-800 text-white">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-secondary-900 to-secondary-700 opacity-90"></div>
-          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5327585/pexels-photo-5327585.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center mix-blend-overlay"></div>
+          <div
+            className="absolute inset-0 bg-cover bg-center mix-blend-overlay"
+            style={{ backgroundImage: `url(${Training})` }}
+          ></div>
         </div>
 
         <div className="container-custom relative py-20 lg:py-28">
@@ -152,8 +157,8 @@ const TrainingPage = () => {
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
             <img
-              src="https://images.pexels.com/photos/5327584/pexels-photo-5327584.jpeg?auto=compress&cs=tinysrgb&w=600"
-              alt="Healthcare professionals in training"
+              src={LaughingAfricanBoy}
+              alt="Laughing African boy"
               className="rounded-lg shadow-xl w-full h-auto"
             />
           </div>

@@ -15,6 +15,9 @@ import Button from "../../components/common/Button";
 import Card, { CardContent } from "../../components/common/Card";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { createClient } from "@supabase/supabase-js";
+import BlackNurse from "../../assets/black-nurse.jpg";
+import BackgroundVideo from "../../assets/background-video.mp4";
+import SpecialistImg from "../../assets/specialist-img.jpg";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -260,11 +263,18 @@ const FindSpecialistPage = () => {
       {/* Hero Section */}
       <section className="relative bg-secondary-800 text-white">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-secondary-900 to-secondary-700 opacity-90"></div>
-          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/7089616/pexels-photo-7089616.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center mix-blend-overlay"></div>
+          {/* Video Background */}
+          <video
+            className="absolute inset-0 w-full h-full object-cover z-0"
+            src={BackgroundVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
         </div>
 
-        <div className="container-custom relative py-20 lg:py-24">
+        <div className="container-custom relative py-20 lg:py-24 z-20">
           <motion.h1
             className="text-3xl md:text-5xl font-bold mb-6 max-w-3xl"
             variants={fadeIn}
@@ -406,7 +416,7 @@ const FindSpecialistPage = () => {
           </div>
 
           {/* Specialists List */}
-          <div id= "specialist-list" className="lg:col-span-3">
+          <div id="specialist-list" className="lg:col-span-3">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-primary-800">
                 Available Specialists
@@ -610,7 +620,10 @@ const FindSpecialistPage = () => {
       <section id="directory" className="relative bg-white text-primary-800">
         {/* Background Image and Overlay */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3938023/pexels-photo-3938023.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center"></div>
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${BlackNurse})` }}
+          ></div>
           <div className="absolute inset-0 bg-black opacity-35"></div>
         </div>
 
@@ -631,13 +644,6 @@ const FindSpecialistPage = () => {
                   Join Our Directory
                 </Button>
               </div>
-            </div>
-            <div className="hidden md:block">
-              <img
-                src="https://images.pexels.com/photos/3938023/pexels-photo-3938023.jpeg?auto=compress&cs=tinysrgb&w=600"
-                alt="Medical professional"
-                className="rounded-lg shadow-lg"
-              />
             </div>
           </div>
         </div>

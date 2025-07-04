@@ -306,7 +306,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
               opacity: 0.8,
             }}
           ></div>
-          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/236380/pexels-photo-236380.jpeg?_gl=1')] bg-cover bg-center mix-blend-overlay"></div>
         </div>
 
         <div className="container-custom relative py-20 lg:py-28">
