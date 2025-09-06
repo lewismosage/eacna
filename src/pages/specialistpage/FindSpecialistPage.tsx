@@ -291,7 +291,7 @@ const FindSpecialistPage = () => {
             animate="visible"
             transition={{ delay: 0.2 }}
           >
-            Connect with pediatric neurology specialists across East Africa for
+            Connect with peadiatric neurology specialists across East Africa for
             consultations, referrals, and collaboration.
           </motion.p>
 
@@ -635,7 +635,7 @@ const FindSpecialistPage = () => {
                 Are You a Specialist?
               </h2>
               <p className="text-lg mb-6 text-white/90">
-                If you're a pediatric neurology specialist or related healthcare
+                If you're a peadiatric neurology specialist or related healthcare
                 professional in East Africa, join our directory to increase your
                 visibility and connect with patients and colleagues.
               </p>

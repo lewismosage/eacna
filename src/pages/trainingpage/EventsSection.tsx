@@ -262,7 +262,7 @@ const EventsSection = () => {
             <p className="text-gray-700 mb-4">
               Our annual conferences bring together experts from across East
               Africa and beyond to share the latest research and best practices
-              in pediatric neurology.
+              in peadiatric neurology.
             </p>
             {conferences.length === 0 ? (
               <div className="text-center py-4">
@@ -320,7 +320,7 @@ const EventsSection = () => {
             </h3>
             <p className="text-gray-700 mb-4">
               Our monthly webinars feature presentations on various topics in
-              pediatric neurology from leading experts in the field.
+              peadiatric neurology from leading experts in the field.
             </p>
 
             {displayedWebinars.length === 0 ? (

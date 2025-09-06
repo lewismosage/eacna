@@ -163,7 +163,7 @@ const AboutPage = () => {
           >
             The East African Child Neurology Association brings together{" "}
             <br></br>
-            professionals dedicated to advancing pediatric neurological care.
+            professionals dedicated to advancing paediatric neurological care.
           </motion.p>
         </div>
 
@@ -196,7 +196,7 @@ const AboutPage = () => {
             </p>
             <p className="text-gray-700 mb-8 leading-relaxed">
               Established in 2022, EACNA serves as the primary professional body
-              for pediatric neurology across Kenya, Uganda, Tanzania, Burundi,
+              for paediatric neurology across Kenya, Uganda, Tanzania, Burundi,
               South Sudan, and Rwanda, working to elevate standards of care
               through education, research, and advocacy.
             </p>
@@ -245,10 +245,10 @@ const AboutPage = () => {
                     <path d="M7 14v.01"></path>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold">Our Vision</h3>
+                <h3 className="text-2xl font-bold">Our Vision </h3>
               </div>
               <p className="leading-relaxed">
-                To be the leading force in transforming pediatric neurological
+                To be the leading force in transforming paediatric neurological
                 care across East Africa, ensuring every child has access to
                 world-class diagnosis, treatment, and support for neurological
                 conditions.
@@ -283,7 +283,7 @@ const AboutPage = () => {
                 <h3 className="text-2xl font-bold">Our Mission</h3>
               </div>
               <p className="leading-relaxed">
-                To advance pediatric neurology in East Africa through
+                To advance paediatric neurology in East Africa through
                 professional development, research, advocacy, and collaboration,
                 while improving access to quality care for children with
                 neurological disorders.
@@ -341,7 +341,7 @@ const AboutPage = () => {
             Our Partners
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            We collaborate with leading organizations to advance pediatric
+            We collaborate with leading organizations to advance paediatric
             neurology in East Africa.
           </p>
         </div>

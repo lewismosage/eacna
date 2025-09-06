@@ -123,7 +123,7 @@ const ResourcesPage = () => {
   const clinicalResources = [
     {
       id: 1,
-      title: "East African Pediatric Neurology Handbook",
+      title: "East African Peadiatric Neurology Handbook",
       type: "Clinical Guide",
       description:
         "A comprehensive guide to diagnosis and management of common pediatric neurological disorders in East Africa.",
@@ -139,7 +139,7 @@ const ResourcesPage = () => {
     },
     {
       id: 3,
-      title: "Pediatric Neurodevelopmental Disorder Assessment Tools",
+      title: "Peadiatric Neurodevelopmental Disorder Assessment Tools",
       type: "Assessment Tools",
       description:
         "Validated assessment tools for screening and diagnosing neurodevelopmental disorders.",
@@ -203,7 +203,7 @@ const ResourcesPage = () => {
             transition={{ delay: 0.2 }}
           >
             Access the latest research, clinical guidelines, educational
-            materials, and publications in pediatric neurology.
+            materials, and publications in peadiatric neurology.
           </motion.p>
         </div>
       </section>
@@ -285,7 +285,7 @@ const ResourcesPage = () => {
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Evidence-based tools and guidelines for clinical practice in
-              pediatric neurology designed for the East African context.
+              peadiatric neurology designed for the East African context.
             </p>
           </div>
 
@@ -362,7 +362,7 @@ const ResourcesPage = () => {
                 <Book className="h-5 w-5 text-primary-600 flex-shrink-0 mt-1 mr-3" />
                 <div>
                   <h3 className="font-semibold">
-                    Pediatric Epilepsy: Diagnosis and Therapy, 4th Edition
+                    Peadiatric Epilepsy: Diagnosis and Therapy, 4th Edition
                   </h3>
                   <p className="text-gray-600 text-sm">
                     John M. Pellock, et al.
@@ -373,7 +373,7 @@ const ResourcesPage = () => {
                 <Book className="h-5 w-5 text-primary-600 flex-shrink-0 mt-1 mr-3" />
                 <div>
                   <h3 className="font-semibold">
-                    Clinical Neurophysiology in Pediatrics
+                    Clinical Neurophysiology in Peadiatrics
                   </h3>
                   <p className="text-gray-600 text-sm">
                     Gloria Galloway, et al.

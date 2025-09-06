@@ -12,11 +12,11 @@ export interface Video {
 export const videos: Video[] = [
   {
     id: 1,
-    title: "Pediatric Seizure Recognition and Management",
+    title: "Peadiatric Seizure Recognition and Management",
     duration: "45 min",
     thumbnail: "https://images.pexels.com/photos/8942991/pexels-photo-8942991.jpeg?auto=compress&cs=tinysrgb&w=600",
     category: "Seizures",
-    description: "Comprehensive guide to recognizing and managing pediatric seizures in various settings.",
+    description: "Comprehensive guide to recognizing and managing peadiatric seizures in various settings.",
     youtubeId: "j5z10be-ApY",
   },
   {
@@ -25,7 +25,7 @@ export const videos: Video[] = [
     duration: "30 min",
     thumbnail: "https://images.pexels.com/photos/4226122/pexels-photo-4226122.jpeg?auto=compress&cs=tinysrgb&w=600",
     category: "Examination",
-    description: "Step-by-step demonstration of pediatric neurological examination techniques.",
+    description: "Step-by-step demonstration of peadiatric neurological examination techniques.",
     youtubeId: "PDeKrM4pkqM",
   },
   {

@@ -16,7 +16,7 @@ const EducationalVideos = () => {
           Educational Videos
         </h2>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Watch instructional videos on various topics in pediatric neurology,
+          Watch instructional videos on various topics in peadiatric neurology,
           created specifically for healthcare professionals in East Africa.
         </p>
       </div>

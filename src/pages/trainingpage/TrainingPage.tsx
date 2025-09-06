@@ -136,7 +136,7 @@ const TrainingPage = () => {
             transition={{ delay: 0.2 }}
           >
             EACNA offers comprehensive training programs and educational events
-            to enhance pediatric neurology expertise across East Africa.
+            to enhance paediatric neurology expertise across East Africa.
           </motion.p>
 
           <motion.div

@@ -182,7 +182,7 @@ const AllPublicationsPage = () => {
             transition={{ delay: 0.2 }}
           >
             Explore the latest research papers, case studies, and publications
-            from EACNA members and partners in the field of pediatric neurology.
+            from EACNA members and partners in the field of peadiatric neurology.
           </motion.p>
         </div>
       </section>
