@@ -48,7 +48,7 @@ const MemberEngagement: React.FC = () => {
         .select("login_at")
         .gte("login_at", startOfWeek.toISOString())
         .lte("login_at", endOfWeek.toISOString())
-        .order("login_at", { ascending: true }); // Important for accurate counting
+        .order("login_at", { ascending: true }); 
 
       if (error) {
         console.error("Supabase error:", {

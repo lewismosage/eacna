@@ -1,9 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ExternalLink, Calendar, Users, BookOpen } from "lucide-react";
 import Section from "../components/common/Section";
 import Button from "../components/common/Button";
-import Card, { CardContent } from "../components/common/Card";
 import heroImg from "../assets/hero.webp";
 import Yvonne from "../assets/Dr. Yvonne Nyakeri.jpg";
 import Sebunya from "../assets/Dr. Sebunya Robert.jpg";
@@ -13,7 +11,6 @@ import supaImg from "../assets/Dr. Supa Tunje.jpg";
 import cateImg from "../assets/Dr. Care Oyieke.jpg";
 import EventsSection from "./EventsSection";
 
-// Animation variants for staggered animations
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -43,7 +40,6 @@ const fadeIn = {
 };
 
 const HomePage = () => {
-  // Leadership Team
   const leaders = [
     {
       id: 1,
@@ -179,7 +175,7 @@ const HomePage = () => {
       <Section
         id="leadership"
         className="py-16 text-white"
-        style={{ backgroundColor: "#6b21a8" }} // Inline fallback
+        style={{ backgroundColor: "#6b21a8" }} 
       >
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">

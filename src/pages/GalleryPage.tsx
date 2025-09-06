@@ -12,7 +12,7 @@ const GalleryPage = () => {
 
   const galleryYears = ["2024", "2023", "2022"];
 
-  // Set the selected year based on URL parameter
+
   useEffect(() => {
     if (year && galleryYears.includes(year)) {
       setSelectedYear(year);
@@ -21,7 +21,6 @@ const GalleryPage = () => {
     }
   }, [year]);
 
-  // Gallery images by year
   const galleryImages = {
     "2024": [
       {

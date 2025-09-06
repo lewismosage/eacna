@@ -5,9 +5,7 @@ import {
   FileText,
   Book,
   Link as LinkIcon,
-  Download,
   ExternalLink,
-  Play,
 } from "lucide-react";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
@@ -75,8 +73,7 @@ const ResourcesPage = () => {
           )
           .eq("status", "published")
           .order("created_at", { ascending: false })
-          .limit(4); // Limit to 4 most recent publications
-
+          .limit(4); 
         if (supabaseError) throw supabaseError;
 
         // Map the data to include the submitter's name

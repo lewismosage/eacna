@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, ArrowRight, MapPin, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { SupabaseClient, createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import Section from "../components/common/Section";
 import Button from "../components/common/Button";
 import Card, { CardContent } from "../components/common/Card";
@@ -37,7 +37,6 @@ const EventsSection = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch training events (only published)
       const { data: eventsData, error: eventsError } = await supabase
         .from("training_events")
         .select("*")

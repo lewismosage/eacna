@@ -1,4 +1,4 @@
-import { FileText, RefreshCw, UserPlus, User, CreditCard } from "lucide-react";
+import { FileText, UserPlus, User, CreditCard } from "lucide-react";
 import Card, { CardContent } from "../../components/common/Card";
 import { createClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
@@ -78,7 +78,7 @@ const RecentActivity = () => {
             type: "member_application",
             title: "New Member Application",
             description: `${app.first_name} ${app.last_name} submitted a membership application`,
-            timestamp: app.application_date, // Using application_date instead of created_at
+            timestamp: app.application_date, 
           });
         }
 

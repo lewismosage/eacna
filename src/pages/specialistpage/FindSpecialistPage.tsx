@@ -6,7 +6,6 @@ import {
   MapPin,
   Phone,
   Mail,
-  ExternalLink,
   Filter,
   Star,
 } from "lucide-react";
@@ -17,7 +16,6 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { createClient } from "@supabase/supabase-js";
 import BlackNurse from "../../assets/black-nurse.jpg";
 import BackgroundVideo from "../../assets/background-video.mp4";
-import SpecialistImg from "../../assets/specialist-img.jpg";
 
 // Initialize Supabase client
 const supabase = createClient(

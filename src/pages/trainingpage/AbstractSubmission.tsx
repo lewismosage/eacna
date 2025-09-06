@@ -1,7 +1,7 @@
 // src/pages/AbstractSubmissionPage.tsx
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Upload, User, Mail, Phone, Building, Calendar } from 'lucide-react';
+import { FileText, Upload, User,  Building, } from 'lucide-react';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
 import { createClient } from '@supabase/supabase-js';

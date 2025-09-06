@@ -27,7 +27,6 @@ import { createClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
 import Card from "../../../components/common/Card";
 import Button from "../../../components/common/Button";
-import Badge from "../../../components/common/Badge";
 import MembershipPieChart from "../../../components/common/MembershipPieChart";
 import { MembershipTier, membershipTiers } from "../../../types/membership";
 
@@ -92,7 +91,7 @@ interface PaymentDetails {
   membership_number: string;
 }
 
-// Add the Payment interface that was missing
+
 interface Payment {
   id: string;
   user_id: string;

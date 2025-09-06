@@ -4,7 +4,6 @@ import {
   Search,
   Filter,
   Play,
-  Clock,
   ArrowLeft,
   AlertCircle,
   X,
@@ -13,7 +12,7 @@ import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import YouTube from "react-youtube";
-import { videos, Video } from "./videos";
+import { videos } from "./videos";
 
 const AllVideosPage = () => {
   const fadeIn = {

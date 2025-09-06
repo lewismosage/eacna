@@ -247,7 +247,7 @@ export default function MembershipRenewalPage() {
           transaction_id: paymentTransactionId,
           amount: amount,
           currency: "KES",
-          payment_method: dbPaymentMethod, // mapped from frontend
+          payment_method: dbPaymentMethod, 
           status: "pending",
           user_id: memberData.user_id,
           first_name: memberData.first_name,

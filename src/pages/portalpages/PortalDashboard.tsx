@@ -2,19 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { debounce } from "lodash";
 import {
-  Users,
-  BookOpen,
-  Bell,
-  Search,
-  ThumbsUp,
-  MessageCircle,
-  Share2,
-  FileText,
-  Award,
-  User,
-  LogOut,
-  Calendar,
-  AlertCircle,
+  Users,BookOpen,Search,ThumbsUp,MessageCircle,Share2,FileText,
+  Award,User,LogOut,Calendar,AlertCircle,
 } from "lucide-react";
 import WritePublication from "./MyPublications";
 import PostsFeed from "./PostsFeed";

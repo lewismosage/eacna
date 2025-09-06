@@ -179,8 +179,7 @@ export function getRelatedContent(item: SearchItem, limit: number = 3): SearchIt
  * @returns Array of suggested search terms
  */
 export function getPopularSearchTerms(limit: number = 5): string[] {
-  // This would ideally come from analytics data
-  // For now, return common terms from the index
+  
   const allKeywords = searchIndex.flatMap(item => item.keywords);
   
   // Get frequency of each keyword

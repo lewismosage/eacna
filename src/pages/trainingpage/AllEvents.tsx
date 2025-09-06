@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight, Search, Filter, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
 import Card, { CardContent } from '../../components/common/Card';

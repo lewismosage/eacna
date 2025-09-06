@@ -356,7 +356,7 @@ export default function NewsletterContent({
             }
           }
 
-          // Final update - set status to 'sent'
+          
           const { error: finalUpdateError } = await supabase
             .from("newsletters")
             .update({

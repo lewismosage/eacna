@@ -1,20 +1,11 @@
 // src/pages/ConferenceArchives.tsx
 import React, { useState, useEffect } from "react";
 import {
-  Calendar,
-  BookOpen,
-  MapPin,
-  Users,
-  Download,
-  Search,
-  ArrowLeft,
-  ExternalLink,
-  ImageIcon,
-} from "lucide-react";
+  Calendar,BookOpen,MapPin,Users,Download, Search, ArrowLeft, ExternalLink, ImageIcon,} from "lucide-react";
 import { Link } from "react-router-dom";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
-import { SupabaseClient, createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
 interface Conference {
   id: number;

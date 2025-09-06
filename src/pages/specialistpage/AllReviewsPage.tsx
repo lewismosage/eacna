@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, } from "react-router-dom";
 import {
-  ArrowLeft,
   Star,
   ChevronLeft,
   ChevronRight,
@@ -9,7 +8,6 @@ import {
   Search,
 } from "lucide-react";
 import Section from "../../components/common/Section";
-import Button from "../../components/common/Button";
 import Card, { CardContent } from "../../components/common/Card";
 import { createClient } from "@supabase/supabase-js";
 
@@ -105,12 +103,12 @@ const AllReviewsPage = () => {
 
   const handleRatingFilter = (rating: number | null) => {
     setRatingFilter(rating);
-    setCurrentPage(1); // Reset to first page when changing filters
+    setCurrentPage(1); 
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1); 
   };
 
   if (isLoading && currentPage === 1) {

@@ -5,16 +5,11 @@ import {
   Calendar,
   Users,
   FileText,
-  Mail,
   Settings,
   LogOut,
   Bell,
   MessageSquare,
   UserPlus,
-  RefreshCw,
-  Send,
-  CheckCircle,
-  BookOpen,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -84,7 +79,6 @@ const AdminLayout = () => {
   ];
 
   const handleLogout = () => {
-    // Add logout logic here
     navigate("/admin/login");
   };
 
@@ -113,7 +107,7 @@ const AdminLayout = () => {
     return false;
   };
 
-  // Example loading state (replace with your actual loading logic)
+  
   const [loading, setLoading] = useState(false);
 
   return (

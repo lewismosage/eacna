@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, Upload, Award, Clock, Users } from "lucide-react";
+import { CheckCircle, Upload, Award, Clock,} from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
 // Initialize Supabase client

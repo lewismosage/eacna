@@ -179,12 +179,11 @@ const AnnualMeetings: React.FC<AnnualMeetingsProps> = ({ supabase }) => {
       const fileExt = imageFile.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
 
-      // Changed path structure - remove 'public/' prefix
       const filePath = `conferences/${fileName}`;
 
       // Upload with public ACL
       const { data, error } = await supabase.storage
-        .from("webinar-assets") // Must match your bucket name exactly
+        .from("webinar-assets") 
         .upload(filePath, imageFile, {
           cacheControl: "3600",
           upsert: false,
@@ -433,7 +432,7 @@ const AnnualMeetings: React.FC<AnnualMeetingsProps> = ({ supabase }) => {
   };
 
   const formatConferenceDate = (dateString: string) => {
-    return dateString; // Assuming dates are already formatted as "December 5-7, 2023"
+    return dateString; 
   };
 
   const removeImage = () => {

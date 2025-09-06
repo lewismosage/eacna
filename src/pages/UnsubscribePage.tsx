@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Mail, Check, X, AlertCircle, ArrowLeft, ChevronLeft, MessageSquareX } from 'lucide-react';
+import { Mail, Check, AlertCircle,ChevronLeft, MessageSquareX } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Loading spinner component
+
 const LoadingSpinner = () => (
   <div className="animate-spin h-5 w-5">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -25,7 +25,6 @@ export default function UnsubscribePage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'already-unsubscribed'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Check for email in query parameters
   useEffect(() => {
     const emailParam = searchParams.get('email');
     if (emailParam) {
@@ -77,7 +76,6 @@ export default function UnsubscribePage() {
   setStatus('loading');
 
   try {
-    // First check if the email exists
     const { data: subscriber, error: lookupError } = await supabase
       .from('subscribers')
       .select('id, email, name, is_active')
@@ -97,7 +95,7 @@ export default function UnsubscribePage() {
       return;
     }
 
-    // Update the subscriber record - this is the critical change
+    
     const { error: updateError } = await supabase
       .from('subscribers')
       .update({ 
@@ -105,7 +103,7 @@ export default function UnsubscribePage() {
         unsubscribed_at: new Date().toISOString()
       })
       .eq('email', email)
-      .select(); // Add this to get the updated record
+      .select(); 
 
     if (updateError) throw updateError;
 

@@ -3,8 +3,6 @@ import { motion } from "framer-motion";
 import {
   Search,
   Filter,
-  ExternalLink,
-  Download,
   BookOpen,
   ArrowLeft,
   AlertCircle,

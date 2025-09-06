@@ -27,7 +27,6 @@ function ResetPassword() {
     const token = searchParams.get("token");
 
     if (type === "recovery" && token) {
-      // The link is valid, we'll verify it when the form is submitted
       setValidLink(true);
     } else {
       setError("Invalid reset link. Please use the link from your email.");

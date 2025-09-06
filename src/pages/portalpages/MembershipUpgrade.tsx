@@ -3,7 +3,6 @@ import {
   Clock,
   Calendar,
   ArrowRight,
-  RefreshCw,
   CheckCircle,
   Loader2,
   BadgeCheck,
@@ -225,7 +224,7 @@ const MembershipUpgrade = ({
 
       // Show success message after a brief delay
       setTimeout(() => {
-        setStep(4); // Move to success step
+        setStep(4); 
       }, 1000);
     } catch (error) {
       console.error("Error submitting payment:", error);

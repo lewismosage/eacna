@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Button from "../../components/common/Button";
 import Card, { CardContent } from "../../components/common/Card";
 import { Star } from "lucide-react";

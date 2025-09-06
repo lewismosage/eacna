@@ -13,7 +13,6 @@ import {
   Loader2,
   Mail,
   FileText,
-  ShieldCheck,
 } from "lucide-react";
 import Card, { CardContent } from "../../../components/common/Card";
 import Button from "../../../components/common/Button";

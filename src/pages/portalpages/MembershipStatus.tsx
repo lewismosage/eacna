@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Award, Clock, Calendar, ChevronRight, Loader2 } from 'lucide-react';
+import { Award, Clock, Calendar,} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import CertificateSection from './CertificateSection';

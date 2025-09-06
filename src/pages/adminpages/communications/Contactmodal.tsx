@@ -13,7 +13,6 @@ import {
 import { SupabaseClient } from "@supabase/supabase-js";
 import { getEmailTemplateHTML } from "../../../components/common/EmailTemplate";
 
-// Add this interface for Brevo response
 interface BrevoResponse {
   messageId?: string;
   error?: string;
@@ -205,7 +204,7 @@ export default function ContactModal({
     type: "info",
   });
 
-  // Helper function to show alerts
+  
   const showAlert = (
     title: string,
     message: string,

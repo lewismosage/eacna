@@ -4,7 +4,6 @@ import {
   Search,
   Filter,
   Download,
-  Eye,
   Check,
   X,
   ArrowUpDown,
@@ -13,7 +12,6 @@ import {
   Loader2,
   Mail,
   CreditCard,
-  FileText,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import AlertModal from "../../../components/common/AlertModal";

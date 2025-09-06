@@ -2,7 +2,7 @@
 import React from "react";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, FileText, Download } from "lucide-react";
+import { Calendar, FileText } from "lucide-react";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import Accordion from "../../components/common/Accordion";

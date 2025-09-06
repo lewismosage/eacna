@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Save,
-  FileText,
   Upload,
   Plus,
   Trash2,
@@ -386,8 +385,8 @@ const WritePublications = () => {
           references: references.filter((ref) => ref.trim()),
         },
         user.id,
-        true, // Is draft
-        id // Pass the ID if editing
+        true, 
+        id 
       );
 
       console.log("Draft saved:", savedPublication);

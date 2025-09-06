@@ -1,5 +1,5 @@
 // components/common/MemberSearchModal.tsx
-import { Search, X, AlertCircle, Loader2 } from "lucide-react";
+import { X, AlertCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 interface MemberSearchModalProps {

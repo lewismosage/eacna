@@ -2,12 +2,7 @@
 import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import {
-  CheckCircle,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  MailCheck,
-  Upload,
+  CheckCircle,AlertCircle,Eye,EyeOff,MailCheck,Upload,
 } from "lucide-react";
 import Card, { CardContent } from "../../components/common/Card";
 import Button from "../../components/common/Button";

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Video, Search, Filter, Play, Clock, ArrowLeft, Download, ExternalLink } from 'lucide-react';
+import { Calendar, Video, Search, Filter, Clock, ArrowLeft,} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { format } from 'date-fns';
 
 // Initialize Supabase client

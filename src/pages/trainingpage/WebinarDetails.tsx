@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Video, Clock, Users, Tag, ArrowLeft, Check, AlertCircle, X, Link as LinkIcon } from 'lucide-react';
+import { Calendar, Video, Clock, Users, Tag, ArrowLeft, Check,  X,} from 'lucide-react';
 import { format } from 'date-fns';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import Section from '../../components/common/Section';
 import Button from '../../components/common/Button';
 import LoadingSpinner from '../../components/common/LoadingSpinner';

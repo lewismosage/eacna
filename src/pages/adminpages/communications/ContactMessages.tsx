@@ -6,7 +6,6 @@ import Card from "../../../components/common/Card";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import AlertModal from "../../../components/common/AlertModal";
 
-// Define the type for a message
 interface Message {
   id: string;
   name: string;

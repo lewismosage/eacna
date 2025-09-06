@@ -1,15 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  ThumbsUp,
-  MessageCircle,
-  Share2,
-  FileText,
-  MoreHorizontal,
-  Copy,
-  Mail,
-  X,
-  Edit,
-  Trash2,
+  ThumbsUp,MessageCircle,Share2,
+  FileText,MoreHorizontal,Copy,Mail,X,Edit,Trash2,
 } from "lucide-react";
 import Avatar from "./Avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -78,13 +70,11 @@ const Post = ({
 
   const handleEditPost = () => {
     setIsMenuOpen(false);
-    // TODO: Implement edit functionality
     console.log("Edit post:", post.id);
   };
 
   const handleDeletePost = () => {
     setIsMenuOpen(false);
-    // TODO: Implement delete functionality
     console.log("Delete post:", post.id);
   };
 

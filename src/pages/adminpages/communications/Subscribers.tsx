@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Mail,
   User,
   Trash2,
   Download,
@@ -16,8 +15,8 @@ import AlertModal from "../../../components/common/AlertModal";
 interface Subscriber {
   id: string;
   email: string;
-  name: string; // changed from full_name to match your table schema
-  subscribed_at: string; // changed from created_at to match your table schema
+  name: string; 
+  subscribed_at: string; 
   is_active?: boolean;
 }
 

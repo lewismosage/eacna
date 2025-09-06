@@ -1,22 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  ArrowLeft,
-  MapPin,
-  Calendar,
-  Phone,
-  Mail,
-  Star,
-  Clock,
-  Users,
-  Award,
-  CheckCircle,
-  User,
-  Info,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-} from "lucide-react";
+  ArrowLeft,MapPin,Calendar,Phone,Mail,Star,
+  Clock,Users,Award,CheckCircle,User,Info,
+  ChevronDown,ChevronUp,AlertCircle,} from "lucide-react";
 import Section from "../../components/common/Section";
 import Button from "../../components/common/Button";
 import Card, { CardContent } from "../../components/common/Card";
@@ -687,7 +674,6 @@ const SpecialistProfileView = () => {
                 <ReviewForm
                   specialistId={specialist.id}
                   onReviewSubmitted={() => {
-                    // Refresh reviews after submission
                     fetchSpecialist();
                   }}
                 />

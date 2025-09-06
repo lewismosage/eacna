@@ -7,7 +7,6 @@ import {
   Video,
   User,
   Mail,
-  Phone,
   Building,
   Search,
   Download,
@@ -15,7 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { SupabaseClient, createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import Section from "../../../components/common/Section";
 import Button from "../../../components/common/Button";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
@@ -588,15 +587,15 @@ const SubmissionsDashboard = () => {
                                       // Get the download URL
                                       const { data, error } =
                                         await supabase.storage
-                                          .from("abstract_files") // Make sure this matches your bucket name exactly
+                                          .from("abstract_files") 
                                           .download(abstract.file_path!);
 
                                       if (error) throw error;
 
-                                      // Create a temporary URL for the blob
+                                      //temporary URL for the blob
                                       const url = URL.createObjectURL(data);
 
-                                      // Create a temporary anchor element to trigger download
+                                      
                                       const a = document.createElement("a");
                                       a.href = url;
                                       a.download = fileName || "abstract_file";

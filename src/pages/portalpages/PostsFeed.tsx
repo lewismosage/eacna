@@ -162,7 +162,7 @@ const PostsFeed = ({ user, searchQuery = "" }: PostsFeedProps) => {
       }
 
       const { error } = await supabase.from("reactions").upsert({
-        user_id: memberData.user_id, // Use the UUID
+        user_id: memberData.user_id, 
         post_id: postId,
       });
 

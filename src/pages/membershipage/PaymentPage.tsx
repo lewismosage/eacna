@@ -2,9 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Search,
   ArrowRight,
-  RefreshCw,
-  ArrowUpRight,
-  X,
   AlertCircle,
   CheckCircle,
   Loader2,
