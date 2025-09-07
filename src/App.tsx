@@ -66,6 +66,7 @@ import AnnualMeetings from "./pages/adminpages/events/AnnualMeetings";
 import TrainingEvents from "./pages/adminpages/events/TrainingEvents";
 import Webinars from "./pages/adminpages/events/Webinars";
 import AbtractSubmissions from "./pages/adminpages/events/Submissions";
+import Gallery from "./pages/adminpages/events/Gallery"
 
 // Route protection
 import ProtectedRoute from "./components/protectedroute/ProtectedRoute";
@@ -138,8 +139,8 @@ function App() {
           <Route path="training" element={<TrainingPage />} />
           <Route path="membership" element={<MembershipPage />} />
           <Route path="resources" element={<ResourcesPage />} />
-          <Route path="gallery" element={<GalleryPage />} />
-          <Route path="gallery/:year" element={<GalleryPage />} />
+          <Route path="gallery" element={<GalleryPage supabase={supabase} />} />
+          <Route path="gallery/:year" element={<GalleryPage supabase={supabase} />} />
           <Route path="find-specialist" element={<FindSpecialistPage />} />
           <Route path="specialist/:id" element={<SpecialistProfilePage />} />
           <Route path="contact" element={<ContactPage />} />
@@ -223,6 +224,7 @@ function App() {
             <Route path="publications/review" element={<PublicationReview />} />
             <Route path="publications/published" element={<PublishedArticles />} />
             <Route path="events/abstracts" element={<AbtractSubmissions />} />
+            <Route path="events/gallery" element={<Gallery  supabase={supabase} />} />
           </Route>
 
           <Route path="unsubscribe" element={<UnsubscribePage />} />

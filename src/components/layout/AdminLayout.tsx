@@ -14,7 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import eacnaLogo from "../../assets/eacnaLogo.jpg"; // Assuming the logo is in src/assets
+import eacnaLogo from "../../assets/eacnaLogo.jpg"; 
 
 const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -35,6 +35,7 @@ const AdminLayout = () => {
         { name: "Annual Meetings", href: "/admin/events/meetings" },
         { name: "Webinars", href: "/admin/events/webinars" },
         { name: "Submissions", href: "/admin/events/abstracts" },
+        { name: "Gallery", href: "/admin/events/gallery" },
       ],
     },
     {
@@ -75,7 +76,6 @@ const AdminLayout = () => {
         { name: "Subscribers", href: "/admin/communications/subscribers" },
       ],
     },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
   const handleLogout = () => {
