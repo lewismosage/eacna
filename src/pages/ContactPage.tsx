@@ -150,10 +150,10 @@ const ContactPage = () => {
                       </h3>
                       <p className="mt-1 text-gray-600">
                         <a
-                          href="mailto:info@eacna.org"
+                          href="mailto:admin@eachildneuro.org"
                           className="text-primary-600 hover:underline"
                         >
-                          info@eacna.co.ke
+                          admin@eachildneuro.org
                         </a>
                       </p>
                     </div>

@@ -114,7 +114,7 @@ const Footer = () => {
                 className="text-primary-200 hover:text-white transition-colors"
                 aria-label="X"
               >
-                {/* X icon (formerly Twitter) */}
+                {/* X icon */}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -211,7 +211,7 @@ const Footer = () => {
               </li>
               <li className="flex">
                 <Mail className="h-5 w-5 mr-2 text-primary-300 flex-shrink-0 mt-0.5" />
-                <span className="text-primary-100">info@eacna.co.ke</span>
+                <span className="text-primary-100">admin@eachildneuro.org</span>
               </li>
               <li className="flex">
                 <Phone className="h-5 w-5 mr-2 text-primary-300 flex-shrink-0 mt-0.5" />
