@@ -157,7 +157,7 @@ const CookiePolicy = () => {
               Avenue Suites
               6th Floor, Suite 8<br />
               Nairobi, Kenya<br />
-              Email: info@eacna.co.ke<br />
+              Email: admin@eachildneuro.org<br />
               Phone: +254 700 123 456
             </address>
           </section>

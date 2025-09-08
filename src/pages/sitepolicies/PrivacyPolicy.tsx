@@ -156,7 +156,7 @@ const PrivacyPolicy = () => {
               <li>Right to withdraw consent</li>
             </ul>
             <p className="mt-4">
-              To exercise these rights, please contact us at privacy@pedneurodirectory.org.
+              To exercise these rights, please contact us at admin@eachildneuro.org.
             </p>
           </section>
 
@@ -177,7 +177,7 @@ const PrivacyPolicy = () => {
               Avenue Suites
               6th Floor, Suite 8<br />
               Nairobi, Kenya<br />
-              Email: info@eacna.co.ke<br />
+              Email: admin@eachildneuro.org<br />
               Phone: +254 700 123 456
             </address>
           </section>

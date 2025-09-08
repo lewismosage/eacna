@@ -69,7 +69,7 @@ const AbstractGuidelines = forwardRef<HTMLDivElement>((props, ref) => (
           </p>
           <div className="bg-primary-50 border border-primary-100 rounded-lg p-4 print:bg-transparent print:border-0">
             <p className="font-medium text-primary-800 print:text-gray-900">EACNA Scientific Committee</p>
-            <p className="text-primary-700 print:text-gray-700">Email: abstracts@eacna.org</p>
+            <p className="text-primary-700 print:text-gray-700">Email: admin@eachildneuro.org</p>
             <p className="text-primary-700 print:text-gray-700">Phone: +254 700 123 456</p>
           </div>
         </div>
@@ -77,7 +77,7 @@ const AbstractGuidelines = forwardRef<HTMLDivElement>((props, ref) => (
         {/* Footer for print */}
         <div className="mt-12 pt-4 border-t border-gray-200 text-center text-sm text-gray-500 print:mt-16">
           <p>EACNA - East African Child Neurology Association</p>
-          <p>www.eacna.org | info@eacna.org</p>
+          <p>www.eachildneuro.org | admin@eachildneuro.org</p>
           <p className="mt-2">Document generated on: {new Date().toLocaleDateString()}</p>
         </div>
       </div>

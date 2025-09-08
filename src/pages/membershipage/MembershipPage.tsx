@@ -707,7 +707,7 @@ const MembershipPage = ({ setShowPaymentModal }: MembershipPageProps) => {
         </div>
         <div className="text-center mt-12">
           <p className="text-gray-600 mb-4">Need more information?</p>
-          <Button variant="outline" href="mailto:admin@eacna.co.ke">
+          <Button variant="outline" href="mailto:admin@eachildneuro.org">
             Contact Membership Services
           </Button>
         </div>
