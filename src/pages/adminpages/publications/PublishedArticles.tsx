@@ -19,7 +19,7 @@ import Card from "../../../components/common/Card";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
 
-// Initialize Supabase client
+
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_KEY

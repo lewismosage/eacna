@@ -19,7 +19,7 @@ import Card from "../../../components/common/Card";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import AlertModal from "../../../components/common/AlertModal";
 
-// Add this interface for Brevo response
+
 interface BrevoResponse {
   messageId?: string;
   error?: string;

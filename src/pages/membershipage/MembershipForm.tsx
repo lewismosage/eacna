@@ -9,8 +9,7 @@ import Button from "../../components/common/Button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import {
-  MembershipTier,
-  membershipTiers as tierData,
+  MembershipTier, membershipTiers as tierData,
 } from "../../types/membership";
 
 type FormData = {

@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { X, ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
 import { useParams } from "react-router-dom";
 import Section from "../components/common/Section";
-import Button from "../components/common/Button";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 interface GalleryImage {

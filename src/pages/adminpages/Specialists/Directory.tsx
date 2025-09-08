@@ -12,7 +12,6 @@ import {
   Phone,
   Check,
   X,
-  Eye,
 } from "lucide-react";
 import { SupabaseClient } from "@supabase/supabase-js";
 import Card from "../../../components/common/Card";

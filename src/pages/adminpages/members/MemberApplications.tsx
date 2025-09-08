@@ -21,7 +21,6 @@ import AlertModal from "../../../components/common/AlertModal";
 import Badge from "../.././../components/common/Badge";
 import { format } from "date-fns";
 
-// Add this interface for Brevo response
 interface BrevoResponse {
   messageId?: string;
   error?: string;
@@ -66,7 +65,6 @@ const sendEmailViaBrevo = async (
 
 type ApplicationStatus = "pending" | "approved" | "rejected";
 
-// Initialize Supabase client
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_KEY

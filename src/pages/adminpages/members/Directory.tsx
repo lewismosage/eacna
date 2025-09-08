@@ -5,8 +5,6 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
-  MoreHorizontal,
-  FileText,
   UserPlus,
   X,
   Check,
@@ -15,12 +13,6 @@ import {
   User,
   Briefcase,
   CreditCard,
-  Calendar,
-  Flag,
-  MapPin,
-  BookOpen,
-  GraduationCap,
-  Building,
   RefreshCw,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";

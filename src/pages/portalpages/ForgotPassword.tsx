@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react'; // Added useEffect import
+import { useState, FormEvent, useEffect } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';

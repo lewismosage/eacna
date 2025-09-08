@@ -24,7 +24,7 @@ import {
   membershipTiers as tierData,
 } from "../../../types/membership";
 
-// Add this interface for Brevo response
+
 interface BrevoResponse {
   messageId?: string;
   error?: string;

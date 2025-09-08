@@ -18,7 +18,6 @@ import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import AlertModal from "../../../components/common/AlertModal";
 import { getEmailTemplateHTML } from "../../../components/common/EmailTemplate";
 
-// Add this interface for Brevo response
 interface BrevoResponse {
   messageId?: string;
   error?: string;

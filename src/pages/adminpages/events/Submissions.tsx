@@ -21,7 +21,7 @@ import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import AlertModal from "../../../components/common/AlertModal";
 import { format } from "date-fns";
 
-// Initialize Supabase client
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -52,7 +52,6 @@ export default function GalleryContent({ supabase }: GalleryContentProps) {
   useEffect(() => {
     fetchImages();
     fetchAvailableYears();
-    // eslint-disable-next-line
   }, [page, perPage]);
 
   const fetchImages = async () => {

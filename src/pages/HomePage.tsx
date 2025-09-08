@@ -11,33 +11,7 @@ import supaImg from "../assets/Dr. Supa Tunje.jpg";
 import cateImg from "../assets/Dr. Care Oyieke.jpg";
 import EventsSection from "./EventsSection";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.3,
-    },
-  },
-};
 
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { duration: 0.5 },
-  },
-};
-
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { duration: 0.5 },
-  },
-};
 
 const HomePage = () => {
   const leaders = [
@@ -46,42 +20,36 @@ const HomePage = () => {
       name: "Dr. Yvonne Nyakeri",
       position: "Chairperson",
       image: Yvonne,
-      //bio: "Pediatric Neurologist with over 15 years of experience specializing in epilepsy management in children.",
     },
     {
       id: 2,
       name: "Dr. Sebunya Robert",
       position: "Vice Chairperson",
       image: Sebunya,
-      //bio: "Clinical researcher focused on neurodevelopmental disorders in East African children.",
     },
     {
       id: 3,
       name: "Dr. Ann Kamunya",
       position: "Secretary",
       image: annImg,
-      //bio: "Specialist in pediatric neuromuscular disorders and advocacy for children with neurological disabilities.",
     },
     {
       id: 4,
       name: "Dr. Maureen Njoroge",
       position: "Vice Secretary",
       image: maureenImg,
-      //bio: "Neurologist with expertise in neurorehabilitation and policy development for child neurological care.",
     },
     {
       id: 5,
       name: "Dr. Supa Tunje",
       position: "Treasurer",
       image: supaImg,
-      //bio: "Neurologist with expertise in neurorehabilitation and policy development for child neurological care.",
     },
     {
       id: 6,
       name: "Dr. Katherine Oyieke",
       position: "Vice Treasurer",
       image: cateImg,
-      //bio: "Neurologist with expertise in neurorehabilitation and policy development for child neurological care.",
     },
   ];
 

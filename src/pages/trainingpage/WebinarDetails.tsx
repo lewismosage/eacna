@@ -150,8 +150,6 @@ const WebinarDetails = () => {
     setRegistrationSuccess(true);
     setShowRegistrationForm(false);
     
-    // Optionally send confirmation email
-    // await sendConfirmationEmail(formData.email, webinar.title);
     
   } catch (err) {
     console.error("Error submitting registration:", err);
