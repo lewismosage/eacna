@@ -13,10 +13,16 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import Card from "../../../components/common/Card";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import AlertModal from "../../../components/common/AlertModal";
 import { getEmailTemplateHTML } from "../../../components/common/EmailTemplate";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
+);
 
 interface BrevoResponse {
   messageId?: string;
@@ -32,7 +38,7 @@ const sendEmailViaBrevo = async (
 ): Promise<BrevoResponse> => {
   try {
     const response = await fetch(
-      "https://jajnicjmctsqgxcbgpmd.supabase.co/functions/v1/send-email",
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`,
       {
         method: "POST",
         headers: {
@@ -44,6 +50,7 @@ const sendEmailViaBrevo = async (
           subject: subject,
           htmlContent: htmlContent,
           senderName: senderName,
+          recipientName: recipientName,
         }),
       }
     );
@@ -56,8 +63,59 @@ const sendEmailViaBrevo = async (
     return await response.json();
   } catch (error) {
     console.error("Brevo API error:", error);
+    
+    try {
+      await supabase
+        .from('email_logs')
+        .insert({
+          recipient_email: recipientEmail,
+          recipient_name: recipientName,
+          subject: subject,
+          service: 'brevo',
+          status: 'failed',
+          error_message: error instanceof Error ? error.message : String(error),
+        });
+    } catch (logError) {
+      console.error('Failed to log email error:', logError);
+    }
+    
     throw error;
   }
+};
+
+const sendEmailWithRetry = async (
+  recipientName: string,
+  recipientEmail: string,
+  subject: string,
+  htmlContent: string,
+  senderName = "EACNA",
+  maxRetries = 3
+): Promise<BrevoResponse> => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await sendEmailViaBrevo(
+        recipientName,
+        recipientEmail,
+        subject,
+        htmlContent,
+        senderName
+      );
+      
+      return result;
+    } catch (error) {
+      lastError = error;
+      console.warn(`Attempt ${attempt} failed:`, error);
+      
+      // Wait before retrying (exponential backoff)
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  
+  throw lastError;
 };
 
 interface NewsletterContentProps {
