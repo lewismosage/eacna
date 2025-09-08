@@ -78,7 +78,7 @@ const HomePage = () => {
     },
     {
       id: 6,
-      name: "Dr. Catherine Oyieke",
+      name: "Dr. Katherine Oyieke",
       position: "Vice Treasurer",
       image: cateImg,
       //bio: "Neurologist with expertise in neurorehabilitation and policy development for child neurological care.",

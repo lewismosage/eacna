@@ -6,7 +6,7 @@ import Card, { CardContent } from "../../components/common/Card";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_KEY
+  import.meta.env.VITE_SUPABASE_KEY 
 );
 
 function ResetPassword() {

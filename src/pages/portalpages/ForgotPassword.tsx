@@ -1,6 +1,6 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react'; // Added useEffect import
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import Card, { CardContent } from '../../components/common/Card';
 
@@ -14,7 +14,23 @@ function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [rateLimitTime, setRateLimitTime] = useState(0);
   const navigate = useNavigate();
+
+  // Countdown timer for rate limiting
+  const [timeLeft, setTimeLeft] = useState(rateLimitTime * 60);
+  
+  useEffect(() => {
+    if (rateLimited && timeLeft > 0) {
+      const timer = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0) {
+      setRateLimited(false);
+    }
+  }, [rateLimited, timeLeft]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,27 +41,55 @@ function ForgotPassword() {
       return;
     }
 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (resetError) {
+        console.error('Password reset error:', resetError);
+        
+        // Handle specific error cases
+        if (resetError.message.includes('email')) {
+          throw new Error('No account found with this email address');
+        } else if (resetError.message.includes('rate limit')) {
+          // Set rate limit state and calculate wait time
+          setRateLimited(true);
+          setRateLimitTime(60); // 60 minutes wait
+          setTimeLeft(60 * 60); // Convert to seconds
+          throw new Error('Too many attempts. Please try again in about an hour.');
+        } else {
+          throw resetError;
+        }
+      }
 
       setSuccess(true);
+      setRateLimited(false);
     } catch (err) {
+      console.error('Error in password reset:', err);
       setError(
         err instanceof Error 
-          ? err.message.includes('not found')
-            ? 'No account found with this email address'
-            : err.message
-          : 'An unexpected error occurred'
+          ? err.message
+          : 'An unexpected error occurred. Please try again later.'
       );
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
   return (
@@ -62,7 +106,15 @@ function ForgotPassword() {
           {error && (
             <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start">
               <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+              <div>
+                <p className="text-sm text-red-700 font-medium">{error}</p>
+                {rateLimited && timeLeft > 0 && (
+                  <p className="text-sm text-red-700 mt-1 flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    Time remaining: {formatTime(timeLeft)}
+                  </p>
+                )}
+              </div>
             </div>
           )}
           
@@ -70,9 +122,14 @@ function ForgotPassword() {
             <div className="space-y-6">
               <div className="mb-6 p-4 bg-green-50 rounded-lg flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                <p className="text-sm text-green-700">
-                  Password reset link sent! Check your email for instructions.
-                </p>
+                <div>
+                  <p className="text-sm text-green-700 font-medium">
+                    Password reset link sent!
+                  </p>
+                  <p className="text-sm text-green-700 mt-1">
+                    Check your email for instructions. If you don't see it, check your spam folder.
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => navigate('/login')}
@@ -96,10 +153,12 @@ function ForgotPassword() {
                     name="email"
                     type="email"
                     required
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50"
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    disabled={rateLimited && timeLeft > 0}
                   />
                 </div>
               </div>
@@ -107,7 +166,7 @@ function ForgotPassword() {
               <div>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (rateLimited && timeLeft > 0)}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
@@ -118,7 +177,11 @@ function ForgotPassword() {
                       </svg>
                       Sending...
                     </>
-                  ) : 'Send Reset Link'}
+                  ) : rateLimited && timeLeft > 0 ? (
+                    `Try again in ${formatTime(timeLeft)}`
+                  ) : (
+                    'Send Reset Link'
+                  )}
                 </button>
               </div>
               
