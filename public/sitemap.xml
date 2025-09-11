@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <!-- Homepage -->
+  <url>
+    <loc>https://www.eachildneuro.org/</loc>
+    <lastmod>2025-09-08T10:00:20+00:00</lastmod>
+  </url>
+
+  <!-- About page -->
+  <url>
+    <loc>https://www.eachildneuro.org/about</loc>
+    <lastmod>2025-09-08T10:00:20+00:00</lastmod>
+  </url>
+
+  <!-- Membership page -->
+  <url>
+    <loc>https://www.eachildneuro.org/membership</loc>
+    <lastmod>2025-09-08T10:00:20+00:00</lastmod>
+  </url>
+
+  <!-- Events page -->
+  <url>
+    <loc>https://www.eachildneuro.org/events</loc>
+    <lastmod>2025-09-08T10:00:20+00:00</lastmod>
+  </url>
+
+  <!-- Contact page -->
+  <url>
+    <loc>https://www.eachildneuro.org/contact</loc>
+    <lastmod>2025-09-08T10:00:20+00:00</lastmod>
+  </url>
+</urlset>
