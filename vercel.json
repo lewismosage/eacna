@@ -2,6 +2,12 @@
   "redirects": [
     {
       "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "eacna.vercel.app"
+        }
+      ],
       "destination": "https://eachildneuro.org/$1",
       "permanent": true
     }
